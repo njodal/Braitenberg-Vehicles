@@ -4,7 +4,8 @@ It reads the simulation state and draws it; user interaction (dragging sources,
 pausing, resetting) changes only the running simulation, never the world file.
 
 Keys: space pause/resume, right arrow step (when paused), R reset, T trail,
-Tab next stimulus, +/- simulation speed, Esc quit. Drag sources with the mouse.
+Tab next stimulus, +/- simulation speed, Esc quit. Drag sources with the mouse;
+click a vehicle to show it in the diagram panel (specs/vehicle-diagram.md).
 """
 
 from __future__ import annotations
@@ -16,9 +17,11 @@ import numpy as np
 import pygame
 
 from braitenberg.sim import Simulation
+from braitenberg.vehicle import Diagram
 from braitenberg.world import Source, World
 
 MAX_WINDOW_SIDE = 720
+PANEL_WIDTH = 300
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
 SOURCE_RADIUS = 7
@@ -35,6 +38,13 @@ VEHICLE_FILL = (245, 245, 245)
 VEHICLE_OUTLINE = (20, 20, 20)
 SOURCE_FILL = (255, 255, 255)
 TEXT = (235, 235, 235)
+SELECTED_RING = (120, 220, 255)
+PANEL_BG = (22, 24, 34)
+PANEL_BORDER = (60, 64, 84)
+PANEL_DIM = (150, 155, 175)
+BODY_OUTLINE = (180, 185, 205)
+WIRE_OFF = (60, 64, 90)
+WIRE_ON = (255, 230, 140)
 
 
 def heat_colors(values: np.ndarray) -> np.ndarray:
@@ -51,6 +61,7 @@ class Renderer:
         arena = world.arena
         self.scale = MAX_WINDOW_SIDE / max(arena.width, arena.height)
         self.size = (round(arena.width * self.scale), round(arena.height * self.scale))
+        self.window_size = (self.size[0] + PANEL_WIDTH, self.size[1])
         self.stimulus_names = list(world.stimuli)
         first_sensor = world.vehicles[0].sensor if world.vehicles else None
         self.stimulus_index = (self.stimulus_names.index(first_sensor)
@@ -59,7 +70,9 @@ class Renderer:
         self.paused = False
         self.steps_per_frame = 1
         self.dragging: tuple[str, int] | None = None
+        self.selected = 0
         self.font = pygame.font.Font(None, 20)
+        self.title_font = pygame.font.Font(None, 26)
         self.reset()
 
     # --- state ---
@@ -69,6 +82,8 @@ class Renderer:
         self.trails = [deque(maxlen=TRAIL_LENGTH) for _ in self.sim.vehicles]
         self.record_trails()
         self.heatmap = None
+        if self.selected >= len(self.sim.vehicles):
+            self.selected = 0
 
     def advance(self, steps: int) -> None:
         for _ in range(steps):
@@ -117,6 +132,10 @@ class Renderer:
                 self.steps_per_frame = max(self.steps_per_frame // 2, 1)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self.dragging = self.source_at(event.pos)
+            if self.dragging is None:
+                picked = self.vehicle_at(event.pos)
+                if picked is not None:
+                    self.selected = picked
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.dragging = None
         elif event.type == pygame.MOUSEMOTION and self.dragging:
@@ -137,6 +156,17 @@ class Renderer:
                     return name, i
         return None
 
+    def vehicle_at(self, pos) -> int | None:
+        if pos[0] >= self.size[0]:
+            return None
+        best, best_d = None, GRAB_RADIUS
+        for i, v in enumerate(self.sim.vehicles):
+            vx, vy = self.to_screen(v.x, v.y)
+            d = math.hypot(pos[0] - vx, pos[1] - vy)
+            if d <= best_d:
+                best, best_d = i, d
+        return best
+
     # --- drawing ---
 
     def draw(self, surface: pygame.Surface) -> None:
@@ -146,6 +176,7 @@ class Renderer:
         self.draw_sources(surface)
         self.draw_vehicles(surface)
         self.draw_hud(surface)
+        self.draw_panel(surface)
 
     def draw_field(self, surface: pygame.Surface) -> None:
         if self.stimulus is None:
@@ -200,15 +231,16 @@ class Renderer:
             ]
             pygame.draw.polygon(surface, VEHICLE_FILL, points)
             pygame.draw.polygon(surface, VEHICLE_OUTLINE, points, 1)
+        if self.sim.vehicles:
+            v = self.sim.vehicles[self.selected]
+            pygame.draw.circle(surface, SELECTED_RING, self.to_screen(v.x, v.y), 16, 2)
 
     def draw_hud(self, surface: pygame.Surface) -> None:
         lines = [f"t = {self.sim.time:.1f}   x{self.steps_per_frame}"
                  + ("   PAUSED" if self.paused else ""),
-                 f"stimulus: {self.stimulus or '-'}"]
-        if len(self.sim.vehicles) == 1:
-            v = self.sim.vehicles[0]
-            lines.append(f"sensor {v.sensor_value:.2f}   speed {v.speed:.2f}")
-        lines.append("space pause  Right step  R reset  T trail  Tab stimulus  +/- speed")
+                 f"stimulus: {self.stimulus or '-'}",
+                 "space pause  Right step  R reset  T trail  +/- speed",
+                 "Tab stimulus  drag source  click vehicle"]
         y = 6
         for line in lines:
             text = self.font.render(line, True, TEXT)
@@ -216,11 +248,97 @@ class Renderer:
             y += text.get_height() + 2
 
 
+    # --- diagram panel ---
+
+    def draw_panel(self, surface: pygame.Surface) -> None:
+        left, height = self.size[0], self.size[1]
+        surface.fill(PANEL_BG, (left, 0, PANEL_WIDTH, height))
+        pygame.draw.line(surface, PANEL_BORDER, (left, 0), (left, height), 2)
+        x0 = left + 16
+        if not self.sim.vehicles:
+            surface.blit(self.font.render("No vehicles in this world", True, PANEL_DIM), (x0, 16))
+            return
+        v = self.sim.vehicles[self.selected]
+        surface.blit(self.title_font.render(f"{type(v).__name__.lower()} #{self.selected}",
+                                            True, TEXT), (x0, 14))
+        diagram = v.diagram()
+        center = (left + PANEL_WIDTH // 2, 190)
+        self.draw_diagram(surface, diagram, center, radius=110)
+        y = self.draw_readouts(surface, diagram, x0, 330)
+        self.draw_params(surface, diagram, x0, y + 14)
+
+    def draw_diagram(self, surface: pygame.Surface, diagram: Diagram,
+                     center: tuple[int, int], radius: float) -> None:
+        def at(position):  # body coordinates (+y forward) to screen
+            return center[0] + position[0] * radius, center[1] - position[1] * radius
+
+        body = pygame.Rect(0, 0, 1.1 * radius, 2 * radius)
+        body.center = center
+        pygame.draw.rect(surface, BODY_OUTLINE, body, 2, border_radius=int(radius * 0.35))
+
+        parts = {p.name: p for p in diagram.parts}
+        for w in diagram.wires:
+            a, b = at(parts[w.source].position), at(parts[w.target].position)
+            color = lerp_color(WIRE_OFF, WIRE_ON, w.level)
+            pygame.draw.line(surface, color, a, b, 4)
+            sign = self.title_font.render("+" if w.sign > 0 else "-", True, color)
+            mid = ((a[0] + b[0]) / 2 + 12, (a[1] + b[1]) / 2 - sign.get_height() / 2)
+            surface.blit(sign, mid)
+
+        for p in diagram.parts:
+            x, y = at(p.position)
+            fill = tuple(int(c) for c in heat_colors(np.array(p.level)))
+            if p.kind == "sensor":
+                # A round sensor with two short antennae pointing forward.
+                for dx in (-9, 9):
+                    pygame.draw.line(surface, BODY_OUTLINE, (x, y), (x + dx, y - 22), 2)
+                pygame.draw.circle(surface, fill, (x, y), 13)
+                pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 13, 2)
+            elif p.kind == "motor":
+                rect = pygame.Rect(0, 0, 34, 22)
+                rect.center = (x, y)
+                pygame.draw.rect(surface, fill, rect, border_radius=4)
+                pygame.draw.rect(surface, BODY_OUTLINE, rect, 2, border_radius=4)
+            else:
+                pygame.draw.circle(surface, fill, (x, y), 10)
+                pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 10, 2)
+            label = self.font.render(p.label, True, PANEL_DIM)
+            surface.blit(label, (x + 24, y - label.get_height() / 2))
+
+    def draw_readouts(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> int:
+        bar_width = PANEL_WIDTH - 32
+        for p in diagram.parts:
+            text = self.font.render(f"{p.name} ({p.label})", True, TEXT)
+            value = self.font.render(f"{p.value:.2f}", True, TEXT)
+            surface.blit(text, (x0, y))
+            surface.blit(value, (x0 + bar_width - value.get_width(), y))
+            y += text.get_height() + 3
+            pygame.draw.rect(surface, PANEL_BORDER, (x0, y, bar_width, 6), border_radius=3)
+            filled = round(bar_width * p.level)
+            if filled:
+                color = tuple(int(c) for c in heat_colors(np.array(p.level)))
+                pygame.draw.rect(surface, color, (x0, y, filled, 6), border_radius=3)
+            y += 16
+        return y
+
+    def draw_params(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> None:
+        surface.blit(self.font.render("Parameters", True, PANEL_DIM), (x0, y))
+        y += 22
+        for name, value in diagram.params.items():
+            surface.blit(self.font.render(f"{name} = {value:g}", True, TEXT), (x0 + 8, y))
+            y += 18
+
+
+def lerp_color(a, b, t: float) -> tuple[int, int, int]:
+    t = min(max(t, 0.0), 1.0)
+    return tuple(int(x + (y - x) * t) for x, y in zip(a, b))
+
+
 def run_window(world: World) -> None:
     pygame.init()
     try:
         renderer = Renderer(world)
-        screen = pygame.display.set_mode(renderer.size)
+        screen = pygame.display.set_mode(renderer.window_size)
         pygame.display.set_caption(world.name)
         clock = pygame.time.Clock()
         running = True

@@ -7,10 +7,44 @@ the vehicle moves.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import dataclass
 
 import numpy as np
+
+
+@dataclass
+class Part:
+    """A sensor, motor or other component, in body coordinates (+y forward, [-1, 1])."""
+
+    kind: str
+    name: str
+    position: tuple[float, float]
+    label: str
+    value: float
+    level: float  # activity in [0, 1]
+
+
+@dataclass
+class Wire:
+    source: str  # Part names
+    target: str
+    sign: int    # +1 excitatory, -1 inhibitory
+    level: float
+
+
+@dataclass
+class Diagram:
+    """A vehicle's structure and live signals, for the diagram panel (specs/vehicle-diagram.md)."""
+
+    parts: list[Part]
+    wires: list[Wire]
+    params: dict[str, float]
+
+
+def clamp01(x: float) -> float:
+    return min(max(x, 0.0), 1.0)
 
 
 @dataclass
@@ -53,6 +87,20 @@ class Vehicle1:
             self.heading += self.params.noise_std * math.sqrt(dt) * rng.standard_normal()
         self.x += self.speed * math.cos(self.heading) * dt
         self.y += self.speed * math.sin(self.heading) * dt
+
+    def diagram(self) -> Diagram:
+        p = self.params
+        saturation = (p.max_speed - p.base_speed) / p.gain if p.gain > 0 else math.inf
+        sensor_level = clamp01(self.sensor_value / saturation) if saturation > 0 else 1.0
+        motor_level = clamp01(self.speed / p.max_speed) if p.max_speed > 0 else 0.0
+        return Diagram(
+            parts=[
+                Part("sensor", "sensor", (0.0, 0.8), self.sensor, self.sensor_value, sensor_level),
+                Part("motor", "motor", (0.0, -0.8), "speed", self.speed, motor_level),
+            ],
+            wires=[Wire("sensor", "motor", +1, sensor_level)],
+            params=dataclasses.asdict(p),
+        )
 
 
 # Vehicle types that world files may name in `vehicles[].type`.

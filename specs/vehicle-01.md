@@ -49,6 +49,7 @@ The time step `dt` and the random `seed` are simulation settings in the world fi
 - Draw the stimulus field as a background heat map.
 - Draw sources, the vehicle and an optional fading trail of its recent path.
 - Interaction: drag sources with the mouse, pause/resume, step one frame, reset, toggle trail.
+- A side panel shows a live diagram of the vehicle, as described in [vehicle-diagram.md](vehicle-diagram.md).
 
 ## Acceptance criteria
 
