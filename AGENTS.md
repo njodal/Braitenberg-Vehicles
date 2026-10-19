@@ -12,11 +12,31 @@ Specifications live in the `specs/` folder. Read the relevant spec before implem
 
 ## Programming environment
 
-The project is written in Python.
+The project is written in Python 3.11 or later.
 
 - **Simulation:** pure Python + `numpy`. Differential-drive kinematics are simple enough that no physics engine is needed.
 - **Visualization:** `pygame-ce` (the community-maintained pygame fork), used for real-time rendering and interaction (moving sources, pausing, adding vehicles).
+- **Configuration:** worlds are YAML files loaded with `PyYAML` (see [specs/worlds.md](specs/worlds.md)).
 - **Analysis:** `matplotlib` for plotting internal state (neuron activity, weights, fitness) after runs.
+- **Tests:** `pytest`. Every acceptance criterion in a spec gets at least one test. Tests run headless (no pygame window) and use fixed seeds so they are deterministic. Run them with `pytest` from the repo root.
+
+## Project structure
+
+```
+pyproject.toml          # package metadata and dependencies
+braitenberg/            # the package
+  world.py              # arena, stimulus sources and fields
+  vehicle.py            # bodies, sensors, motors
+  sim.py                # simulation loop (headless)
+  render.py             # pygame renderer (the only module that imports pygame)
+  vehicle1.py           # one runnable module per vehicle: python -m braitenberg.vehicle1
+  ...
+specs/                  # one spec per vehicle (vehicle-01.md, ...) plus shared specs (worlds.md)
+worlds/                 # world files in YAML, see specs/worlds.md
+tests/                  # pytest tests, one file per vehicle covering its spec's acceptance criteria
+```
+
+Shared building blocks go in `world.py`, `vehicle.py` and `sim.py`; each `vehicleN.py` only wires them together for that vehicle. Split a module into a subpackage when it grows too large.
 
 ## Architecture rule
 

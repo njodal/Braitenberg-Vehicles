@@ -1,0 +1,26 @@
+[project]
+name = "braitenberg-vehicles"
+version = "0.1.0"
+description = "Simulations of the Vehicles from Valentino Braitenberg's book, especially Vehicles 5 and beyond."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pyyaml",
+    "pygame-ce",
+]
+
+[project.optional-dependencies]
+analysis = ["matplotlib"]
+dev = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["braitenberg"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
