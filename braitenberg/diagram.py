@@ -24,7 +24,8 @@ INHIBITORY = "#dc2626"
 INACTIVE = "#9ca3af"
 INK = "#1f2937"
 DIM = "#6b7280"
-PART_SIZE = {"sensor": 14, "motor": 17, "unit": 12}   # radius used to stop wires at the edge
+PART_SIZE = {"sensor": 14, "motor": 17, "unit": 17}   # radius used to stop wires at the edge
+UNIT_RADIUS = 16
 
 
 def definition_svg(definition: VehicleDefinition) -> str:
@@ -33,7 +34,9 @@ def definition_svg(definition: VehicleDefinition) -> str:
     height = TITLE_HEIGHT + 2 * RADIUS + 2 * MARGIN + LEGEND_HEIGHT
     cx, cy = width / 2, TITLE_HEIGHT + MARGIN + RADIUS
     parts = {p.name: p for p in diagram.parts}
-    sensor_types = {s.name: s.type for s in definition.sensors}
+    sensors = {s.name: s for s in definition.sensors}
+    actuators = {a.name: a for a in definition.actuators}
+    thresholds = {u.name: u.threshold for u in definition.units}
 
     def at(position):
         return cx + position[0] * RADIUS, cy - position[1] * RADIUS
@@ -92,17 +95,23 @@ def definition_svg(definition: VehicleDefinition) -> str:
                            f'stroke-width="2"/>')
             out.append(f'<circle cx="{x}" cy="{y}" r="13" fill="#fde68a" stroke="{INK}" '
                        f'stroke-width="2"/>')
-            caption = [p.name, sensor_types[p.name]]
+            caption = [p.name, sensor_caption(sensors[p.name])]
         elif p.kind == "motor":
             out.append(f'<rect x="{x - 17}" y="{y - 11}" width="34" height="22" rx="4" '
                        f'fill="#c7d2fe" stroke="{INK}" stroke-width="2"/>')
-            caption = [p.name]
+            a = actuators[p.name]
+            caption = [p.name] + ([f"gain {a.gain:g} \u00b7 base {a.base_speed:g}"]
+                                  if (a.gain, a.base_speed) != (1, 0) else [])
         else:
-            out.append(f'<circle cx="{x}" cy="{y}" r="11" fill="white" stroke="{INK}" '
+            # A unit: a circle with its threshold inside.
+            out.append(f'<circle cx="{x}" cy="{y}" r="{UNIT_RADIUS}" fill="white" stroke="{INK}" '
                        f'stroke-width="2"/>')
-            caption = [p.name, p.label]
+            out.append(f'<text x="{x}" y="{y + 4}" text-anchor="middle" font-size="11" '
+                       f'font-weight="bold" fill="{INK}">{thresholds[p.name]:g}</text>')
+            caption = [p.name]
+        below = UNIT_RADIUS + 15 if p.kind == "unit" else 28
         for i, text in enumerate(caption):
-            out.append(f'<text x="{x}" y="{y + 28 + 13 * i}" text-anchor="middle" '
+            out.append(f'<text x="{x}" y="{y + below + 13 * i}" text-anchor="middle" '
                        f'font-size="{12 if i == 0 else 10}" fill="{INK if i == 0 else DIM}">'
                        f'{escape(text)}</text>')
 
@@ -119,6 +128,17 @@ def definition_svg(definition: VehicleDefinition) -> str:
         x += 170
     out.append("</svg>")
     return "\n".join(out) + "\n"
+
+
+def sensor_caption(sensor) -> str:
+    """The stimulus a sensor reads, and its response when it is not linear."""
+    r = sensor.response
+    height = f", height {r.height:g}" if r.height != 1 else ""
+    if r.type == "peak":
+        return f"{sensor.type}, peak at {r.at:g} \u00b1{r.width:g}{height}"
+    if r.type == "step":
+        return f"{sensor.type}, step at {r.at:g}{height}"
+    return sensor.type
 
 
 def main(argv=None) -> None:

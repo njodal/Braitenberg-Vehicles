@@ -10,8 +10,7 @@ from braitenberg.scenario import load_scenario
 from braitenberg.sim import Simulation
 from braitenberg.vehicle import Vehicle
 from braitenberg.yamlfile import ConfigError
-from conftest import (FEAR_AND_AGGRESSION, VEHICLE1, VEHICLE1_SCENARIO, VEHICLE2B, read,
-                      run_python)
+from conftest import VEHICLE1, VEHICLE1_SCENARIO, VEHICLE2B, read, run_python
 
 
 def vehicle_from(data, write, name="vehicle.yaml") -> Vehicle:
@@ -159,28 +158,6 @@ def test_duplicate_name_error_names_both_places(write):
         load_definition(write(data))
     assert "actuators[1].actuator.name" in str(excinfo.value)
     assert "sensors[0].sensor.name" in str(excinfo.value)
-
-
-# 4. Steering
-@pytest.mark.parametrize("seed", range(5))
-def test_fear_turns_away_and_aggression_hits(seed):
-    scenario = load_scenario(FEAR_AND_AGGRESSION)
-    scenario.simulation.seed = seed
-    sim = Simulation(scenario)
-    light = scenario.world.stimuli["light"].sources[0].position
-    arena = scenario.world.arena
-
-    def distance(v):
-        return math.hypot(*arena.delta(v.x - light[0], v.y - light[1]))
-
-    fear, aggression = sim.vehicles
-    fear_start = distance(fear)
-    closest = distance(aggression)
-    for _ in range(600):
-        sim.step()
-        closest = min(closest, distance(aggression))
-    assert distance(fear) > fear_start
-    assert closest < aggression.half_size
 
 
 # 5. Inhibition

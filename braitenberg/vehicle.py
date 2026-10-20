@@ -26,6 +26,7 @@ class Part:
     label: str
     value: float
     level: float  # activity in [0, 1]
+    threshold: float | None = None  # units only
 
 
 @dataclass
@@ -153,7 +154,8 @@ class Vehicle:
         for u, position in zip(d.units, self.unit_layout()):
             value = self.unit_outputs[u.name]
             levels[u.name] = value
-            parts.append(Part("unit", u.name, position, f"t={u.threshold:g}", value, value))
+            parts.append(Part("unit", u.name, position, f"threshold {u.threshold:g}", value, value,
+                              u.threshold))
         for a in d.actuators:
             value = self.motor_speeds[a.name]
             level = clamp01(value / a.max_speed) if a.max_speed > 0 else 0.0

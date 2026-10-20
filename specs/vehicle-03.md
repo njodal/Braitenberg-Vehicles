@@ -13,6 +13,8 @@ Why 3a turns toward the source: with the source on its left, the left sensor rea
 
 ## Definitions
 
+<img src="images/vehicle3a-love.svg" alt="Diagram of Vehicle 3a: straight inhibitory wiring" width="48%"> <img src="images/vehicle3b-explorer.svg" alt="Diagram of Vehicle 3b: crossed inhibitory wiring" width="48%">
+
 `vehicles/vehicle3a-love.yaml` and `vehicles/vehicle3b-explorer.yaml` ([vehicle-definition.md](vehicle-definition.md)):
 
 - **Body:** `size` 4, `noise_std` 0.1.

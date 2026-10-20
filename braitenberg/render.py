@@ -24,6 +24,7 @@ from braitenberg.world import Source
 MAX_WINDOW_SIDE = 720
 PANEL_WIDTH = 420
 ROW = 20                  # height of one readout line in the panel
+UNIT_RADIUS = 14
 MAX_DIAGRAM_RADIUS = 150
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
@@ -318,10 +319,16 @@ class Renderer:
                 pygame.draw.rect(surface, fill, rect, border_radius=4)
                 pygame.draw.rect(surface, BODY_OUTLINE, rect, 2, border_radius=4)
             else:
-                pygame.draw.circle(surface, fill, (x, y), 10)
-                pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 10, 2)
+                pygame.draw.circle(surface, fill, (x, y), UNIT_RADIUS)
+                pygame.draw.circle(surface, BODY_OUTLINE, (x, y), UNIT_RADIUS, 2)
+                if p.threshold is not None:
+                    # The threshold inside the circle, dark on a lit unit and light on a dark one.
+                    color = VEHICLE_OUTLINE if p.level > 0.5 else TEXT
+                    value = self.small_font.render(f"{p.threshold:g}", True, color)
+                    surface.blit(value, (x - value.get_width() / 2, y - value.get_height() / 2))
             label = self.small_font.render(p.name, True, PANEL_DIM)
-            surface.blit(label, (x - label.get_width() / 2, y + 15))
+            below = UNIT_RADIUS + 4 if p.kind == "unit" else 15
+            surface.blit(label, (x - label.get_width() / 2, y + below))
 
     def draw_readouts(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> int:
         """One line per part: name and label, a level bar, and the value."""

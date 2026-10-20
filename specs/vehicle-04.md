@@ -13,6 +13,8 @@ Why 4a circles: with the source on its left, beyond the preferred distance the l
 
 ## Definitions
 
+<img src="images/vehicle4a-orbiter.svg" alt="Diagram of Vehicle 4a: crossed excitatory wiring, peaked response" width="48%"> <img src="images/vehicle4b-decider.svg" alt="Diagram of Vehicle 4b: straight excitatory wiring, step response" width="48%">
+
 `vehicles/vehicle4a-orbiter.yaml` and `vehicles/vehicle4b-decider.yaml`:
 
 - **Body:** `size` 4, `noise_std` 0.1.

@@ -8,6 +8,8 @@ This vehicle sets up the shared building blocks every later vehicle reuses: worl
 
 ## Definition
 
+<img src="images/vehicle1.svg" alt="Diagram of Vehicle 1: one sensor wired to one motor" width="48%">
+
 Vehicle 1 is defined in `vehicles/vehicle1.yaml` ([vehicle-definition.md](vehicle-definition.md)):
 
 - **Body:** `size` 4, drawn as a small oriented shape so the direction is visible.

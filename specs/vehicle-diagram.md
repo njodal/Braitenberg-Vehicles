@@ -10,14 +10,14 @@ The simulator window shows, next to the arena, a separate panel with a live sche
 - The panel shows, from top to bottom:
   1. A title with the vehicle's label from the scenario, e.g. `Aggression #1`, and below it the Braitenberg type and name from its definition, e.g. `Vehicle 2b: Aggression`.
   2. The diagram: a top-down view of the body with its front pointing up. The diagram does not rotate with the vehicle, so it stays easy to read.
-  3. Live readouts, one compact line per part: its name and label (a sensor's stimulus, a unit's threshold), a level bar and its value.
+  3. Live readouts, one compact line per part: its name and label (a sensor's stimulus, or `threshold` and the value for a unit), a level bar and its value.
   4. Vehicle values, on two lines: `size`, `noise_std`, and the current forward speed and turn rate.
 - The diagram takes the space left above the readouts, up to a maximum size, so that a vehicle with many units (such as Vehicle 5) still fits; the readouts start right below the diagram.
 
 ## Diagram
 
 - **Body:** an outline of the vehicle's body.
-- **Sensors, motors and units:** drawn at their position on the body, each with its own shape and labeled with its name (e.g. `left_eye`). The readouts below the diagram add the stimulus a sensor reads.
+- **Sensors, motors and units:** drawn at their position on the body, each with its own shape and labeled with its name (e.g. `left_eye`). A unit is a circle with its threshold written inside. The readouts below the diagram add the stimulus a sensor reads.
 - **Wires:** lines from source to destination, marked `+` for excitatory and `-` for inhibitory connections. The mark sits near the destination, so crossed wires do not share it. A unit wired to itself is drawn as a small loop. Inactive connections (strength `0.7` or less, see [vehicle-definition.md](vehicle-definition.md)) are drawn as thin dim lines that never light up.
 - **Live signals:** each part and wire is colored by its current activity level, from dim (0) to bright (1).
 
