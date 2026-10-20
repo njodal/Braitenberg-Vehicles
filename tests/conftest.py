@@ -16,10 +16,13 @@ VEHICLE3A = REPO / "vehicles" / "vehicle3a-love.yaml"
 VEHICLE3B = REPO / "vehicles" / "vehicle3b-explorer.yaml"
 VEHICLE4A = REPO / "vehicles" / "vehicle4a-orbiter.yaml"
 VEHICLE4B = REPO / "vehicles" / "vehicle4b-decider.yaml"
+VEHICLE5 = REPO / "vehicles" / "vehicle5-moth.yaml"
+TWO_LIGHTS = REPO / "worlds" / "two-lights.yaml"
 VEHICLE1_SCENARIO = REPO / "scenarios" / "vehicle1-hot-spot.yaml"
 FEAR_AND_AGGRESSION = REPO / "scenarios" / "vehicle2-fear-and-aggression.yaml"
 LOVE_AND_EXPLORER = REPO / "scenarios" / "vehicle3-love-and-explorer.yaml"
 ORBITER_AND_DECIDER = REPO / "scenarios" / "vehicle4-orbiter-and-decider.yaml"
+MOTH = REPO / "scenarios" / "vehicle5-moth.yaml"
 
 
 def read(path: Path):

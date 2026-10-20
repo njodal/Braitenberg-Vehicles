@@ -8,6 +8,7 @@ after the vehicle moves.
 from __future__ import annotations
 
 import math
+from collections import deque
 from dataclasses import dataclass
 
 import numpy as np
@@ -53,7 +54,7 @@ def clamp01(x: float) -> float:
 
 class Vehicle:
     def __init__(self, definition: VehicleDefinition, x: float, y: float, heading: float,
-                 label: str = ""):
+                 label: str = "", dt: float = 0.05):
         self.definition = definition
         self.label = label or definition.general.name
         self.x = x
@@ -66,6 +67,15 @@ class Vehicle:
         self.motor_speeds = {a.name: 0.0 for a in definition.actuators}
         self.speed = 0.0        # forward speed
         self.turn_rate = 0.0
+        # A unit's delay and simultaneity window, in steps (see 'Signal flow' in the spec).
+        self.unit_steps = {u.name: max(1, round(u.delay / dt)) for u in definition.units}
+        # Activations on their way to becoming outputs, oldest first.
+        self.pending = {u.name: deque([0.0] * n) for u, n in
+                        zip(definition.units, self.unit_steps.values())}
+        # Recent values of every sensor output and unit output, for the simultaneity windows.
+        window = max(self.unit_steps.values(), default=1)
+        self.history = {name: deque(maxlen=window)
+                        for name in [*self.sensor_values, *self.unit_outputs]}
 
     # --- geometry ---
 
@@ -87,13 +97,17 @@ class Vehicle:
         self.sensor_readings = dict(readings)
         self.sensor_values = {s.name: s.response.output(readings[s.name])
                               for s in self.definition.sensors}
-        previous = self.unit_outputs
-        current = {}
+        # Outputs now: the activations computed one delay ago.
+        for name, pending in self.pending.items():
+            self.unit_outputs[name] = pending.popleft()
+        for name, value in [*self.sensor_values.items(), *self.unit_outputs.items()]:
+            self.history[name].append(value)
+        # Activations now, from each input's largest value within the unit's window.
         for u in self.definition.units:
-            total = sum(c.sign * self.sensor_values.get(c.source, previous.get(c.source, 0.0))
+            n = self.unit_steps[u.name]
+            total = sum(c.sign * max(list(self.history[c.source])[-n:])
                         for c in u.inputs if c.active)
-            current[u.name] = 1.0 if total >= u.threshold else 0.0
-        self.unit_outputs = current
+            self.pending[u.name].append(1.0 if total >= u.threshold else 0.0)
         for a in self.definition.actuators:
             total = sum(c.sign * self.signal(c.source) for c in a.inputs if c.active)
             self.motor_speeds[a.name] = min(max(a.base_speed + a.gain * total, 0.0), a.max_speed)

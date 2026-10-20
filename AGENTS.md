@@ -32,8 +32,11 @@ braitenberg/            # the package
   vehicle.py            # a vehicle built from a definition: signals, movement, diagram
   scenario.py           # scenarios: a world plus placed vehicles
   sim.py                # simulation loop (headless) and command line
-  render.py             # pygame renderer (the only module that imports pygame)
+  render.py             # pygame renderer
+  record.py             # record a scenario to a GIF: python -m braitenberg.record
+  diagram.py            # draw a definition as an SVG: python -m braitenberg.diagram
 specs/                  # one spec per vehicle (vehicle-01.md, ...) plus shared specs
+  images/               # GIFs and diagrams shown in the specs, generated with record and diagram
 worlds/                 # environments in YAML, see specs/worlds.md
 vehicles/               # vehicle definitions in YAML, see specs/vehicle-definition.md
 scenarios/              # experiments in YAML, see specs/scenarios.md
@@ -44,4 +47,4 @@ A new vehicle is a new file in `vehicles/` (and usually a scenario to show it), 
 
 ## Architecture rule
 
-Keep the simulation engine independent of rendering. World, vehicles and brains must not import pygame; the renderer only reads simulation state and draws it. The simulation must be able to run headless and faster than real time, which Vehicles 6+ (evolution, learning) depend on.
+Keep the simulation engine independent of rendering. World, vehicles and brains must not import pygame (only `render.py` and `record.py` do); the renderer only reads simulation state and draws it. The simulation must be able to run headless and faster than real time, which Vehicles 6+ (evolution, learning) depend on.

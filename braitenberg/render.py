@@ -22,7 +22,9 @@ from braitenberg.scenario import Scenario
 from braitenberg.world import Source
 
 MAX_WINDOW_SIDE = 720
-PANEL_WIDTH = 300
+PANEL_WIDTH = 420
+ROW = 20                  # height of one readout line in the panel
+MAX_DIAGRAM_RADIUS = 150
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
 SOURCE_RADIUS = 7
@@ -72,11 +74,13 @@ class Renderer:
                                if first_sensor in self.stimulus_names else 0)
         self.show_trail = True
         self.paused = False
-        self.steps_per_frame = 1
+        # About 0.05 simulated seconds per frame, whatever the time step.
+        self.steps_per_frame = max(1, round(0.05 / scenario.simulation.dt))
         self.dragging: tuple[str, int] | None = None
         self.selected = 0
         self.font = pygame.font.Font(None, 20)
         self.title_font = pygame.font.Font(None, 26)
+        self.small_font = pygame.font.Font(None, 17)
         self.reset()
 
     # --- state ---
@@ -267,9 +271,13 @@ class Renderer:
         diagram = self.sim.vehicles[self.selected].diagram()
         surface.blit(self.title_font.render(diagram.title, True, TEXT), (x0, 14))
         surface.blit(self.font.render(diagram.subtitle, True, PANEL_DIM), (x0, 38))
-        center = (left + PANEL_WIDTH // 2, 175)
-        self.draw_diagram(surface, diagram, center, radius=90)
-        y = self.draw_readouts(surface, diagram, x0, 300)
+        # Readouts and vehicle values fill the bottom; the diagram gets the space above them.
+        readouts_top = height - 10 - ROW * (len(diagram.parts) + 2) - 8
+        top = 62
+        radius = min(MAX_DIAGRAM_RADIUS, (PANEL_WIDTH - 60) / 2, (readouts_top - top - 60) / 2)
+        center = (left + PANEL_WIDTH // 2, top + 30 + radius)
+        self.draw_diagram(surface, diagram, center, radius)
+        y = self.draw_readouts(surface, diagram, x0, min(readouts_top, center[1] + radius + 24))
         self.draw_params(surface, diagram, x0, y + 8)
 
     def draw_diagram(self, surface: pygame.Surface, diagram: Diagram,
@@ -312,31 +320,33 @@ class Renderer:
             else:
                 pygame.draw.circle(surface, fill, (x, y), 10)
                 pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 10, 2)
-            label = self.font.render(p.name, True, PANEL_DIM)
-            surface.blit(label, (x - label.get_width() / 2, y + 16))
+            label = self.small_font.render(p.name, True, PANEL_DIM)
+            surface.blit(label, (x - label.get_width() / 2, y + 15))
 
     def draw_readouts(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> int:
-        bar_width = PANEL_WIDTH - 32
+        """One line per part: name and label, a level bar, and the value."""
+        width = PANEL_WIDTH - 32
+        bar_x, bar_width = x0 + 200, width - 200 - 52
         for p in diagram.parts:
-            text = self.font.render(f"{p.name} ({p.label})", True, TEXT)
-            value = self.font.render(f"{p.value:.2f}", True, TEXT)
-            surface.blit(text, (x0, y))
-            surface.blit(value, (x0 + bar_width - value.get_width(), y))
-            y += text.get_height() + 3
-            pygame.draw.rect(surface, PANEL_BORDER, (x0, y, bar_width, 6), border_radius=3)
+            name = self.font.render(p.name, True, TEXT)
+            surface.blit(name, (x0, y + 2))
+            surface.blit(self.small_font.render(p.label, True, PANEL_DIM),
+                         (x0 + name.get_width() + 6, y + 4))
+            pygame.draw.rect(surface, PANEL_BORDER, (bar_x, y + 7, bar_width, 6), border_radius=3)
             filled = round(bar_width * p.level)
             if filled:
                 color = tuple(int(c) for c in heat_colors(np.array(p.level)))
-                pygame.draw.rect(surface, color, (x0, y, filled, 6), border_radius=3)
-            y += 16
+                pygame.draw.rect(surface, color, (bar_x, y + 7, filled, 6), border_radius=3)
+            value = self.font.render(f"{p.value:.2f}", True, TEXT)
+            surface.blit(value, (x0 + width - value.get_width(), y + 2))
+            y += ROW
         return y
 
     def draw_params(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> None:
-        surface.blit(self.font.render("Vehicle", True, PANEL_DIM), (x0, y))
-        y += 22
-        for name, value in diagram.params.items():
-            surface.blit(self.font.render(f"{name} = {value}", True, TEXT), (x0 + 8, y))
-            y += 18
+        items = [f"{name} {value}" for name, value in diagram.params.items()]
+        for line in ("   ".join(items[:2]), "   ".join(items[2:])):
+            surface.blit(self.font.render(line, True, PANEL_DIM), (x0, y + 2))
+            y += ROW
 
 
 def lerp_color(a, b, t: float) -> tuple[int, int, int]:

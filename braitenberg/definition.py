@@ -90,6 +90,7 @@ class UnitDef:
     threshold: float
     inputs: list[Connection]
     position: tuple[float, float] | None = None
+    delay: float = 0.05     # seconds from activation to output
 
 
 @dataclass
@@ -210,13 +211,15 @@ class _DefinitionParser(Parser):
         return a
 
     def unit(self, data, key: str, names) -> UnitDef:
-        data = self.mapping(data, key, {"name", "type", "threshold", "inputs"}, {"position"})
+        data = self.mapping(data, key, {"name", "type", "threshold", "inputs"},
+                            {"position", "delay"})
         return UnitDef(self.name(data, key, names),
                        self.kind(data["type"], f"{key}.type", UNIT_TYPES),
                        self.number(data["threshold"], f"{key}.threshold"),
                        self.connections(data["inputs"], f"{key}.inputs", self.connection),
                        self.body_position(data["position"], f"{key}.position")
-                       if "position" in data else None)
+                       if "position" in data else None,
+                       self.number(data.get("delay", 0.05), f"{key}.delay", positive=True))
 
     def check_inputs(self, names, actuators, units) -> None:
         actuator_names = {a.name for a in actuators}

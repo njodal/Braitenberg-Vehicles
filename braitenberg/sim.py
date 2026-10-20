@@ -27,7 +27,7 @@ class Simulation:
         self.dt = scenario.simulation.dt
         self.time = 0.0
         self.steps = 0
-        self.vehicles = [Vehicle(p.definition, *p.position, p.heading, p.label)
+        self.vehicles = [Vehicle(p.definition, *p.position, p.heading, p.label, self.dt)
                          for p in scenario.vehicles]
 
     def step(self) -> None:

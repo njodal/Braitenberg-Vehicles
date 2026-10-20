@@ -115,6 +115,9 @@ ACTUATOR0 = ("actuators", 0, "actuator")
     (mutate("units", value=[{"unit": {"name": "u", "type": "mnemotrix", "threshold": 1,
                                       "inputs": wrap(["left_eye"])}}]), "units[0].unit.type"),
     (mutate("actuators", value=[]), "actuators"),
+    (mutate("units", value=[{"unit": {"name": "u", "type": "threshold", "threshold": 1,
+                                      "inputs": wrap(["left_eye"]), "delay": 0}}]),
+     "units[0].unit.delay"),
     (mutate(*SENSOR0, "response", value={"type": "sigmoid"}), "sensors[0].sensor.response.type"),
     (mutate(*SENSOR0, "response", value={"at": 4}), "sensors[0].sensor.response.type"),
     (mutate(*SENSOR0, "response", value={"type": "peak", "at": 4}), "sensors[0].sensor.response.width"),
@@ -201,45 +204,112 @@ def test_inactive_input_does_not_move_motor(write):
 
 
 # 6. Threshold units
-def test_threshold_unit_fires_at_threshold(write):
+def outputs_over(v, unit, readings, sensor="eye"):
+    """A unit's visible output after each step, feeding one reading per step."""
+    result = []
+    for r in readings:
+        v.think({sensor: r})
+        result.append(v.unit_outputs[unit])
+    return result
+
+
+def test_threshold_unit_fires_at_threshold_one_delay_later(write):
     unit = {"name": "detector", "type": "threshold", "threshold": 2, "inputs": ["eye"]}
     v = vehicle_from(one_sensor_vehicle({"inputs": ["detector"]}, [unit]), write)
-    for reading, fires in [(1.9, 0), (2.0, 1), (5, 1), (0, 0)]:
+    speeds = []
+    for reading in (1.9, 2.0, 5, 0, 0):
         v.think({"eye": reading})
-        assert v.unit_outputs["detector"] == fires
-        assert v.motor_speeds["motor"] == fires
+        speeds.append(v.motor_speeds["motor"])
+    # With the default delay 0.05 and dt 0.05, the output follows the input one step later.
+    assert speeds == [0, 0, 1, 1, 0]
 
 
-def test_unit_chain_delays_by_one_step_per_unit_link(write):
+def test_unit_chain_adds_one_delay_per_unit(write):
     units = [{"name": "a", "type": "threshold", "threshold": 1, "inputs": ["eye"]},
              {"name": "b", "type": "threshold", "threshold": 1, "inputs": ["a"]}]
     v = vehicle_from(one_sensor_vehicle({"inputs": ["b"]}, units), write)
     history = []
-    for reading in (1, 0, 0, 0):
+    for reading in (1, 0, 0, 0, 0):
         v.think({"eye": reading})
         history.append((v.unit_outputs["a"], v.unit_outputs["b"]))
-    # a responds in the same step as the sensor, b one step after a.
-    assert history == [(1, 0), (0, 1), (0, 0), (0, 0)]
+    # a turns on one step after the sensor, b one step after a.
+    assert history == [(0, 0), (1, 0), (0, 1), (0, 0), (0, 0)]
+
+
+@pytest.mark.parametrize("delay, dt, steps", [(0.05, 0.05, 1), (0.1, 0.05, 2), (0.05, 0.01, 5),
+                                              (0.01, 0.05, 1)])
+def test_delay_is_rounded_to_steps(write, delay, dt, steps):
+    unit = {"name": "a", "type": "threshold", "threshold": 1, "inputs": ["eye"], "delay": delay}
+    v = Vehicle(load_definition(write(one_sensor_vehicle({"inputs": ["a"]}, [unit]))),
+                50, 50, 0, dt=dt)
+    outputs = outputs_over(v, "a", [1] + [0] * 8, sensor="eye")
+    assert outputs.index(1) == steps
 
 
 def test_self_loop_keeps_firing(write):
     unit = {"name": "memory", "type": "threshold", "threshold": 1, "inputs": ["eye", "memory"]}
     v = vehicle_from(one_sensor_vehicle({"inputs": ["memory"]}, [unit]), write)
+    assert outputs_over(v, "memory", (0, 0, 1, 0, 0, 0)) == [0, 0, 0, 1, 1, 1]
+
+
+def test_self_loop_holds_with_a_longer_delay(write):
+    unit = {"name": "memory", "type": "threshold", "threshold": 1, "inputs": ["eye", "memory"]}
+    v = Vehicle(load_definition(write(one_sensor_vehicle({"inputs": ["memory"]}, [unit]))),
+                50, 50, 0, dt=0.01)
+    outputs = outputs_over(v, "memory", [1] + [0] * 30)
+    first = outputs.index(1)
+    # A one-step input pulse latches: after one delay of settling, the memory stays on.
+    assert all(outputs[first + 5:])
+
+
+def two_sensor_vehicle(unit):
+    return {
+        "general": {"type": "5", "name": "Test", "size": 4},
+        "sensors": [{"sensor": {"name": n, "type": "light", "position": [x, 0.8]}}
+                    for n, x in (("eye", -0.5), ("nose", 0.5))],
+        "actuators": [{"actuator": {"name": "motor", "type": "motor", "position": [0, -0.8],
+                                    "inputs": wrap([unit["name"]])}}],
+        "units": [{"unit": {**unit, "inputs": wrap(unit["inputs"])}}],
+    }
+
+
+@pytest.mark.parametrize("gap, fires", [(0, True), (1, True), (4, True), (5, False), (8, False)])
+def test_inputs_less_than_a_delay_apart_count_as_simultaneous(write, gap, fires):
+    unit = {"name": "both", "type": "threshold", "threshold": 2, "inputs": ["eye", "nose"]}
+    v = Vehicle(load_definition(write(two_sensor_vehicle(unit))), 50, 50, 0, dt=0.01)  # 5-step delay
     outputs = []
-    for reading in (0, 0, 1, 0, 0, 0):
-        v.think({"eye": reading})
-        outputs.append(v.unit_outputs["memory"])
-    assert outputs == [0, 0, 1, 1, 1, 1]
+    for step in range(30):
+        v.think({"eye": 1.0 if step == 0 else 0.0, "nose": 1.0 if step == gap else 0.0})
+        outputs.append(v.unit_outputs["both"])
+    assert any(outputs) == fires
+
+
+@pytest.mark.parametrize("inhibited", [False, True])
+def test_inhibition_within_the_window_still_counts(write, inhibited):
+    unit = {"name": "u", "type": "threshold", "threshold": 1,
+            "inputs": ["eye", {"from": "nose", "type": "inhibitory"}]}
+    v = Vehicle(load_definition(write(two_sensor_vehicle(unit))), 50, 50, 0, dt=0.01)  # 5-step delay
+    outputs = []
+    for step in range(15):
+        # A one-step excitation at step 3; optionally a one-step inhibition at step 0.
+        v.think({"eye": 1.0 if step == 3 else 0.0,
+                 "nose": 1.0 if inhibited and step == 0 else 0.0})
+        outputs.append(v.unit_outputs["u"])
+    on = [i for i, o in enumerate(outputs) if o]
+    if inhibited:
+        # Both are held for 5 steps, so they overlap at steps 3-4: the unit stays off for
+        # those, and fires only for the rest of the excitation's window (steps 5-7), 5 later.
+        assert on == [10, 11, 12]
+    else:
+        assert on == [8, 9, 10, 11, 12]
 
 
 def test_inhibitory_input_lowers_the_sum(write):
     units = [{"name": "u", "type": "threshold", "threshold": 1,
               "inputs": ["eye", "eye", {"from": "eye", "type": "inhibitory"}]}]
     v = vehicle_from(one_sensor_vehicle({"inputs": ["u"]}, units), write)
-    v.think({"eye": 1.0})   # 1 + 1 - 1 = 1 reaches the threshold
-    assert v.unit_outputs["u"] == 1
-    v.think({"eye": 0.9})   # 0.9 + 0.9 - 0.9 = 0.9 does not
-    assert v.unit_outputs["u"] == 0
+    # 1 + 1 - 1 = 1 reaches the threshold; 0.9 + 0.9 - 0.9 = 0.9 does not.
+    assert outputs_over(v, "u", (1.0, 1.0, 0.9, 0.9)) == [0, 1, 1, 0]
 
 
 @pytest.mark.parametrize("strength, fires", [(0.7, 0), (0.71, 1), (1.0, 1), (0.0, 0)])
@@ -247,30 +317,22 @@ def test_only_connections_above_0_7_are_active(write, strength, fires):
     units = [{"name": "u", "type": "threshold", "threshold": 1,
               "inputs": [{"from": "eye", "strength": strength}]}]
     v = vehicle_from(one_sensor_vehicle({"inputs": ["u"]}, units), write)
-    v.think({"eye": 5.0})
-    assert v.unit_outputs["u"] == fires
+    assert outputs_over(v, "u", (5.0, 5.0))[-1] == fires
 
 
 def test_threshold_zero_fires_alone_until_inhibited(write):
     units = [{"name": "idle", "type": "threshold", "threshold": 0,
               "inputs": [{"from": "eye", "type": "inhibitory"}]}]
     v = vehicle_from(one_sensor_vehicle({"inputs": ["idle"]}, units), write)
-    outputs = []
-    for reading in (0, 0, 0.5, 3, 0):
-        v.think({"eye": reading})
-        outputs.append(v.unit_outputs["idle"])
-    assert outputs == [1, 1, 0, 0, 1]
+    # Outputs start at 0; the unit's own firing shows one delay later.
+    assert outputs_over(v, "idle", (0, 0, 0.5, 3, 0, 0)) == [0, 1, 1, 0, 0, 1]
 
 
 def test_negative_threshold_fires_until_inhibition_is_strong_enough(write):
     units = [{"name": "idle", "type": "threshold", "threshold": -2,
               "inputs": [{"from": "eye", "type": "inhibitory"}]}]
     v = vehicle_from(one_sensor_vehicle({"inputs": ["idle"]}, units), write)
-    outputs = []
-    for reading in (0, 1, 2, 3):
-        v.think({"eye": reading})
-        outputs.append(v.unit_outputs["idle"])
-    assert outputs == [1, 1, 1, 0]
+    assert outputs_over(v, "idle", (0, 1, 2, 3, 3)) == [0, 1, 1, 1, 0]
 
 
 def test_inhibitory_example_from_the_spec(write):
@@ -279,11 +341,12 @@ def test_inhibitory_example_from_the_spec(write):
               "inputs": [{"from": "detector", "type": "inhibitory"}]}]
     v = vehicle_from(one_sensor_vehicle({"inputs": ["idle"], "gain": 3}, units), write)
     speeds = []
-    for reading in (0, 3, 3, 3, 0, 0):
+    for reading in (0, 3, 3, 3, 0, 0, 0):
         v.think({"eye": reading})
         speeds.append(v.motor_speeds["motor"])
-    # detector's output reaches idle one step later, in both directions.
-    assert speeds == [3, 3, 0, 0, 0, 3]
+    # The motor stops 2 steps (0.1 s) after the light reaches 2, and restarts 2 steps after
+    # it drops. It is also still at 0 in the first step, before idle's first output appears.
+    assert speeds == [0, 3, 3, 0, 0, 0, 3]
 
 
 # Movement

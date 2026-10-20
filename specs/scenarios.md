@@ -42,7 +42,7 @@ simulation:
 | `description` | no | Free text. |
 | `world` | yes | Path to a world file. |
 | `vehicles` | yes | A list; each item is wrapped in `- vehicle:` (see below). May be empty. |
-| `simulation` | no | `dt` (default 0.05) and `seed` (default 0). |
+| `simulation` | no | `dt`, the time step in seconds (default 0.05), and `seed` (default 0). |
 
 Each `vehicle` has:
 

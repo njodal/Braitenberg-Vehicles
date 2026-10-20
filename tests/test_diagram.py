@@ -6,8 +6,8 @@ from braitenberg.definition import load_definition
 from braitenberg.scenario import load_scenario
 from braitenberg.sim import Simulation
 from braitenberg.vehicle import Vehicle
-from conftest import (FEAR_AND_AGGRESSION, LOVE_AND_EXPLORER, ORBITER_AND_DECIDER, VEHICLE1,
-                      VEHICLE1_SCENARIO, run_python)
+from conftest import (FEAR_AND_AGGRESSION, LOVE_AND_EXPLORER, MOTH, ORBITER_AND_DECIDER, VEHICLE1,
+                      VEHICLE1_SCENARIO, VEHICLE5, run_python)
 
 
 def all_levels(diagram):
@@ -85,7 +85,7 @@ def test_diagram_never_imports_pygame():
 
 # 5. Renders, with SDL's dummy driver so no window opens
 @pytest.mark.parametrize("scenario", [VEHICLE1_SCENARIO, FEAR_AND_AGGRESSION, LOVE_AND_EXPLORER,
-                                      ORBITER_AND_DECIDER])
+                                      ORBITER_AND_DECIDER, MOTH])
 def test_renderer_draws_frame_with_panel(scenario):
     code = (
         "import os\n"
@@ -104,3 +104,55 @@ def test_renderer_draws_frame_with_panel(scenario):
     )
     result = run_python(code)
     assert result.returncode == 0, result.stderr
+
+
+# 6. Static diagram
+@pytest.mark.parametrize("path", [VEHICLE1, VEHICLE5])
+def test_static_svg_diagram(path):
+    import xml.etree.ElementTree as ET
+
+    from braitenberg.diagram import EXCITATORY, INACTIVE, INHIBITORY, definition_svg
+
+    definition = load_definition(path)
+    svg = definition_svg(definition)
+    root = ET.fromstring(svg)                       # well-formed
+    texts = [t.text for t in root.iter("{http://www.w3.org/2000/svg}text")]
+    for part in [*definition.sensors, *definition.units, *definition.actuators]:
+        assert part.name in texts
+    assert f"Vehicle {definition.general.type}: {definition.general.name}" in texts
+
+    arrows = [e for e in root.iter() if e.get("marker-end") and e.get("stroke") != "white"]
+    inputs = [c for part in [*definition.units, *definition.actuators] for c in part.inputs]
+    legend = 2 + any(not c.active for c in inputs)
+    assert len(arrows) == len(inputs) + legend
+    wire_colors = sorted(e.get("stroke") for e in arrows[:len(inputs)])
+    expected = sorted(INACTIVE if not c.active else EXCITATORY if c.sign > 0 else INHIBITORY
+                      for c in inputs)
+    assert wire_colors == expected
+
+
+def test_static_diagram_never_imports_pygame(tmp_path):
+    out = tmp_path / "moth.svg"
+    code = (
+        "import sys\n"
+        "from braitenberg.diagram import main\n"
+        f"main([{str(VEHICLE5)!r}, '--out', {str(out)!r}])\n"
+        "assert 'pygame' not in sys.modules, 'pygame was imported'\n"
+    )
+    result = run_python(code)
+    assert result.returncode == 0, result.stderr
+    assert out.read_text().startswith("<svg")
+
+
+# 7. Recording
+def test_record_gif(tmp_path):
+    pytest.importorskip("PIL")
+    out = tmp_path / "moth.gif"
+    code = (
+        "from braitenberg.record import record\n"
+        f"print(record({str(MOTH)!r}, {str(out)!r}, seconds=1.0, every=0.1))\n"
+    )
+    result = run_python(code)
+    assert result.returncode == 0, result.stderr
+    from PIL import Image
+    assert Image.open(out).n_frames == 11      # 1 s at one frame per 0.1 s, plus the first

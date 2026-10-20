@@ -6,12 +6,13 @@ The simulator window shows, next to the arena, a separate panel with a live sche
 
 ## Layout
 
-- The window is the arena on the left and the panel on the right, as tall as the arena and about 300 pixels wide.
+- The window is the arena on the left and the panel on the right, as tall as the arena and 420 pixels wide.
 - The panel shows, from top to bottom:
   1. A title with the vehicle's label from the scenario, e.g. `Aggression #1`, and below it the Braitenberg type and name from its definition, e.g. `Vehicle 2b: Aggression`.
   2. The diagram: a top-down view of the body with its front pointing up. The diagram does not rotate with the vehicle, so it stays easy to read.
-  3. Live readouts: the value of each sensor, unit and motor, with a level bar.
-  4. Vehicle values: `size`, `noise_std`, and the current forward speed and turn rate.
+  3. Live readouts, one compact line per part: its name and label (a sensor's stimulus, a unit's threshold), a level bar and its value.
+  4. Vehicle values, on two lines: `size`, `noise_std`, and the current forward speed and turn rate.
+- The diagram takes the space left above the readouts, up to a maximum size, so that a vehicle with many units (such as Vehicle 5) still fits; the readouts start right below the diagram.
 
 ## Diagram
 
@@ -44,6 +45,28 @@ For Vehicle 1 this gives a sensor level of `reading / ((max_speed - base_speed) 
 - Clicking a vehicle in the arena selects it; the selected vehicle is marked with a ring in the arena.
 - If the scenario has no vehicles, the panel says so.
 
+## Static diagram
+
+The same diagram can be exported from a definition file as an SVG image, for specs and docs:
+
+```
+python -m braitenberg.diagram vehicles/vehicle5-moth.yaml --out specs/images/vehicle5-moth.svg
+```
+
+- It shows the title (`Vehicle <type>: <name>`), the body, every sensor, actuator and unit at its diagram position with its name (and a sensor's stimulus or a unit's threshold below it), and every wire as an arrow from source to target.
+- Wires are colored by kind, blue for excitatory and red for inhibitory, and marked `+` or `−`; inactive connections are dashed and gray. A legend explains the colors.
+- It has no live signals, and it does not import pygame.
+
+## Recording
+
+A scenario can be recorded to an animated GIF, drawn by the same renderer as the window, panel included, without opening a window:
+
+```
+python -m braitenberg.record scenarios/vehicle5-moth.yaml --seconds 40 --out specs/images/vehicle5-moth.gif
+```
+
+Options: `--every` (simulated seconds between frames, default 0.1), `--speed` (playback speed, default 2), `--scale` (image scale, default 0.6) and `--seed`. It needs Pillow.
+
 ## Acceptance criteria
 
 1. **Structure:** Vehicle 1's diagram has exactly one sensor, one motor and one excitatory wire from the sensor to the motor.
@@ -51,3 +74,5 @@ For Vehicle 1 this gives a sensor level of `reading / ((max_speed - base_speed) 
 3. **Live:** after a simulation step, the diagram reflects the vehicle's current sensor reading and speed.
 4. **Headless:** building a diagram never imports pygame.
 5. **Renders:** the renderer draws a frame with the panel without errors, using SDL's dummy video driver so no window opens.
+6. **Static diagram:** the SVG for a definition is well-formed XML, names every part, has one arrow per input with the right color for its sign (dashed when inactive), and is produced without importing pygame.
+7. **Recording:** recording a scenario writes a GIF with one frame per `--every` seconds of simulated time, plus the first frame.

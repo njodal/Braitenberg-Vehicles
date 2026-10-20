@@ -1,0 +1,148 @@
+general:
+  type: "5"
+  name: Moth
+  description: Steers toward light until it gets burned once; a unit that feeds back into itself remembers the burn, and from then on the moth steers away from every light.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.9, 0.9]
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.9, 0.9]
+
+units:
+  # Which eye is brighter
+  - unit:
+      name: left_brighter
+      type: threshold
+      threshold: 0.05
+      position: [-0.45, 0.5]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+            type: inhibitory
+  - unit:
+      name: right_brighter
+      type: threshold
+      threshold: 0.05
+      position: [0.45, 0.5]
+      inputs:
+        - input:
+            from: right_eye
+        - input:
+            from: left_eye
+            type: inhibitory
+
+  # Getting burned, and remembering it
+  - unit:
+      name: pain
+      type: threshold
+      threshold: 18          # both eyes together, very close to a light (about 8 units in two-lights)
+      position: [-0.45, 0.1]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+  - unit:
+      name: near
+      type: threshold
+      threshold: 10          # both eyes together: within about 17 units in two-lights
+      position: [0, -0.02]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+  - unit:
+      name: burned
+      type: threshold
+      threshold: 1
+      position: [0.45, 0.1]
+      inputs:
+        - input:
+            from: pain
+        - input:
+            from: burned     # feeds back into itself: once on, stays on
+
+  # Seek light while not burned; once burned, flee it when near
+  - unit:
+      name: seek_left
+      type: threshold
+      threshold: 1
+      position: [0.8, -0.3]
+      inputs:
+        - input:
+            from: left_brighter
+        - input:
+            from: burned
+            type: inhibitory
+  - unit:
+      name: seek_right
+      type: threshold
+      threshold: 1
+      position: [-0.8, -0.3]
+      inputs:
+        - input:
+            from: right_brighter
+        - input:
+            from: burned
+            type: inhibitory
+  - unit:
+      name: flee_left
+      type: threshold
+      threshold: 3
+      position: [-0.27, -0.3]
+      inputs:
+        - input:
+            from: left_brighter
+        - input:
+            from: burned
+        - input:
+            from: near
+  - unit:
+      name: flee_right
+      type: threshold
+      threshold: 3
+      position: [0.27, -0.3]
+      inputs:
+        - input:
+            from: right_brighter
+        - input:
+            from: burned
+        - input:
+            from: near
+
+actuators:
+  # Speeding up the right motor turns left, the left motor turns right.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.6]
+      inputs:
+        - input:
+            from: seek_right
+        - input:
+            from: flee_left
+      gain: 3
+      base_speed: 3
+      max_speed: 6
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.6]
+      inputs:
+        - input:
+            from: seek_left
+        - input:
+            from: flee_right
+      gain: 3
+      base_speed: 3
+      max_speed: 6

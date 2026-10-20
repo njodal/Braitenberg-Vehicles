@@ -13,6 +13,7 @@ dependencies = [
 [project.optional-dependencies]
 analysis = ["matplotlib"]
 dev = ["pytest"]
+record = ["pillow"]
 
 [build-system]
 requires = ["setuptools>=64"]

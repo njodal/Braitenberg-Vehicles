@@ -1,0 +1,14 @@
+name: Moth
+description: A moth among two lights. It flies to the first light it sees, gets burned, and from then on keeps away from both.
+
+world: ../worlds/two-lights.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle5-moth.yaml
+      position: [10, 20]
+      heading: 45
+
+simulation:
+  dt: 0.01                   # finer than the units' 0.05 s delay, so delays and simultaneity show
+  seed: 0

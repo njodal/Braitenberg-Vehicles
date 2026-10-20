@@ -111,9 +111,14 @@ A motor adds up the signals of its active inputs, excitatory ones with `+` and i
 | `type` | yes | `threshold` (the only type for now): Braitenberg's threshold device from Vehicle 5. |
 | `threshold` | yes | The unit fires when the sum of its active inputs reaches this value. `0` or less means the unit fires on its own, unless an inhibitory connection stops it. |
 | `inputs` | yes | Sensors and/or other units, including itself (see *Inputs*). |
+| `delay` | no | Seconds between the inputs reaching the threshold and the output appearing. Default `0.05`. Must be positive. |
 | `position` | no | `[x, y]` in body coordinates, used only to place the unit in the diagram. If missing, the diagram lays it out automatically. |
 
 A threshold unit adds up the signals of its **active** inputs, excitatory ones with `+` and inhibitory ones with `-`, and outputs `1` when that sum is greater than or equal to `threshold`, and `0` otherwise. Inactive inputs are ignored. With no active input the sum is `0`, so a unit with `threshold` `0` or less fires on its own; an active inhibitory input with a strong enough signal brings the sum below the threshold and stops it.
+
+**Units react with a delay.** As Braitenberg puts it, in a threshold device "the output does not appear immediately upon activation of the input, but only after a short delay, say one tenth of a second". This project uses a default of 0.05 seconds. A unit's output at time `t` is what its inputs called for at time `t - delay`. Brains have to be designed with this in mind: a signal that passes through a chain of units arrives one delay later per unit, and a loop of units has a rhythm set by its delays.
+
+**Inputs close in time count as simultaneous.** Two inputs do not have to arrive at exactly the same instant to add up: if they arrive less than the unit's `delay` apart, the unit treats them as simultaneous. Concretely, each input contributes the largest value it had during the last `delay` seconds (the steps less than `delay` before now, and now), not only its value at this instant. This applies to inhibitory inputs too: an inhibition that arrived shortly before still counts. The window is measured in whole steps, so it only spans more than the current step when `delay` is larger than `dt`: with `delay` 0.05 and `dt` 0.05 it is just the current step, and with `dt` 0.01 it is the last 5 steps.
 
 ### Names
 
@@ -153,12 +158,18 @@ Inputs may come from sensors or units. Actuators cannot be inputs. Units may for
 
 ## Signal flow
 
+Simulation time is measured in seconds; each step advances it by `dt` (see [scenarios.md](scenarios.md)).
+
 Each simulation step:
 
 1. **Sensors** read the stimulus at their current position.
-2. **Units** all update at once, from this step's sensor values and the *previous* step's unit outputs. A unit fed by sensors responds in the same step; each connection from one unit to another adds a delay of one step, which makes loops well defined. Unit outputs start at 0.
-3. **Actuators** compute their speed from this step's sensor values and the unit outputs just computed in step 2. A sensor wired straight to a motor acts with no delay, as in Vehicles 1 to 4.
+2. **Units** all update at once, in two parts:
+   - **Outputs.** Each unit's visible output becomes the activation it computed `delay` seconds ago. Delays are rounded to a whole number of steps, at least one: with the default `delay` 0.05 and `dt` 0.05, one step; with `dt` 0.01, five steps. Outputs start at 0, and so do activations still on their way.
+   - **Activations.** Each unit computes its activation, `1` or `0`, from its inputs: this step's sensor outputs and the unit outputs just made visible. Each input contributes the largest value it had within the unit's simultaneity window, which is the last `round(delay / dt)` steps including this one. The activation enters the unit's delay line, to become its output `delay` seconds later.
+3. **Actuators** compute their speed from this step's sensor outputs and the visible unit outputs from step 2. Actuators have no delay: a sensor wired straight to a motor acts at once, as in Vehicles 1 to 4.
 4. **Movement** (below), then the arena's edge rule.
+
+So a signal from a sensor through units A and B to a motor reaches the motor `delay(A) + delay(B)` after the sensor reading changed. A unit wired to itself sees its own output, which makes loops well defined: a self-excited unit, once on, stays on.
 
 ## Movement
 
@@ -184,6 +195,7 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - an input names something that does not exist, or names an actuator;
 - an input has a `type` other than `excitatory` or `inhibitory`, or a `strength` outside `[0, 1]`;
 - a `position` is outside `[-1, 1]`;
+- a unit's `delay` is not positive;
 - a `response` has an unknown `type`, is missing a required field for its type, has a field that its type does not use, or has a `width` that is not positive;
 - a sensor, actuator or unit `type` is unknown;
 - there are no actuators.
@@ -249,7 +261,7 @@ actuators:
 
 ## Example: an inhibitory connection
 
-A motor that runs only while the eye sees light below `2`. `idle` has threshold `0`, so it fires on its own; `detector` fires when the light reaches `2` and, through an inhibitory connection, stops `idle`. (`detector`'s output arrives one step later, as described in *Signal flow*.)
+A motor that runs only while the eye sees light below `2`. `idle` has threshold `0`, so it fires on its own; `detector` fires when the light reaches `2` and, through an inhibitory connection, stops `idle`. (Each unit adds its delay of 0.05 seconds, as described in *Signal flow*: the motor stops 0.1 seconds after the light reaches `2`, and restarts 0.1 seconds after it drops below.)
 
 ```yaml
 units:
@@ -287,7 +299,7 @@ actuators:
 3. **Validation:** each failure case under *Loading and validation* raises an error naming the file and the key.
 4. **Steering:** in `scenarios/vehicle2-fear-and-aggression.yaml`, where the light is ahead and slightly to one side of each vehicle, within 600 steps and for seeds 0 to 4, Vehicle 2a (straight wiring) ends farther from the light than it started, and Vehicle 2b (crossed wiring) comes closer to it than half its body size.
 5. **Inhibition:** with `base_speed` above 0 and an inhibitory input, a motor slows down as its sensor reading rises. An inactive input (strength `0.7` or less) does not change the motor's speed.
-6. **Threshold units:** a unit outputs 1 exactly when the sum of its active inputs reaches its threshold. An inhibitory input lowers that sum. A connection with strength `0.7` or less has no effect, and one above `0.7` does. A unit with threshold `0` fires with no input and stops when an active inhibitory input carries a signal. In a chain sensor → unit A → unit B, A fires in the same step the sensor reading crosses its threshold and B one step later. A unit wired to itself keeps firing after its input stops.
+6. **Threshold units:** a unit outputs 1 exactly when the sum of its active inputs reaches its threshold. An inhibitory input lowers that sum. A connection with strength `0.7` or less has no effect, and one above `0.7` does. A unit with threshold `0` fires with no input and stops when an active inhibitory input carries a signal. A unit's output appears `delay` seconds (rounded to steps, at least one) after its activation: in a chain sensor → unit A → unit B with the default delay and `dt` 0.05, A's output turns on 1 step after the sensor reading crosses A's threshold, and B's 1 step after that. With `delay` 0.1, each takes 2 steps. A unit wired to itself keeps firing after its input stops. Two excitatory inputs, each too weak alone to reach the threshold, make the unit fire when they arrive less than `delay` apart, and do not when they arrive `delay` or more apart.
 7. **Diagram:** the diagram has one part per sensor, actuator and unit and one wire per input, with the right signs.
 8. **Responses:** a sensor without `response` outputs its reading. A `peak` response outputs `height` at `at` and `height * exp(-1/2)` at `at ± width`. A `step` response outputs `0` just below `at` and `height` from `at` up.
 9. **Headless:** loading and running a definition never imports pygame.
