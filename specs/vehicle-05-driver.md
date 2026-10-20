@@ -8,6 +8,10 @@ The driver only moves in a straight line, at a constant speed, along a road with
 
 It needs two features of the simulator: sources that switch on and off on a schedule ([worlds.md](worlds.md), *Schedules*), for the traffic light, and sensors that only see ahead ([vehicle-definition.md](vehicle-definition.md), *Field of view*), so that the driver ignores the light once it is behind it.
 
+![Driver: it stops before the traffic light while it is red and goes on when it turns green](images/vehicle5-driver.gif)
+
+*The default scenario, first 60 seconds (played at four times the speed). The road loops, so the driver comes back to the light on every lap: it stops at red (about 3 s), goes on at green (8 s), passes on green on the next lap (30 s), and stops again (48 s). Below the road, `red on` / `green on` shows the light's state; in the panel, `red_close` and `go` take turns.*
+
 ## World
 
 `worlds/traffic-light.yaml`: a road 100 units long and 20 wide (`edges: wrap`, so the driver comes back to the light on every lap), with a traffic light at `[50, 13]`, 3 units to the side of the road's center line. The light is two sources at the same place, one per stimulus:
@@ -20,6 +24,8 @@ It needs two features of the simulator: sources that switch on and off on a sche
 Exactly one of the two is on at any time. A 16-second cycle (rather than, say, 12) makes the driver's arrivals alternate between red and green: a lap takes 20 seconds, and after waiting for green it arrives back 4 seconds into the next green phase. With a 12-second cycle it would arrive at red every time.
 
 ## Design
+
+![Diagram of the driver: two color sensors, three units and one motor](images/vehicle5-driver.svg)
 
 ### Parts
 
