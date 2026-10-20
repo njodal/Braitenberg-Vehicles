@@ -1,0 +1,14 @@
+name: Searcher
+description: A searcher starts away from the light, heading past it. It zigzags until the light comes into sight, then steers straight to it.
+
+world: ../worlds/one-light.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle5-searcher.yaml
+      position: [10, 70]
+      heading: 0
+
+simulation:
+  dt: 0.01
+  seed: 0

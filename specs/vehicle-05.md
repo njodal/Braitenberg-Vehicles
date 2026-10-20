@@ -1,8 +1,13 @@
-# Vehicle 5 — Moth (burned once)
+# Vehicle 5 — Logic: the Moth and the Searcher
 
 ## Summary
 
-Braitenberg's chapter on Vehicle 5 ("Logic") introduces **threshold units**, the building blocks of a 'nervous system' between sensors and motors. It shows that they can be combined into logic (AND, OR, NOT) and that a unit feeding back into itself **remembers**. It does not describe a specific vehicle wired with them, so this project defines its own example.
+Braitenberg's chapter on Vehicle 5 ("Logic") introduces **threshold units**, the building blocks of a 'nervous system' between sensors and motors. It shows that they can be combined into logic (AND, OR, NOT) and that a unit feeding back into itself **remembers**. It does not describe a specific vehicle wired with them, so this project defines its own examples:
+
+- **The moth** (this spec), which shows that a loop of units can **remember**.
+- **The searcher** (see *Second example: Searcher* at the end), which shows that a loop of units can keep a **rhythm**.
+
+## First example: Moth
 
 The example is a **moth that gets burned once**. At first it is drawn to light and steers toward it. If it ever gets too close, a *pain* unit fires and switches on a *memory* unit that feeds back into itself and stays on for good. From then on the same vehicle steers away from every light.
 
@@ -92,3 +97,17 @@ All behavior criteria use the default scenario, run headless for 200 seconds of 
 
 - Unlearning: once burned, the moth never trusts light again. (Forgetting would need connections whose strength changes over time, which belongs to later vehicles.)
 - Options B (logical AND of two stimuli) and C (counting encounters) from the design discussion. They can be later Vehicle 5 examples.
+
+## Second example: Searcher
+
+![Searcher: it zigzags until the light is in sight, then goes straight to it](images/vehicle5-searcher.gif)
+
+*The searcher's default scenario, first 20 seconds (seed 0, played at twice the speed). In the panel, `osc_b` and `osc_c` take turns until `sees` lights up; from then on `seek_left` and `seek_right` steer.*
+
+While the searcher sees no light, a small oscillator of three units makes it **zigzag**, turning left and right in turn, as a moth does when it has lost the trail of a scent and sweeps the air to find it again. As soon as a light is in sight, the oscillator is silenced and the searcher steers straight to the light.
+
+The oscillator is a ring of three units, each silenced by the one before it (`osc_a` ← `osc_c` ← `osc_b` ← `osc_a`), with a delay of 0.3 s each. A single unit that silences itself would also oscillate, but unevenly: the simultaneity window holds it off for twice as long as it is on, so the vehicle would turn in circles. In the ring, `osc_b` and `osc_c` are each on for the same time in every cycle, so the turns to each side are equal and the zigzag keeps its overall direction. An extra excitatory connection from `osc_a` to `osc_c` keeps the three units from starting, and staying, in step.
+
+![Diagram of the searcher: two eyes, an oscillator of three units, and the units that switch between zigzagging and seeking](images/vehicle5-searcher.svg)
+
+The full design, the definition (`vehicles/vehicle5-searcher.yaml`), the scenario (`scenarios/vehicle5-searcher.yaml`) and the searcher's acceptance criteria are in [vehicle-05-searcher.md](vehicle-05-searcher.md).

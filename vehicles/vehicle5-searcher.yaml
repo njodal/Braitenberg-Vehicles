@@ -1,0 +1,157 @@
+general:
+  type: "5"
+  name: Searcher
+  description: While it sees no light, an oscillator of three units makes it zigzag, sweeping the ground; as soon as it sees a light, the zigzag stops and it steers straight to it.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.9, 0.9]
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.9, 0.9]
+
+units:
+  # Oscillator: a ring of three units, each silenced by the one before it.
+  # The extra excitation from osc_a to osc_c keeps them from firing in step.
+  - unit:
+      name: osc_a
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      position: [0, 0.2]
+      inputs:
+        - input:
+            from: osc_c
+            type: inhibitory
+  - unit:
+      name: osc_b
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      position: [0.35, -0.02]
+      inputs:
+        - input:
+            from: osc_a
+            type: inhibitory
+  - unit:
+      name: osc_c
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      position: [-0.35, -0.02]
+      inputs:
+        - input:
+            from: osc_b
+            type: inhibitory
+        - input:
+            from: osc_a
+
+  # Is there a light in sight, and on which side?
+  - unit:
+      name: sees
+      type: threshold
+      threshold: 4             # both eyes together: within about 30 units of a light
+      position: [0, 0.55]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+  - unit:
+      name: left_brighter
+      type: threshold
+      threshold: 0.05
+      position: [-0.5, 0.55]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+            type: inhibitory
+  - unit:
+      name: right_brighter
+      type: threshold
+      threshold: 0.05
+      position: [0.5, 0.55]
+      inputs:
+        - input:
+            from: right_eye
+        - input:
+            from: left_eye
+            type: inhibitory
+
+  # Zigzag while searching; steer to the light once it is in sight.
+  - unit:
+      name: zig
+      type: threshold
+      threshold: 1
+      position: [0.27, -0.35]
+      inputs:
+        - input:
+            from: osc_b
+        - input:
+            from: sees
+            type: inhibitory
+  - unit:
+      name: zag
+      type: threshold
+      threshold: 1
+      position: [-0.27, -0.35]
+      inputs:
+        - input:
+            from: osc_c
+        - input:
+            from: sees
+            type: inhibitory
+  - unit:
+      name: seek_left
+      type: threshold
+      threshold: 2
+      position: [0.8, -0.35]
+      inputs:
+        - input:
+            from: left_brighter
+        - input:
+            from: sees
+  - unit:
+      name: seek_right
+      type: threshold
+      threshold: 2
+      position: [-0.8, -0.35]
+      inputs:
+        - input:
+            from: right_brighter
+        - input:
+            from: sees
+
+actuators:
+  # Speeding up the right motor turns left, the left motor turns right.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      inputs:
+        - input:
+            from: zag
+        - input:
+            from: seek_right
+      gain: 2
+      base_speed: 3
+      max_speed: 5
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      inputs:
+        - input:
+            from: zig
+        - input:
+            from: seek_left
+      gain: 2
+      base_speed: 3
+      max_speed: 5
