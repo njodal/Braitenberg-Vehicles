@@ -1,4 +1,4 @@
-# Vehicle 5 — Logic: the Moth, the Searcher and the Forager
+# Vehicle 5 — Logic: the Moth, the Searcher, the Forager and the Driver
 
 ## Summary
 
@@ -7,6 +7,7 @@ Braitenberg's chapter on Vehicle 5 ("Logic") introduces **threshold units**, the
 - **The moth** (this spec), which shows that a loop of units can **remember**.
 - **The searcher** (see *Second example: Searcher*), which shows that a loop of units can keep a **rhythm**.
 - **The forager** (see *Third example: Forager*), the searcher with an energy store: it combines a rhythm with a memory of being full.
+- **The driver** (see *Fourth example: Driver*), which stops at a red traffic light: simple logic on two color sensors that only look ahead.
 
 ## First example: Moth
 
@@ -126,3 +127,17 @@ A unit that feeds back into itself remembers being full, as the moth's `burned` 
 ![Diagram of the forager: the searcher plus an energy sensor and the units that track hunger](images/vehicle5-forager.svg)
 
 The full design, the definition (`vehicles/vehicle5-forager.yaml`), the scenario (`scenarios/vehicle5-forager.yaml`) and the forager's acceptance criteria are in [vehicle-05-forager.md](vehicle-05-forager.md).
+
+## Fourth example: Driver
+
+![Driver: it stops before the traffic light while it is red and goes on when it turns green](images/vehicle5-driver.gif)
+
+*The driver's default scenario, first 60 seconds (played at four times the speed). The road loops, so the driver comes back to the light on every lap: it stops at red, passes on green, and stops again.*
+
+The driver moves only in a straight line, at a constant speed, along a road with a traffic light beside it. It has two color sensors, `red_eye` and `green_eye`, and three units: `red_close` fires when a red light is close ahead, `green_ahead` when a green one is in sight, and `go`, which fires on its own, keeps the motor running unless a red light is close and no green one is seen. So it stops a few units before a red light, waits, and goes on as soon as the light turns green; on green it passes at full speed.
+
+It relies on two features of the simulator: the traffic light is two sources that switch on and off on a schedule ([worlds.md](worlds.md), *Schedules*), and the eyes have a 90° field of view ([vehicle-definition.md](vehicle-definition.md), *Field of view*), so a light the driver has already passed no longer stops it.
+
+![Diagram of the driver: two color sensors, three units and one motor](images/vehicle5-driver.svg)
+
+The full design, the definition (`vehicles/vehicle5-driver.yaml`), the world (`worlds/traffic-light.yaml`), the scenario and the driver's acceptance criteria are in [vehicle-05-driver.md](vehicle-05-driver.md).

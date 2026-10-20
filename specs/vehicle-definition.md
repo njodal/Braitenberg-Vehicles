@@ -65,8 +65,23 @@ Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its k
 | `type` | yes | The stimulus the sensor reads, e.g. `temperature`, `light`. It must be defined in the world the vehicle runs in. |
 | `position` | yes | `[x, y]` in body coordinates. |
 | `response` | no | How the sensor's output depends on its reading (see *Responses*). Default: `linear`. |
+| `field_of_view` | no | The angle, in degrees, of the cone in front of the vehicle in which the sensor detects sources (see *Field of view*). Default 360: it detects sources in every direction. |
 
 A sensor **reads** the value of its stimulus at the sensor's position in the arena (or, for an `energy` sensor, the vehicle's own energy; see *5. Energy*), and its **output**, the signal its connections carry, is that reading passed through its response. Sensors at different places on the body read different values; that is what lets Vehicles 2 and up steer.
+
+#### Field of view
+
+By default a sensor detects sources all around it. A sensor with a `field_of_view` of `F` degrees only detects the sources it **sees ahead**: those whose direction from the sensor is within `F / 2` degrees of the vehicle's heading. Sources outside that cone contribute nothing to its reading, however close they are. (With `edges: wrap`, the direction is the shortest way around, as for distance.)
+
+```yaml
+- sensor:
+    name: red_eye
+    type: red
+    position: [0, 0.9]
+    field_of_view: 90      # only sources up to 45 degrees to either side of straight ahead
+```
+
+A vehicle that has passed a source then no longer senses it behind it. `field_of_view` must be greater than 0 and at most 360. An `energy` sensor has none, since it does not look at the world.
 
 #### Responses
 
@@ -221,6 +236,7 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - an input has a `type` other than `excitatory` or `inhibitory`, or a `strength` outside `[0, 1]`;
 - a `position` is outside `[-1, 1]`;
 - a unit's `delay` is not positive;
+- a `field_of_view` is not greater than 0 and at most 360, or is given for an `energy` sensor;
 - an `energy` value is missing, of the wrong type or out of range (e.g. `initial` above `max`), or a sensor has type `energy` and there is no `energy` section;
 - a `response` has an unknown `type`, is missing a required field for its type, has a field that its type does not use, or has a `width` that is not positive;
 - a sensor, actuator or unit `type` is unknown;
@@ -329,7 +345,8 @@ actuators:
 7. **Diagram:** the diagram has one part per sensor, actuator and unit and one wire per input, with the right signs.
 8. **Responses:** a sensor without `response` outputs its reading. A `peak` response outputs `height` at `at` and `height * exp(-1/2)` at `at ± width`. A `step` response outputs `0` just below `at` and `height` from `at` up.
 9. **Energy:** with no light, a vehicle's energy drops by `consumption` times the distance it travels, and does not change while it stands still. Near a `charge_from` source it rises by `charge_gain` times the reading at the body center, per second, minus what movement uses. It never goes below 0 or above `max`. An `energy` sensor reads the current energy.
-10. **Headless:** loading and running a definition never imports pygame.
+10. **Field of view:** a sensor with a `field_of_view` reads a source straight ahead exactly as a sensor without one does, reads nothing from a source behind it or outside the cone, and a sensor without a `field_of_view` reads sources in every direction.
+11. **Headless:** loading and running a definition never imports pygame.
 
 ## Out of scope
 

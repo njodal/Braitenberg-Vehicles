@@ -26,6 +26,7 @@ PANEL_WIDTH = 420
 ROW = 20                  # height of one readout line in the panel
 UNIT_RADIUS = 14
 MAX_DIAGRAM_RADIUS = 150
+MIN_WINDOW_HEIGHT = 600   # so the panel fits even for a long, narrow arena
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
 SOURCE_RADIUS = 7
@@ -41,6 +42,9 @@ BACKGROUND = (8, 12, 40)
 VEHICLE_FILL = (245, 245, 245)
 VEHICLE_OUTLINE = (20, 20, 20)
 SOURCE_FILL = (255, 255, 255)
+# Sources of a stimulus named after a color are drawn in that color.
+STIMULUS_COLORS = {"red": (235, 70, 60), "green": (70, 210, 100), "blue": (80, 140, 255),
+                   "yellow": (250, 220, 70)}
 TEXT = (235, 235, 235)
 SELECTED_RING = (120, 220, 255)
 PANEL_BG = (22, 24, 34)
@@ -67,7 +71,7 @@ class Renderer:
         arena = world.arena
         self.scale = MAX_WINDOW_SIDE / max(arena.width, arena.height)
         self.size = (round(arena.width * self.scale), round(arena.height * self.scale))
-        self.window_size = (self.size[0] + PANEL_WIDTH, self.size[1])
+        self.window_size = (self.size[0] + PANEL_WIDTH, max(self.size[1], MIN_WINDOW_HEIGHT))
         self.stimulus_names = list(world.stimuli)
         sensors = [s for p in scenario.vehicles for s in p.definition.sensors]
         first_sensor = next((s.type for s in sensors if s.type in world.stimuli), None)
@@ -91,6 +95,7 @@ class Renderer:
         self.trails = [deque(maxlen=TRAIL_LENGTH) for _ in self.sim.vehicles]
         self.record_trails()
         self.heatmap = None
+        self.heatmap_key = None
         if self.selected >= len(self.sim.vehicles):
             self.selected = 0
 
@@ -179,6 +184,7 @@ class Renderer:
     # --- drawing ---
 
     def draw(self, surface: pygame.Surface) -> None:
+        surface.fill(PANEL_BG)          # below a short arena, the window is empty
         self.draw_field(surface)
         if self.show_trail:
             self.draw_trails(surface)
@@ -191,13 +197,16 @@ class Renderer:
         if self.stimulus is None:
             surface.fill(BACKGROUND)
             return
-        if self.heatmap is None:
+        # The field changes when sources are moved (heatmap reset) or switch on or off.
+        key = (self.stimulus, self.sim.world.active_sources(self.sim.time))
+        if self.heatmap is None or key != self.heatmap_key:
+            self.heatmap_key = key
             w, h = self.size
             cols, rows = max(w // HEATMAP_CELL, 1), max(h // HEATMAP_CELL, 1)
             xs = (np.arange(cols) + 0.5) * w / cols / self.scale
             ys = self.size[1] / self.scale - (np.arange(rows) + 0.5) * h / rows / self.scale
             gx, gy = np.meshgrid(xs, ys, indexing="ij")  # surfarray is indexed [x, y]
-            values = self.sim.world.stimulus_at(self.stimulus, gx, gy)
+            values = self.sim.world.stimulus_at(self.stimulus, gx, gy, self.sim.time)
             peak = max((s.intensity for s in self.sim.world.stimuli[self.stimulus].sources),
                        default=0)
             normalized = values / peak if peak > 0 else np.zeros_like(values)
@@ -220,12 +229,13 @@ class Renderer:
 
     def draw_sources(self, surface: pygame.Surface) -> None:
         for name, stimulus in self.sim.world.stimuli.items():
-            active = name == self.stimulus
+            color = STIMULUS_COLORS.get(name, SOURCE_FILL)
+            shown = name == self.stimulus
             for s in stimulus.sources:
                 center = self.to_screen(*s.position)
-                if active:
-                    pygame.draw.circle(surface, SOURCE_FILL, center, SOURCE_RADIUS)
-                pygame.draw.circle(surface, SOURCE_FILL, center, SOURCE_RADIUS + 3, 2)
+                if s.active(self.sim.time):     # on: filled; off: a hollow ring only
+                    pygame.draw.circle(surface, color, center, SOURCE_RADIUS)
+                pygame.draw.circle(surface, color, center, SOURCE_RADIUS + 3, 2 if shown else 1)
 
     def draw_vehicles(self, surface: pygame.Surface) -> None:
         for v in self.sim.vehicles:
@@ -248,10 +258,16 @@ class Renderer:
     def draw_hud(self, surface: pygame.Surface) -> None:
         lines = [f"t = {self.sim.time:.1f}   x{self.steps_per_frame}"
                  + ("   PAUSED" if self.paused else ""),
-                 f"stimulus: {self.stimulus or '-'}",
-                 "space pause  Right step  R reset  T trail  +/- speed",
-                 "Tab stimulus  drag source  click vehicle"]
-        y = 6
+                 f"stimulus: {self.stimulus or '-'}"]
+        scheduled = [(name, any(s.active(self.sim.time) for s in st.sources))
+                     for name, st in self.sim.world.stimuli.items()
+                     if any(s.schedule for s in st.sources)]
+        if scheduled:
+            lines.append("   ".join(f"{name} {'on' if on else 'off'}" for name, on in scheduled))
+        lines += ["space pause  Right step  R reset  T trail  +/- speed",
+                  "Tab stimulus  drag source  click vehicle"]
+        # Over a tall arena, in its top corner; below a short one, so it hides nothing.
+        y = 6 if self.size[1] >= MIN_WINDOW_HEIGHT else self.size[1] + 10
         for line in lines:
             text = self.font.render(line, True, TEXT)
             surface.blit(text, (8, y))
@@ -261,7 +277,7 @@ class Renderer:
     # --- diagram panel ---
 
     def draw_panel(self, surface: pygame.Surface) -> None:
-        left, height = self.size[0], self.size[1]
+        left, height = self.size[0], self.window_size[1]
         surface.fill(PANEL_BG, (left, 0, PANEL_WIDTH, height))
         pygame.draw.line(surface, PANEL_BORDER, (left, 0), (left, height), 2)
         x0 = left + 16

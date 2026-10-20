@@ -1,0 +1,21 @@
+name: Traffic light
+description: A straight road with a traffic light beside it, red for 8 seconds and green for 8.
+
+arena:
+  width: 100
+  height: 20
+  edges: wrap               # the road loops: the driver comes back to the light on every lap
+
+stimuli:
+  red:
+    sources:
+      - position: [50, 13]  # 3 units to the side of the road's center line (y = 10)
+        intensity: 10
+        falloff: 15
+        schedule: {period: 16, on_at: 0, off_at: 8}
+  green:
+    sources:
+      - position: [50, 13]
+        intensity: 10
+        falloff: 15
+        schedule: {period: 16, on_at: 8, off_at: 16}

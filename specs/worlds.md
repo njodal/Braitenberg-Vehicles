@@ -40,10 +40,41 @@ Each stimulus has a list of `sources`. Each source has:
 - `position`: `[x, y]` inside the arena.
 - `intensity`: value at the source itself.
 - `falloff`: distance at which the value drops to half.
+- `schedule` (optional): when the source is on (see *Schedules*). Without it the source is always on.
 
-Field value at a point = sum over the stimulus' sources of `intensity / (1 + (distance / falloff)^2)`. With `edges: wrap`, distance is measured on the torus (the shortest way around).
+Field value at a point = sum over the stimulus' **active** sources of `intensity / (1 + (distance / falloff)^2)`. With `edges: wrap`, distance is measured on the torus (the shortest way around).
 
-A stimulus with an empty `sources` list is zero everywhere.
+A stimulus with an empty `sources` list, or whose sources are all off, is zero everywhere.
+
+### Schedules
+
+A source with a `schedule` switches on and off on a fixed cycle, like a traffic light:
+
+```yaml
+stimuli:
+  red:
+    sources:
+      - position: [50, 13]
+        intensity: 10
+        falloff: 15
+        schedule: {period: 16, on_at: 0, off_at: 8}    # on for the first 8 s of every 16 s
+  green:
+    sources:
+      - position: [50, 13]
+        intensity: 10
+        falloff: 15
+        schedule: {period: 16, on_at: 8, off_at: 16}   # on for the other 8 s
+```
+
+| Key | Meaning |
+|---|---|
+| `period` | Length of the cycle, in seconds of simulated time. Positive. |
+| `on_at` | Time within the cycle when the source switches on, from 0 to `period`. |
+| `off_at` | Time within the cycle when it switches off, from 0 to `period`. |
+
+At simulated time `t`, let `c = t mod period`. With `on_at < off_at` the source is on while `on_at <= c < off_at`. With `on_at > off_at` the cycle wraps: the source is on while `c >= on_at` or `c < off_at`. `on_at` and `off_at` must differ. (The keys are not `on` and `off` because YAML reads those as `true` and `false`.)
+
+A source that is off contributes nothing to its stimulus; nothing else about it changes. The renderer draws active sources filled and inactive ones as hollow rings (in that color when the stimulus is named after one, such as `red` or `green`), lists which scheduled stimuli are on, and its heat map follows them as they switch.
 
 ### Edges
 
@@ -58,7 +89,8 @@ When a vehicle moves past an edge:
 - Fail fast with a clear message naming the file and the offending key when:
   - a required key is missing or has the wrong type;
   - an unknown key appears (catches typos such as `falof`, and `vehicles` or `simulation` sections, which belong in scenarios);
-  - a source position lies outside the arena.
+  - a source position lies outside the arena;
+  - a `schedule` is missing a key, has a non-positive `period`, has `on_at` or `off_at` outside `[0, period]`, or has `on_at` equal to `off_at`.
 - Defaults are applied by the loader, so the rest of the code sees a complete world.
 - The world model lives in the simulation side (`world.py`) and must not import pygame.
 
@@ -73,10 +105,11 @@ The renderer lets the user move sources during a run. These changes affect only 
 3. **Validation:** each failure case listed under *Loading and validation* raises an error whose message names the file and the key.
 4. **Field values:** for a single source, the field equals `intensity` at the source and `intensity / 2` at distance `falloff`.
 5. **Wrapped distance:** with `edges: wrap`, a point near the left edge is affected by a source near the right edge as if they were close.
+6. **Schedules:** a scheduled source contributes to its stimulus exactly while it is on, as defined in *Schedules*, including a cycle that wraps (`on_at > off_at`); a source without a schedule is always on.
 
 ## Out of scope
 
 - Obstacles and walls inside the arena.
-- Moving or time-varying sources.
+- Moving sources, and sources whose intensity changes gradually rather than switching on and off.
 - Fields that are not built from point sources (e.g. gradients, images).
 - Saving a running simulation back to a world file.

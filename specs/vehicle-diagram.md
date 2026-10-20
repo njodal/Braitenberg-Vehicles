@@ -6,7 +6,7 @@ The simulator window shows, next to the arena, a separate panel with a live sche
 
 ## Layout
 
-- The window is the arena on the left and the panel on the right, as tall as the arena and 420 pixels wide.
+- The window is the arena on the left and the panel on the right, 420 pixels wide. The window is as tall as the arena, and at least 600 pixels so that the panel fits; a long, narrow arena (such as a road) is drawn at the top, with empty space below it.
 - The panel shows, from top to bottom:
   1. A title with the vehicle's label from the scenario, e.g. `Aggression #1`, and below it the Braitenberg type and name from its definition, e.g. `Vehicle 2b: Aggression`.
   2. The diagram: a top-down view of the body with its front pointing up. The diagram does not rotate with the vehicle, so it stays easy to read.

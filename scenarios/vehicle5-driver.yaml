@@ -1,0 +1,14 @@
+name: Driver
+description: A driver on a looping road with a traffic light. It stops before the light when it is red and goes on when it turns green.
+
+world: ../worlds/traffic-light.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle5-driver.yaml
+      position: [25, 10]
+      heading: 0
+
+simulation:
+  dt: 0.01
+  seed: 0

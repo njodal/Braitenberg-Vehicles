@@ -32,10 +32,12 @@ class Simulation:
 
     def step(self) -> None:
         for v in self.vehicles:
-            readings = {name: float(self.world.stimulus_at(stimulus, x, y))
+            fov = {s.name: s.field_of_view for s in v.definition.sensors}
+            readings = {name: float(self.world.stimulus_at(stimulus, x, y, self.time,
+                                                           v.heading, fov[name]))
                         for name, stimulus, x, y in v.sensor_points()}
             energy = v.definition.energy
-            charge = (float(self.world.stimulus_at(energy.charge_from, v.x, v.y))
+            charge = (float(self.world.stimulus_at(energy.charge_from, v.x, v.y, self.time))
                       if energy and energy.charge_from else 0.0)
             v.step(readings, self.dt, self.rng, charge)
             self.world.arena.apply_edges(v)

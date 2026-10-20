@@ -430,3 +430,54 @@ def test_definition_never_imports_pygame():
     )
     result = run_python(code)
     assert result.returncode == 0, result.stderr
+
+
+# 10. Field of view
+def fov_vehicle(write, field_of_view=None):
+    sensor = {"name": "eye", "type": "light", "position": [0, 0.8]}
+    if field_of_view is not None:
+        sensor["field_of_view"] = field_of_view
+    data = one_sensor_vehicle()
+    data["sensors"][0]["sensor"] = sensor
+    return load_definition(write(data))
+
+
+@pytest.mark.parametrize("light_at, seen_with_90", [
+    ((70, 50), True),     # straight ahead
+    ((70, 60), True),     # 26 degrees to the left
+    ((60, 70), False),    # 63 degrees to the left: outside a 90 degree cone
+    ((30, 50), False),    # behind
+])
+def test_field_of_view(write, light_at, seen_with_90):
+    from braitenberg.scenario import quick_scenario
+    from conftest import ONE_LIGHT
+    world = read(ONE_LIGHT)
+    world["stimuli"]["light"]["sources"][0]["position"] = list(light_at)
+    world_path = write(world, "light.yaml")
+    readings = {}
+    for fov in (None, 90):
+        definition_path = write(read_definition_dict(fov_vehicle(write, fov)), f"v{fov}.yaml")
+        sim = Simulation(quick_scenario(world_path, [definition_path], ["50,50,0"]))
+        v = sim.vehicles[0]
+        [(name, stimulus, x, y)] = v.sensor_points()
+        readings[fov] = sim.world.stimulus_at(stimulus, x, y, 0.0, v.heading,
+                                              v.definition.sensors[0].field_of_view)
+    assert readings[None] > 0
+    assert readings[90] == (pytest.approx(readings[None]) if seen_with_90 else 0)
+
+
+def read_definition_dict(definition):
+    """A loaded definition back to the dict form, for writing to a scenario."""
+    s = definition.sensors[0]
+    sensor = {"name": s.name, "type": s.type, "position": list(s.position)}
+    if s.field_of_view != 360:
+        sensor["field_of_view"] = s.field_of_view
+    data = one_sensor_vehicle()
+    data["sensors"][0]["sensor"] = sensor
+    return data
+
+
+@pytest.mark.parametrize("field_of_view", [0, -10, 400])
+def test_field_of_view_validation(write, field_of_view):
+    with pytest.raises(ConfigError, match=r"sensors\[0\]\.sensor\.field_of_view"):
+        fov_vehicle(write, field_of_view)

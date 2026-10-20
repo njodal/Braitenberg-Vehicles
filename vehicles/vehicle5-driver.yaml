@@ -1,0 +1,59 @@
+general:
+  type: "5"
+  name: Driver
+  description: Drives straight at a constant speed; stops a short distance before a red traffic light and goes on when it turns green. Its eyes only look ahead, so a light it has passed no longer matters.
+  size: 4
+  noise_std: 0              # keeps to a straight line
+
+sensors:
+  - sensor:
+      name: red_eye
+      type: red
+      position: [-0.3, 0.9]
+      field_of_view: 90     # only up to 45 degrees to either side of straight ahead
+  - sensor:
+      name: green_eye
+      type: green
+      position: [0.3, 0.9]
+      field_of_view: 90
+
+units:
+  - unit:
+      name: red_close
+      type: threshold
+      threshold: 8          # the red light is on, ahead, and about 7 units away or closer
+      position: [-0.45, 0.35]
+      inputs:
+        - input:
+            from: red_eye
+  - unit:
+      name: green_ahead
+      type: threshold
+      threshold: 1          # a green light is in sight ahead
+      position: [0.45, 0.35]
+      inputs:
+        - input:
+            from: green_eye
+  - unit:
+      name: go
+      type: threshold
+      threshold: 0          # fires on its own: the driver moves unless something stops it
+      position: [0, -0.15]
+      inputs:
+        - input:
+            from: red_close
+            type: inhibitory
+        - input:
+            from: green_ahead
+
+actuators:
+  - actuator:
+      name: motor
+      type: motor
+      position: [0, -0.7]   # on the center line: the driver never turns
+      inputs:
+        - input:
+            from: go
+      gain: 5
+      base_speed: 0
+      max_speed: 5

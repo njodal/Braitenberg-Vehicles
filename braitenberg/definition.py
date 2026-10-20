@@ -70,6 +70,7 @@ class SensorDef:
     type: str     # the stimulus it reads
     position: tuple[float, float]
     response: Response = field(default_factory=Response)
+    field_of_view: float = 360.0   # degrees, centered on the vehicle's heading
 
 
 @dataclass
@@ -212,12 +213,20 @@ class _DefinitionParser(Parser):
                           sign=1 if kind == "excitatory" else -1, strength=strength)
 
     def sensor(self, data, key: str, names) -> SensorDef:
-        data = self.mapping(data, key, {"name", "type", "position"}, {"response"})
-        return SensorDef(self.name(data, key, names),
-                         self.string(data["type"], f"{key}.type"),
-                         self.body_position(data["position"], f"{key}.position"),
-                         self.response(data["response"], f"{key}.response")
-                         if "response" in data else Response())
+        data = self.mapping(data, key, {"name", "type", "position"}, {"response", "field_of_view"})
+        sensor = SensorDef(self.name(data, key, names),
+                           self.string(data["type"], f"{key}.type"),
+                           self.body_position(data["position"], f"{key}.position"),
+                           self.response(data["response"], f"{key}.response")
+                           if "response" in data else Response())
+        if "field_of_view" in data:
+            fov_key = f"{key}.field_of_view"
+            if sensor.type == ENERGY_SENSOR:
+                raise self.error(fov_key, "an energy sensor has no field of view")
+            sensor.field_of_view = self.number(data["field_of_view"], fov_key)
+            if not 0 < sensor.field_of_view <= 360:
+                raise self.error(fov_key, "must be greater than 0 and at most 360")
+        return sensor
 
     def response(self, data, key: str) -> Response:
         if not isinstance(data, dict):
