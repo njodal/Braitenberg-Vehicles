@@ -1,0 +1,48 @@
+general:
+  type: "4a"
+  name: Orbiter
+  description: Crossed excitatory wiring with a peaked response. Far from the source it turns toward it, too close it turns away, so it circles the source at its preferred distance.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.9, 0.9]
+      response:
+        type: peak
+        at: 4                # strongest output at a reading of 4, about 18 units from the light
+        width: 1.5
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.9, 0.9]
+      response:
+        type: peak
+        at: 4
+        width: 1.5
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.6]
+      inputs:
+        - input:
+            from: right_eye    # crossed wiring
+      gain: 6
+      base_speed: 2
+      max_speed: 12
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.6]
+      inputs:
+        - input:
+            from: left_eye
+      gain: 6
+      base_speed: 2
+      max_speed: 12
+
+units: []

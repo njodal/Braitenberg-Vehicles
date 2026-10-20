@@ -1,0 +1,18 @@
+name: Fear and aggression
+description: Vehicles 2a and 2b side by side, facing one light. Fear turns away from it; aggression turns toward it and speeds into it.
+
+world: ../worlds/one-light.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle2a-fear.yaml
+      position: [35, 44]
+      heading: 0
+  - vehicle:
+      definition: ../vehicles/vehicle2b-aggression.yaml
+      position: [35, 56]
+      heading: 0
+
+simulation:
+  dt: 0.05
+  seed: 0

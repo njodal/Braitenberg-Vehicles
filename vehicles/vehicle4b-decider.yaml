@@ -1,0 +1,46 @@
+general:
+  type: "4b"
+  name: Decider
+  description: Straight excitatory wiring with a step response. It ignores the source until a sensor crosses the threshold, then abruptly turns away, so it never enters a circle around the source.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.9, 0.9]
+      response:
+        type: step
+        at: 4                # fires from a reading of 4, about 18 units from the light
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.9, 0.9]
+      response:
+        type: step
+        at: 4
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.6]
+      inputs:
+        - input:
+            from: left_eye
+      gain: 6
+      base_speed: 2
+      max_speed: 8
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.6]
+      inputs:
+        - input:
+            from: right_eye
+      gain: 6
+      base_speed: 2
+      max_speed: 8
+
+units: []

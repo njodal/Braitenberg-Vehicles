@@ -1,4 +1,4 @@
-"""Headless simulation loop and the command line shared by all vehicle modules.
+"""Headless simulation loop and the command line (specs/scenarios.md).
 
 This module must not import pygame; the renderer is imported only when a run
 asks for a window.
@@ -8,39 +8,33 @@ from __future__ import annotations
 
 import argparse
 import copy
-import dataclasses
 import math
-from pathlib import Path
 
 import numpy as np
 
-from braitenberg.vehicle import VEHICLE_TYPES
-from braitenberg.world import World, WorldError, load_world
-
-WORLDS_DIR = Path(__file__).resolve().parent.parent / "worlds"
+from braitenberg.scenario import Scenario, load_scenario, quick_scenario
+from braitenberg.vehicle import Vehicle
+from braitenberg.yamlfile import ConfigError
 
 
 class Simulation:
-    """Steps every vehicle in a world. Works on its own copy of the world."""
+    """Steps every vehicle of a scenario. Works on its own copy of the world."""
 
-    def __init__(self, world: World):
-        self.world = copy.deepcopy(world)
-        self.rng = np.random.default_rng(self.world.simulation.seed)
-        self.dt = self.world.simulation.dt
+    def __init__(self, scenario: Scenario):
+        self.scenario = scenario
+        self.world = copy.deepcopy(scenario.world)
+        self.rng = np.random.default_rng(scenario.simulation.seed)
+        self.dt = scenario.simulation.dt
         self.time = 0.0
         self.steps = 0
-        self.vehicles = [self.make_vehicle(p) for p in self.world.vehicles]
-
-    def make_vehicle(self, placement):
-        cls = VEHICLE_TYPES[placement.type]
-        x, y = placement.position
-        return cls(x, y, placement.heading, placement.sensor,
-                   dataclasses.replace(placement.params))
+        self.vehicles = [Vehicle(p.definition, *p.position, p.heading, p.label)
+                         for p in scenario.vehicles]
 
     def step(self) -> None:
         for v in self.vehicles:
-            sx, sy = v.sensor_position()
-            v.step(float(self.world.stimulus_at(v.sensor, sx, sy)), self.dt, self.rng)
+            readings = {name: float(self.world.stimulus_at(stimulus, x, y))
+                        for name, stimulus, x, y in v.sensor_points()}
+            v.step(readings, self.dt, self.rng)
             self.world.arena.apply_edges(v)
         self.time += self.dt
         self.steps += 1
@@ -50,38 +44,53 @@ class Simulation:
             self.step()
 
 
-def parse_args(argv, default_world: str):
-    parser = argparse.ArgumentParser(description="Run a Braitenberg vehicle simulation.")
-    parser.add_argument("world", nargs="?", default=str(WORLDS_DIR / default_world),
-                        help=f"world file (default: worlds/{default_world})")
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="python -m braitenberg",
+        description="Run a Braitenberg vehicle simulation from a scenario file, "
+                    "or from a world and vehicles given directly.")
+    parser.add_argument("scenario", nargs="?", help="scenario file")
+    parser.add_argument("--world", help="world file (instead of a scenario)")
+    parser.add_argument("--vehicle", action="append", default=[],
+                        help="vehicle definition file; repeat for more vehicles")
+    parser.add_argument("--start", action="append", default=[], metavar="X,Y,HEADING",
+                        help="start of the n-th --vehicle; repeat for more vehicles")
     parser.add_argument("--headless", action="store_true",
                         help="run without a window, as fast as possible")
     parser.add_argument("--steps", type=int, default=10_000,
                         help="steps to run when headless (default: 10000)")
     parser.add_argument("--seed", type=int, help="override simulation.seed")
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.scenario and (args.world or args.vehicle or args.start):
+        parser.error("give either a scenario file or --world and --vehicle, not both")
+    if not args.scenario and not (args.world and args.vehicle):
+        parser.error("give a scenario file, or --world and at least one --vehicle")
+    return args
 
 
-def load_with_overrides(args) -> World:
-    world = load_world(args.world)
+def scenario_from_args(args) -> Scenario:
+    if args.scenario:
+        scenario = load_scenario(args.scenario)
+    else:
+        scenario = quick_scenario(args.world, args.vehicle, args.start)
     if args.seed is not None:
-        world.simulation.seed = args.seed
-    return world
+        scenario.simulation.seed = args.seed
+    return scenario
 
 
-def main(default_world: str, argv=None) -> None:
-    args = parse_args(argv, default_world)
+def main(argv=None) -> None:
+    args = parse_args(argv)
     try:
-        world = load_with_overrides(args)
-    except WorldError as e:
+        scenario = scenario_from_args(args)
+    except ConfigError as e:
         raise SystemExit(f"error: {e}")
     if args.headless:
-        sim = Simulation(world)
+        sim = Simulation(scenario)
         sim.run(args.steps)
-        print(f"{world.name}: {sim.steps} steps, t = {sim.time:g}")
-        for i, v in enumerate(sim.vehicles):
-            print(f"  vehicle {i}: position ({v.x:.2f}, {v.y:.2f}), "
+        print(f"{scenario.name}: {sim.steps} steps, t = {sim.time:g}")
+        for v in sim.vehicles:
+            print(f"  {v.label}: position ({v.x:.2f}, {v.y:.2f}), "
                   f"heading {math.degrees(v.heading) % 360:.1f} deg, speed {v.speed:.3f}")
     else:
         from braitenberg.render import run_window
-        run_window(world)
+        run_window(scenario)

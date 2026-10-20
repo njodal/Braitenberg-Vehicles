@@ -1,0 +1,42 @@
+general:
+  type: "3b"
+  name: Explorer
+  description: Each sensor slows the motor on the opposite side, so the vehicle slows down near the source but turns away from it, and wanders off to look for another.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.9, 0.9]
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.9, 0.9]
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.6]
+      inputs:
+        - input:
+            from: right_eye    # crossed wiring
+            type: inhibitory
+      gain: 0.6
+      base_speed: 5
+      max_speed: 5
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.6]
+      inputs:
+        - input:
+            from: left_eye
+            type: inhibitory
+      gain: 0.6
+      base_speed: 5
+      max_speed: 5
+
+units: []

@@ -1,0 +1,18 @@
+name: Love and explorer
+description: Vehicles 3a and 3b side by side, facing one light. Love turns toward it and comes to rest facing it; the explorer slows down near it, turns away and wanders off.
+
+world: ../worlds/one-light.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle3a-love.yaml
+      position: [35, 44]
+      heading: 0
+  - vehicle:
+      definition: ../vehicles/vehicle3b-explorer.yaml
+      position: [35, 56]
+      heading: 0
+
+simulation:
+  dt: 0.05
+  seed: 0

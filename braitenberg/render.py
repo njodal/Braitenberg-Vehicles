@@ -1,7 +1,7 @@
 """Real-time pygame renderer. The only module that imports pygame.
 
 It reads the simulation state and draws it; user interaction (dragging sources,
-pausing, resetting) changes only the running simulation, never the world file.
+pausing, resetting) changes only the running simulation, never the files.
 
 Keys: space pause/resume, right arrow step (when paused), R reset, T trail,
 Tab next stimulus, +/- simulation speed, Esc quit. Drag sources with the mouse;
@@ -18,7 +18,8 @@ import pygame
 
 from braitenberg.sim import Simulation
 from braitenberg.vehicle import Diagram
-from braitenberg.world import Source, World
+from braitenberg.scenario import Scenario
+from braitenberg.world import Source
 
 MAX_WINDOW_SIDE = 720
 PANEL_WIDTH = 300
@@ -45,6 +46,7 @@ PANEL_DIM = (150, 155, 175)
 BODY_OUTLINE = (180, 185, 205)
 WIRE_OFF = (60, 64, 90)
 WIRE_ON = (255, 230, 140)
+WIRE_INACTIVE = (70, 74, 96)
 
 
 def heat_colors(values: np.ndarray) -> np.ndarray:
@@ -56,14 +58,16 @@ def heat_colors(values: np.ndarray) -> np.ndarray:
 
 
 class Renderer:
-    def __init__(self, world: World):
-        self.original = world
+    def __init__(self, scenario: Scenario):
+        self.original = scenario
+        world = scenario.world
         arena = world.arena
         self.scale = MAX_WINDOW_SIDE / max(arena.width, arena.height)
         self.size = (round(arena.width * self.scale), round(arena.height * self.scale))
         self.window_size = (self.size[0] + PANEL_WIDTH, self.size[1])
         self.stimulus_names = list(world.stimuli)
-        first_sensor = world.vehicles[0].sensor if world.vehicles else None
+        sensors = [s for p in scenario.vehicles for s in p.definition.sensors]
+        first_sensor = sensors[0].type if sensors else None
         self.stimulus_index = (self.stimulus_names.index(first_sensor)
                                if first_sensor in self.stimulus_names else 0)
         self.show_trail = True
@@ -221,7 +225,7 @@ class Renderer:
     def draw_vehicles(self, surface: pygame.Surface) -> None:
         for v in self.sim.vehicles:
             cx, cy = self.to_screen(v.x, v.y)
-            length = 12
+            length = max(v.half_size * self.scale, 8)
             # Screen y points down, so the screen angle is the negated heading.
             a = -v.heading
             points = [
@@ -233,7 +237,8 @@ class Renderer:
             pygame.draw.polygon(surface, VEHICLE_OUTLINE, points, 1)
         if self.sim.vehicles:
             v = self.sim.vehicles[self.selected]
-            pygame.draw.circle(surface, SELECTED_RING, self.to_screen(v.x, v.y), 16, 2)
+            pygame.draw.circle(surface, SELECTED_RING, self.to_screen(v.x, v.y),
+                               max(v.half_size * self.scale, 8) + 5, 2)
 
     def draw_hud(self, surface: pygame.Surface) -> None:
         lines = [f"t = {self.sim.time:.1f}   x{self.steps_per_frame}"
@@ -256,34 +261,39 @@ class Renderer:
         pygame.draw.line(surface, PANEL_BORDER, (left, 0), (left, height), 2)
         x0 = left + 16
         if not self.sim.vehicles:
-            surface.blit(self.font.render("No vehicles in this world", True, PANEL_DIM), (x0, 16))
+            surface.blit(self.font.render("No vehicles in this scenario", True, PANEL_DIM),
+                         (x0, 16))
             return
-        v = self.sim.vehicles[self.selected]
-        surface.blit(self.title_font.render(f"{type(v).__name__.lower()} #{self.selected}",
-                                            True, TEXT), (x0, 14))
-        diagram = v.diagram()
-        center = (left + PANEL_WIDTH // 2, 190)
-        self.draw_diagram(surface, diagram, center, radius=110)
-        y = self.draw_readouts(surface, diagram, x0, 330)
-        self.draw_params(surface, diagram, x0, y + 14)
+        diagram = self.sim.vehicles[self.selected].diagram()
+        surface.blit(self.title_font.render(diagram.title, True, TEXT), (x0, 14))
+        surface.blit(self.font.render(diagram.subtitle, True, PANEL_DIM), (x0, 38))
+        center = (left + PANEL_WIDTH // 2, 175)
+        self.draw_diagram(surface, diagram, center, radius=90)
+        y = self.draw_readouts(surface, diagram, x0, 300)
+        self.draw_params(surface, diagram, x0, y + 8)
 
     def draw_diagram(self, surface: pygame.Surface, diagram: Diagram,
                      center: tuple[int, int], radius: float) -> None:
         def at(position):  # body coordinates (+y forward) to screen
             return center[0] + position[0] * radius, center[1] - position[1] * radius
 
-        body = pygame.Rect(0, 0, 1.1 * radius, 2 * radius)
+        body = pygame.Rect(0, 0, 2 * radius, 2 * radius)  # the body spans [-1, 1] on both axes
         body.center = center
-        pygame.draw.rect(surface, BODY_OUTLINE, body, 2, border_radius=int(radius * 0.35))
+        pygame.draw.rect(surface, BODY_OUTLINE, body, 2, border_radius=int(radius * 0.3))
 
         parts = {p.name: p for p in diagram.parts}
         for w in diagram.wires:
             a, b = at(parts[w.source].position), at(parts[w.target].position)
-            color = lerp_color(WIRE_OFF, WIRE_ON, w.level)
-            pygame.draw.line(surface, color, a, b, 4)
-            sign = self.title_font.render("+" if w.sign > 0 else "-", True, color)
-            mid = ((a[0] + b[0]) / 2 + 12, (a[1] + b[1]) / 2 - sign.get_height() / 2)
-            surface.blit(sign, mid)
+            color = lerp_color(WIRE_OFF, WIRE_ON, w.level) if w.active else WIRE_INACTIVE
+            width = 4 if w.active else 1
+            if w.source == w.target:  # a unit feeding back into itself
+                pygame.draw.circle(surface, color, (a[0] + 12, a[1] - 12), 12, min(width, 3))
+                label_at = (a[0] + 26, a[1] - 30)
+            else:
+                pygame.draw.line(surface, color, a, b, width)
+                # Near the target, so crossed wires do not label the same spot.
+                label_at = (a[0] + 0.85 * (b[0] - a[0]) + 8, a[1] + 0.85 * (b[1] - a[1]) - 22)
+            surface.blit(self.title_font.render("+" if w.sign > 0 else "-", True, color), label_at)
 
         for p in diagram.parts:
             x, y = at(p.position)
@@ -302,8 +312,8 @@ class Renderer:
             else:
                 pygame.draw.circle(surface, fill, (x, y), 10)
                 pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 10, 2)
-            label = self.font.render(p.label, True, PANEL_DIM)
-            surface.blit(label, (x + 24, y - label.get_height() / 2))
+            label = self.font.render(p.name, True, PANEL_DIM)
+            surface.blit(label, (x - label.get_width() / 2, y + 16))
 
     def draw_readouts(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> int:
         bar_width = PANEL_WIDTH - 32
@@ -322,10 +332,10 @@ class Renderer:
         return y
 
     def draw_params(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> None:
-        surface.blit(self.font.render("Parameters", True, PANEL_DIM), (x0, y))
+        surface.blit(self.font.render("Vehicle", True, PANEL_DIM), (x0, y))
         y += 22
         for name, value in diagram.params.items():
-            surface.blit(self.font.render(f"{name} = {value:g}", True, TEXT), (x0 + 8, y))
+            surface.blit(self.font.render(f"{name} = {value}", True, TEXT), (x0 + 8, y))
             y += 18
 
 
@@ -334,12 +344,12 @@ def lerp_color(a, b, t: float) -> tuple[int, int, int]:
     return tuple(int(x + (y - x) * t) for x, y in zip(a, b))
 
 
-def run_window(world: World) -> None:
+def run_window(scenario: Scenario) -> None:
     pygame.init()
     try:
-        renderer = Renderer(world)
+        renderer = Renderer(scenario)
         screen = pygame.display.set_mode(renderer.window_size)
-        pygame.display.set_caption(world.name)
+        pygame.display.set_caption(scenario.name)
         clock = pygame.time.Clock()
         running = True
         while running:

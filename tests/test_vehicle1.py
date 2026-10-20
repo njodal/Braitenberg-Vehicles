@@ -1,27 +1,27 @@
-"""Acceptance criteria of specs/vehicle-01.md."""
+"""Acceptance criteria of specs/vehicle-01.md, for vehicles/vehicle1.yaml."""
 
 import math
-import subprocess
-import sys
 
 import numpy as np
 import pytest
 
+from braitenberg.scenario import load_scenario, quick_scenario
 from braitenberg.sim import Simulation
-from braitenberg.world import load_world
-from conftest import DEFAULT_WORLD, REPO
+from conftest import HOT_SPOT, VEHICLE1, VEHICLE1_SCENARIO, read, run_python
 
 
-def vehicle_at(position, heading=0, **params):
-    return {"type": "vehicle1", "position": position, "heading": heading,
-            "sensor": "temperature", "params": params}
+def vehicle1_variant(write, **motor):
+    """vehicles/vehicle1.yaml with some motor values or noise_std changed."""
+    data = read(VEHICLE1)
+    if "noise_std" in motor:
+        data["general"]["noise_std"] = motor.pop("noise_std")
+    data["actuators"][0]["actuator"].update(motor)
+    return write(data, "vehicle1.yaml")
 
 
 # 1. Speed follows stimulus
-def test_speed_follows_stimulus(world_data, write_world):
-    world_data["vehicles"] = [vehicle_at([55, 50], noise_std=0),
-                              vehicle_at([90, 50], noise_std=0)]
-    sim = Simulation(load_world(write_world(world_data)))
+def test_speed_follows_stimulus():
+    sim = Simulation(quick_scenario(HOT_SPOT, [VEHICLE1, VEHICLE1], ["55,50,0", "90,50,0"]))
     starts = [(v.x, v.y) for v in sim.vehicles]
     sim.step()
     near, far = (math.dist(s, (v.x, v.y)) for s, v in zip(starts, sim.vehicles))
@@ -29,26 +29,27 @@ def test_speed_follows_stimulus(world_data, write_world):
     assert sim.vehicles[0].speed > sim.vehicles[1].speed
 
 
-def test_speed_is_capped(world_data, write_world):
-    world_data["vehicles"] = [vehicle_at([50, 50], gain=100, max_speed=3)]
-    sim = Simulation(load_world(write_world(world_data)))
+def test_speed_is_capped(write):
+    path = vehicle1_variant(write, gain=100, max_speed=3)
+    sim = Simulation(quick_scenario(HOT_SPOT, [path], ["50,50,0"]))
     sim.step()
     assert sim.vehicles[0].speed == 3
 
 
 # 2. No stimulus, no motion
-def test_no_stimulus_no_motion(world_data, write_world):
-    world_data["stimuli"]["temperature"]["sources"] = []
-    sim = Simulation(load_world(write_world(world_data)))
+def test_no_stimulus_no_motion(write):
+    world = read(HOT_SPOT)
+    world["stimuli"]["temperature"]["sources"] = []
+    sim = Simulation(quick_scenario(write(world, "cold.yaml"), [VEHICLE1], ["20,20,0"]))
     sim.run(1000)
     v = sim.vehicles[0]
     assert (v.x, v.y) == (20, 20)
 
 
 # 3. Straight line without noise
-def test_straight_line_without_noise(world_data, write_world):
-    world_data["vehicles"] = [vehicle_at([20, 20], heading=30, noise_std=0)]
-    sim = Simulation(load_world(write_world(world_data)))
+def test_straight_line_without_noise(write):
+    path = vehicle1_variant(write, noise_std=0)
+    sim = Simulation(quick_scenario(HOT_SPOT, [path], ["20,20,30"]))
     sim.run(5000)
     assert sim.vehicles[0].heading == pytest.approx(math.radians(30))
 
@@ -56,16 +57,17 @@ def test_straight_line_without_noise(world_data, write_world):
 # 4. Lingers where it is cold
 @pytest.mark.parametrize("seed", range(5))
 def test_lingers_where_it_is_cold(seed):
-    world = load_world(DEFAULT_WORLD)
-    world.simulation.seed = seed
-    sim = Simulation(world)
+    scenario = load_scenario(VEHICLE1_SCENARIO)
+    scenario.simulation.seed = seed
+    sim = Simulation(scenario)
     total = 0.0
     steps = 100_000
     for _ in range(steps):
         sim.step()
-        total += sim.vehicles[0].sensor_value
+        total += sim.vehicles[0].sensor_values["sensor"]
     time_average = total / steps
 
+    world = scenario.world
     n = 200
     xs = (np.arange(n) + 0.5) * world.arena.width / n
     ys = (np.arange(n) + 0.5) * world.arena.height / n
@@ -77,10 +79,10 @@ def test_lingers_where_it_is_cold(seed):
 
 # 5. Reproducible
 def test_reproducible():
-    world = load_world(DEFAULT_WORLD)
+    scenario = load_scenario(VEHICLE1_SCENARIO)
 
     def trajectory():
-        sim = Simulation(world)
+        sim = Simulation(scenario)
         points = []
         for _ in range(2000):
             sim.step()
@@ -92,7 +94,7 @@ def test_reproducible():
 
 
 def test_different_seeds_differ():
-    a, b = load_world(DEFAULT_WORLD), load_world(DEFAULT_WORLD)
+    a, b = load_scenario(VEHICLE1_SCENARIO), load_scenario(VEHICLE1_SCENARIO)
     b.simulation.seed = 1
     sa, sb = Simulation(a), Simulation(b)
     sa.run(200)
@@ -100,32 +102,32 @@ def test_different_seeds_differ():
     assert (sa.vehicles[0].x, sa.vehicles[0].y) != (sb.vehicles[0].x, sb.vehicles[0].y)
 
 
-# 6. Headless: the vehicle module runs without importing pygame
-def test_vehicle1_module_runs_headless():
+# 6. Headless
+def test_runs_headless_from_the_command_line():
     code = (
         "import sys, runpy\n"
-        "sys.argv = ['vehicle1', '--headless', '--steps', '200']\n"
-        "runpy.run_module('braitenberg.vehicle1', run_name='__main__')\n"
+        f"sys.argv = ['braitenberg', {str(VEHICLE1_SCENARIO)!r}, '--headless', '--steps', '200']\n"
+        "runpy.run_module('braitenberg', run_name='__main__')\n"
         "assert 'pygame' not in sys.modules, 'pygame was imported'\n"
     )
-    result = subprocess.run([sys.executable, "-c", code], cwd=REPO,
-                            capture_output=True, text=True)
+    result = run_python(code)
     assert result.returncode == 0, result.stderr
-    assert "Hot spot: 200 steps" in result.stdout
+    assert "Vehicle 1 in a hot spot: 200 steps" in result.stdout
 
 
 # Edge rules
-def test_wrap_edges(world_data, write_world):
-    world_data["vehicles"] = [vehicle_at([99.9, 50], heading=0, base_speed=5, noise_std=0)]
-    sim = Simulation(load_world(write_world(world_data)))
+def test_wrap_edges(write):
+    path = vehicle1_variant(write, base_speed=5, noise_std=0)
+    sim = Simulation(quick_scenario(HOT_SPOT, [path], ["99.9,50,0"]))
     sim.step()
     assert 0 <= sim.vehicles[0].x < 1
 
 
-def test_bounce_edges(world_data, write_world):
-    world_data["arena"]["edges"] = "bounce"
-    world_data["vehicles"] = [vehicle_at([99.9, 50], heading=0, base_speed=5, noise_std=0)]
-    sim = Simulation(load_world(write_world(world_data)))
+def test_bounce_edges(write):
+    world = read(HOT_SPOT)
+    world["arena"]["edges"] = "bounce"
+    path = vehicle1_variant(write, base_speed=5, noise_std=0)
+    sim = Simulation(quick_scenario(write(world, "bounce.yaml"), [path], ["99.9,50,0"]))
     sim.step()
     v = sim.vehicles[0]
     assert 99 < v.x <= 100

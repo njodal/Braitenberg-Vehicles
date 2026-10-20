@@ -1,0 +1,14 @@
+name: Vehicle 1 in a hot spot
+description: Vehicle 1 near one heat source. It speeds up near the source and lingers where it is cold.
+
+world: ../worlds/hot-spot.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle1.yaml
+      position: [20, 20]
+      heading: 0             # degrees, 0 = +x, counterclockwise
+
+simulation:
+  dt: 0.05
+  seed: 0

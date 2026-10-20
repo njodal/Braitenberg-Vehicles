@@ -9,9 +9,13 @@ Requires Python 3.11 or later.
 
 ```
 pip install -e ".[dev]"
-python -m braitenberg.vehicle1                      # opens a window with the default world
-python -m braitenberg.vehicle1 worlds/vehicle1-hot-spot.yaml --headless --steps 100000
+python -m braitenberg scenarios/vehicle1-hot-spot.yaml        # opens a window
+python -m braitenberg scenarios/vehicle2-fear-and-aggression.yaml
+python -m braitenberg scenarios/vehicle3-love-and-explorer.yaml
+python -m braitenberg scenarios/vehicle4-orbiter-and-decider.yaml
+python -m braitenberg --world worlds/one-light.yaml --vehicle vehicles/vehicle2b-aggression.yaml
+python -m braitenberg scenarios/vehicle1-hot-spot.yaml --headless --steps 100000
 pytest
 ```
 
-Worlds are YAML files in `worlds/` (see [specs/worlds.md](specs/worlds.md)).
+A simulation is built from three kinds of YAML files: worlds (`worlds/`), vehicle definitions (`vehicles/`) and scenarios that combine them (`scenarios/`). See [specs/scenarios.md](specs/scenarios.md).

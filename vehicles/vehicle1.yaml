@@ -1,0 +1,26 @@
+general:
+  type: "1"
+  name: Getting around
+  description: One sensor wired directly to one motor. The more it senses, the faster it goes.
+  size: 4
+  noise_std: 0.3
+
+sensors:
+  - sensor:
+      name: sensor
+      type: temperature
+      position: [0, 0.8]
+
+actuators:
+  - actuator:
+      name: motor
+      type: motor
+      position: [0, -0.8]
+      inputs:
+        - input:
+            from: sensor
+      gain: 1.0
+      base_speed: 0
+      max_speed: 5
+
+units: []

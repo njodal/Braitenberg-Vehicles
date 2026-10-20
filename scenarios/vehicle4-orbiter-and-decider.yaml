@@ -1,0 +1,18 @@
+name: Orbiter and decider
+description: Vehicles 4a and 4b near one light. The orbiter circles the light at its preferred distance; the decider wanders, and turns away abruptly whenever it reaches a circle around the light.
+
+world: ../worlds/one-light.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle4a-orbiter.yaml
+      position: [35, 44]
+      heading: 0
+  - vehicle:
+      definition: ../vehicles/vehicle4b-decider.yaml
+      position: [35, 56]
+      heading: 0
+
+simulation:
+  dt: 0.05
+  seed: 0
