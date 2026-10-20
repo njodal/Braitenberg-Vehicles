@@ -1,0 +1,17 @@
+name: Far lights
+description: Two lights far apart in a large arena. A vehicle that leaves one light must cross a long dark stretch to find the other.
+
+arena:
+  width: 200
+  height: 200
+  edges: wrap
+
+stimuli:
+  light:
+    sources:
+      - position: [50, 50]
+        intensity: 10
+        falloff: 15
+      - position: [150, 150]
+        intensity: 10
+        falloff: 15

@@ -25,3 +25,5 @@ packages = ["braitenberg"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = "-m 'not slow'"
+markers = ["slow: runs for minutes; run with pytest -m slow"]

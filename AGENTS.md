@@ -18,7 +18,7 @@ The project is written in Python 3.11 or later.
 - **Visualization:** `pygame-ce` (the community-maintained pygame fork), used for real-time rendering and interaction (moving sources, pausing, selecting vehicles).
 - **Configuration:** worlds, vehicle definitions and scenarios are YAML files loaded with `PyYAML` (see [specs/scenarios.md](specs/scenarios.md)).
 - **Analysis:** `matplotlib` for plotting internal state (neuron activity, weights, fitness) after runs.
-- **Tests:** `pytest`. Every acceptance criterion in a spec gets at least one test. Tests run headless (no pygame window) and use fixed seeds so they are deterministic. Run them with `pytest` from the repo root.
+- **Tests:** `pytest`. Every acceptance criterion in a spec gets at least one test. Tests run headless (no pygame window) and use fixed seeds so they are deterministic. Run them with `pytest` from the repo root; tests that take minutes are marked `slow` and run only with `pytest -m slow`.
 
 ## Project structure
 
@@ -35,11 +35,14 @@ braitenberg/            # the package
   render.py             # pygame renderer
   record.py             # record a scenario to a GIF: python -m braitenberg.record
   diagram.py            # draw a definition as an SVG: python -m braitenberg.diagram
+  evolve.py             # Vehicle 6, tuning by selection: python -m braitenberg.evolve
 specs/                  # one spec per vehicle (vehicle-01.md, ...) plus shared specs
   images/               # GIFs and diagrams shown in the specs, generated with record and diagram
 worlds/                 # environments in YAML, see specs/worlds.md
 vehicles/               # vehicle definitions in YAML, see specs/vehicle-definition.md
 scenarios/              # experiments in YAML, see specs/scenarios.md
+evolutions/             # evolution runs in YAML, see specs/vehicle-06.md
+runs/                   # results of evolution runs (not committed)
 tests/                  # pytest tests, one file per spec covering its acceptance criteria
 ```
 

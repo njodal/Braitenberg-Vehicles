@@ -1,0 +1,198 @@
+general:
+  type: '6'
+  name: Forager (evolved)
+  description: Forager evolved by forager.yaml, seed 0, generation 30.
+  size: 4
+  noise_std: 0.1
+sensors:
+- sensor:
+    name: left_eye
+    type: light
+    position: [-0.9, 0.9]
+- sensor:
+    name: right_eye
+    type: light
+    position: [0.9, 0.9]
+- sensor:
+    name: energy
+    type: energy
+    position: [0, -0.8]
+energy:
+  initial: 50
+  max: 100
+  consumption: 1
+  charge_from: light
+  charge_gain: 2
+units:
+- unit:
+    name: osc_a
+    type: threshold
+    threshold: 0
+    delay: 0.3952154213654132
+    position: [0, 0.2]
+    inputs:
+    - input:
+        from: osc_c
+        type: inhibitory
+- unit:
+    name: osc_b
+    type: threshold
+    threshold: 0
+    delay: 0.3952154213654132
+    position: [0.35, -0.02]
+    inputs:
+    - input:
+        from: osc_a
+        type: inhibitory
+- unit:
+    name: osc_c
+    type: threshold
+    threshold: 0
+    delay: 0.3952154213654132
+    position: [-0.35, -0.02]
+    inputs:
+    - input:
+        from: osc_b
+        type: inhibitory
+    - input:
+        from: osc_a
+- unit:
+    name: sees
+    type: threshold
+    threshold: 0.9537838882636503
+    position: [0, 0.55]
+    inputs:
+    - input:
+        from: left_eye
+    - input:
+        from: right_eye
+- unit:
+    name: left_brighter
+    type: threshold
+    threshold: 0.01
+    position: [-0.5, 0.55]
+    inputs:
+    - input:
+        from: left_eye
+    - input:
+        from: right_eye
+        type: inhibitory
+- unit:
+    name: right_brighter
+    type: threshold
+    threshold: 0.01
+    position: [0.5, 0.55]
+    inputs:
+    - input:
+        from: right_eye
+    - input:
+        from: left_eye
+        type: inhibitory
+- unit:
+    name: charged
+    type: threshold
+    threshold: 100.0
+    position: [0.75, 0.25]
+    inputs:
+    - input:
+        from: energy
+- unit:
+    name: hungry
+    type: threshold
+    threshold: -27.590630090005163
+    position: [-0.75, 0.25]
+    inputs:
+    - input:
+        from: energy
+        type: inhibitory
+- unit:
+    name: full
+    type: threshold
+    threshold: 1
+    position: [0.75, -0.02]
+    inputs:
+    - input:
+        from: charged
+    - input:
+        from: full
+    - input:
+        from: hungry
+        type: inhibitory
+- unit:
+    name: seeking
+    type: threshold
+    threshold: 1
+    position: [-0.75, -0.02]
+    inputs:
+    - input:
+        from: sees
+    - input:
+        from: full
+        type: inhibitory
+- unit:
+    name: zig
+    type: threshold
+    threshold: 1
+    position: [0.27, -0.35]
+    inputs:
+    - input:
+        from: osc_b
+    - input:
+        from: seeking
+        type: inhibitory
+- unit:
+    name: zag
+    type: threshold
+    threshold: 1
+    position: [-0.27, -0.35]
+    inputs:
+    - input:
+        from: osc_c
+    - input:
+        from: seeking
+        type: inhibitory
+- unit:
+    name: seek_left
+    type: threshold
+    threshold: 2
+    position: [0.8, -0.35]
+    inputs:
+    - input:
+        from: left_brighter
+    - input:
+        from: seeking
+- unit:
+    name: seek_right
+    type: threshold
+    threshold: 2
+    position: [-0.8, -0.35]
+    inputs:
+    - input:
+        from: right_brighter
+    - input:
+        from: seeking
+actuators:
+- actuator:
+    name: left_motor
+    type: motor
+    position: [-0.5, -0.7]
+    inputs:
+    - input:
+        from: zag
+    - input:
+        from: seek_right
+    gain: 2.8102413987008097
+    base_speed: 2.8961471113941575
+    max_speed: 4.519972835630219
+- actuator:
+    name: right_motor
+    type: motor
+    position: [0.5, -0.7]
+    inputs:
+    - input:
+        from: zig
+    - input:
+        from: seek_left
+    gain: 2.8102413987008097
+    base_speed: 2.8961471113941575
+    max_speed: 4.519972835630219

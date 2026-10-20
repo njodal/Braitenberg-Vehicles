@@ -1,0 +1,20 @@
+name: Hand-tuned and evolved forager
+description: The forager as tuned by hand and as tuned by selection (Vehicle 6), side by side in a world with two far lights, starting from the same point. They do not collide, so each behaves as it would alone.
+
+world: ../worlds/far-lights.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle5-forager.yaml
+      position: [100, 40]
+      heading: 90
+      label: hand-tuned
+  - vehicle:
+      definition: ../vehicles/vehicle6-forager.yaml
+      position: [100, 40]
+      heading: 90
+      label: evolved
+
+simulation:
+  dt: 0.01
+  seed: 0

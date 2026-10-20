@@ -47,6 +47,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 5: Searcher | Zigzags until it sees a light, then goes straight to it | `python -m braitenberg scenarios/vehicle5-searcher.yaml` |
 | Vehicle 5: Forager | Recharges at the light when hungry, zigzags away when full | `python -m braitenberg scenarios/vehicle5-forager.yaml` |
 | Vehicle 5: Driver | Stops before a red traffic light, goes on green | `python -m braitenberg scenarios/vehicle5-driver.yaml` |
+| Vehicle 6: Evolved forager | The hand-tuned forager next to one tuned by selection | `python -m braitenberg scenarios/vehicle6-forager.yaml` |
 
 In the window:
 
@@ -70,6 +71,16 @@ python -m braitenberg scenarios/vehicle1-hot-spot.yaml --headless --steps 100000
 python -m braitenberg --world worlds/one-light.yaml --vehicle vehicles/vehicle2b-aggression.yaml   # any world and vehicle(s)
 pytest                                                                               # run the tests
 ```
+
+### Evolution (Vehicle 6)
+
+```
+pip install -e ".[analysis]"                                                         # matplotlib, for the plots
+python -m braitenberg.evolve evolutions/forager.yaml                                 # tune the forager by selection
+pytest -m slow                                                                       # the tests that take minutes
+```
+
+An evolution file (`evolutions/`) names a vehicle, a world and the numbers that may change. Each vehicle is tried alone and selection keeps the ones that last longest before running out of energy. The results (a log, the best vehicle as a definition file, and plots) go to `runs/`. See [specs/vehicle-06.md](specs/vehicle-06.md).
 
 A simulation is built from three kinds of YAML files: worlds (`worlds/`), vehicle definitions (`vehicles/`) and scenarios that combine them (`scenarios/`). See [specs/scenarios.md](specs/scenarios.md).
 
