@@ -93,6 +93,20 @@ class UnitDef:
     delay: float = 0.05     # seconds from activation to output
 
 
+ENERGY_SENSOR = "energy"   # a sensor type the vehicle reads from itself, not from the world
+
+
+@dataclass
+class Energy:
+    """An internal store that movement uses up and a stimulus recharges (see '5. Energy')."""
+
+    initial: float
+    max: float
+    consumption: float          # per unit of distance traveled
+    charge_from: str | None = None
+    charge_gain: float = 1.0    # per second, per unit of charge_from at the body center
+
+
 @dataclass
 class VehicleDefinition:
     path: Path
@@ -100,6 +114,7 @@ class VehicleDefinition:
     sensors: list[SensorDef]
     actuators: list[ActuatorDef]
     units: list[UnitDef] = field(default_factory=list)
+    energy: Energy | None = None
 
 
 def load_definition(path: str | Path) -> VehicleDefinition:
@@ -109,7 +124,7 @@ def load_definition(path: str | Path) -> VehicleDefinition:
 
 class _DefinitionParser(Parser):
     def definition(self, data) -> VehicleDefinition:
-        data = self.mapping(data, "", {"general", "sensors", "actuators"}, {"units"})
+        data = self.mapping(data, "", {"general", "sensors", "actuators"}, {"units", "energy"})
         general = self.general(data["general"])
         names: dict[str, str] = {}  # name -> key where it was defined
         sensors = [self.sensor(body, key, names)
@@ -121,7 +136,29 @@ class _DefinitionParser(Parser):
         if not actuators:
             raise self.error("actuators", "a vehicle needs at least one actuator")
         self.check_inputs(names, actuators, units)
-        return VehicleDefinition(self.path, general, sensors, actuators, units)
+        energy = self.energy(data["energy"]) if "energy" in data else None
+        if energy is None:
+            for i, s in enumerate(sensors):
+                if s.type == ENERGY_SENSOR:
+                    raise self.error(f"sensors[{i}].sensor.type",
+                                     "an energy sensor needs an energy section")
+        return VehicleDefinition(self.path, general, sensors, actuators, units, energy)
+
+    def energy(self, data) -> Energy:
+        data = self.mapping(data, "energy", {"initial", "max", "consumption"},
+                            {"charge_from", "charge_gain"})
+        e = Energy(self.number(data["initial"], "energy.initial"),
+                   self.number(data["max"], "energy.max", positive=True),
+                   self.number(data["consumption"], "energy.consumption"),
+                   self.string(data["charge_from"], "energy.charge_from")
+                   if "charge_from" in data else None,
+                   self.number(data.get("charge_gain", 1.0), "energy.charge_gain"))
+        if not 0 <= e.initial <= e.max:
+            raise self.error("energy.initial", "must be between 0 and max")
+        for key in ("consumption", "charge_gain"):
+            if getattr(e, key) < 0:
+                raise self.error(f"energy.{key}", "must not be negative")
+        return e
 
     def general(self, data) -> General:
         data = self.mapping(data, "general", {"type", "name", "size"}, {"description", "noise_std"})

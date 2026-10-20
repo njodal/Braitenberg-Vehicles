@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from braitenberg.definition import VehicleDefinition, load_definition
+from braitenberg.definition import ENERGY_SENSOR, VehicleDefinition, load_definition
 from braitenberg.world import World, load_world
 from braitenberg.yamlfile import ConfigError, Parser, read_yaml
 
@@ -82,8 +82,12 @@ def check_fit(scenario: Scenario, keys: Callable[[int], tuple[str, str]]) -> Non
         if not world.arena.contains(*p.position):
             raise ConfigError(f"{position_key}: [{p.position[0]:g}, {p.position[1]:g}] "
                               f"is outside the arena of world {world.path}")
+        energy = p.definition.energy
+        if energy and energy.charge_from and energy.charge_from not in world.stimuli:
+            raise ConfigError(f"{definition_key}: energy.charge_from '{energy.charge_from}' "
+                              f"is not a stimulus of world {world.path}")
         for s in p.definition.sensors:
-            if s.type not in world.stimuli:
+            if s.type != ENERGY_SENSOR and s.type not in world.stimuli:
                 raise ConfigError(f"{definition_key}: sensor '{s.name}' reads '{s.type}', "
                                   f"which is not a stimulus of world {world.path}")
 

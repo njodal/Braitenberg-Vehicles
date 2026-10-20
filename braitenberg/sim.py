@@ -34,7 +34,10 @@ class Simulation:
         for v in self.vehicles:
             readings = {name: float(self.world.stimulus_at(stimulus, x, y))
                         for name, stimulus, x, y in v.sensor_points()}
-            v.step(readings, self.dt, self.rng)
+            energy = v.definition.energy
+            charge = (float(self.world.stimulus_at(energy.charge_from, v.x, v.y))
+                      if energy and energy.charge_from else 0.0)
+            v.step(readings, self.dt, self.rng, charge)
             self.world.arena.apply_edges(v)
         self.time += self.dt
         self.steps += 1

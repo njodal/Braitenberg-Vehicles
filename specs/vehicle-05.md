@@ -1,11 +1,12 @@
-# Vehicle 5 — Logic: the Moth and the Searcher
+# Vehicle 5 — Logic: the Moth, the Searcher and the Forager
 
 ## Summary
 
 Braitenberg's chapter on Vehicle 5 ("Logic") introduces **threshold units**, the building blocks of a 'nervous system' between sensors and motors. It shows that they can be combined into logic (AND, OR, NOT) and that a unit feeding back into itself **remembers**. It does not describe a specific vehicle wired with them, so this project defines its own examples:
 
 - **The moth** (this spec), which shows that a loop of units can **remember**.
-- **The searcher** (see *Second example: Searcher* at the end), which shows that a loop of units can keep a **rhythm**.
+- **The searcher** (see *Second example: Searcher*), which shows that a loop of units can keep a **rhythm**.
+- **The forager** (see *Third example: Forager*), the searcher with an energy store: it combines a rhythm with a memory of being full.
 
 ## First example: Moth
 
@@ -111,3 +112,17 @@ The oscillator is a ring of three units, each silenced by the one before it (`os
 ![Diagram of the searcher: two eyes, an oscillator of three units, and the units that switch between zigzagging and seeking](images/vehicle5-searcher.svg)
 
 The full design, the definition (`vehicles/vehicle5-searcher.yaml`), the scenario (`scenarios/vehicle5-searcher.yaml`) and the searcher's acceptance criteria are in [vehicle-05-searcher.md](vehicle-05-searcher.md).
+
+## Third example: Forager
+
+![Forager: it goes to the light while hungry, recharges, and zigzags away once full](images/vehicle5-forager.gif)
+
+*The forager's default scenario, first 90 seconds (seed 0, played at four times the speed). Watch `energy`, `full` and `seeking` in the panel.*
+
+The forager is the searcher with an **energy** store ([vehicle-definition.md](vehicle-definition.md), *5. Energy*): moving uses it up, and being near the light recharges it. A sensor of type `energy` lets the forager sense its own energy. While hungry it searches and goes to the light like the searcher; there it recharges. Once **full** it zigzags away to explore, even with the light in sight, until it is hungry again.
+
+A unit that feeds back into itself remembers being full, as the moth's `burned` remembers the burn: `full` turns on when the energy reaches 90 (`charged`) and stays on until it falls to 30 (`hungry`). Without that memory, the forager would leave the light as soon as its energy crossed a single line, turn back as soon as it dropped below it, and hover at the edge.
+
+![Diagram of the forager: the searcher plus an energy sensor and the units that track hunger](images/vehicle5-forager.svg)
+
+The full design, the definition (`vehicles/vehicle5-forager.yaml`), the scenario (`scenarios/vehicle5-forager.yaml`) and the forager's acceptance criteria are in [vehicle-05-forager.md](vehicle-05-forager.md).

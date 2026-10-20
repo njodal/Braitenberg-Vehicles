@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from braitenberg.definition import VehicleDefinition
+from braitenberg.definition import ENERGY_SENSOR, VehicleDefinition
 
 
 @dataclass
@@ -68,6 +68,7 @@ class Vehicle:
         self.motor_speeds = {a.name: 0.0 for a in definition.actuators}
         self.speed = 0.0        # forward speed
         self.turn_rate = 0.0
+        self.energy = definition.energy.initial if definition.energy else None
         # A unit's delay and simultaneity window, in steps (see 'Signal flow' in the spec).
         self.unit_steps = {u.name: max(1, round(u.delay / dt)) for u in definition.units}
         # Activations on their way to becoming outputs, oldest first.
@@ -88,14 +89,19 @@ class Vehicle:
                 self.y + self.half_size * (by * s - bx * c))
 
     def sensor_points(self) -> list[tuple[str, str, float, float]]:
-        """(sensor name, stimulus, x, y) for every sensor."""
-        return [(s.name, s.type, *self.body_to_world(*s.position)) for s in self.definition.sensors]
+        """(sensor name, stimulus, x, y) for every sensor that reads the world."""
+        return [(s.name, s.type, *self.body_to_world(*s.position)) for s in self.definition.sensors
+                if s.type != ENERGY_SENSOR]
 
     # --- signals ---
 
     def think(self, readings: dict[str, float]) -> None:
         """Update units and motors from this step's sensor readings (see 'Signal flow')."""
-        self.sensor_readings = dict(readings)
+        readings = dict(readings)
+        for s in self.definition.sensors:
+            if s.type == ENERGY_SENSOR:
+                readings[s.name] = self.energy
+        self.sensor_readings = readings
         self.sensor_values = {s.name: s.response.output(readings[s.name])
                               for s in self.definition.sensors}
         # Outputs now: the activations computed one delay ago.
@@ -133,9 +139,19 @@ class Vehicle:
         self.x += self.speed * math.cos(self.heading) * dt
         self.y += self.speed * math.sin(self.heading) * dt
 
-    def step(self, readings: dict[str, float], dt: float, rng: np.random.Generator) -> None:
+    def step(self, readings: dict[str, float], dt: float, rng: np.random.Generator,
+             charge_reading: float = 0.0) -> None:
+        """One step. `charge_reading` is the energy's charge_from stimulus at the body center."""
         self.think(readings)
         self.move(dt, rng)
+        self.update_energy(charge_reading, dt, abs(self.speed) * dt)
+
+    def update_energy(self, charge_reading: float, dt: float, distance: float) -> None:
+        e = self.definition.energy
+        if e is None:
+            return
+        gain = e.charge_gain * charge_reading * dt if e.charge_from else 0.0
+        self.energy = min(max(self.energy + gain - e.consumption * distance, 0.0), e.max)
 
     # --- diagram ---
 
@@ -147,6 +163,8 @@ class Vehicle:
             value = self.sensor_values[s.name]
             if s.response.type != "linear":
                 ref = s.response.height  # nonlinear responses top out at their height
+            elif s.type == ENERGY_SENSOR:
+                ref = d.energy.max
             else:
                 ref = self.sensor_reference(s.name)
             levels[s.name] = clamp01(value / ref) if ref > 0 else (1.0 if value > 0 else 0.0)
@@ -168,7 +186,8 @@ class Vehicle:
             parts=parts,
             wires=wires,
             params={"size": f"{d.general.size:g}", "noise_std": f"{d.general.noise_std:g}",
-                    "speed": f"{self.speed:.2f}", "turn rate": f"{self.turn_rate:.2f}"},
+                    "speed": f"{self.speed:.2f}", "turn rate": f"{self.turn_rate:.2f}",
+                    **({"energy": f"{self.energy:.0f}/{d.energy.max:g}"} if d.energy else {})},
         )
 
     def sensor_reference(self, name: str) -> float:

@@ -70,7 +70,7 @@ class Renderer:
         self.window_size = (self.size[0] + PANEL_WIDTH, self.size[1])
         self.stimulus_names = list(world.stimuli)
         sensors = [s for p in scenario.vehicles for s in p.definition.sensors]
-        first_sensor = sensors[0].type if sensors else None
+        first_sensor = next((s.type for s in sensors if s.type in world.stimuli), None)
         self.stimulus_index = (self.stimulus_names.index(first_sensor)
                                if first_sensor in self.stimulus_names else 0)
         self.show_trail = True

@@ -45,7 +45,7 @@ actuators:
 units: []
 ```
 
-Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its kind: `- sensor:`, `- actuator:` and `- unit:` respectively, with the item's fields indented below it. `general`, `sensors` and `actuators` are required (`sensors` may be an empty list); `units` may be omitted.
+Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its kind: `- sensor:`, `- actuator:` and `- unit:` respectively, with the item's fields indented below it. `general`, `sensors` and `actuators` are required (`sensors` may be an empty list); `units` and `energy` may be omitted.
 
 ### 1. General
 
@@ -66,7 +66,7 @@ Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its k
 | `position` | yes | `[x, y]` in body coordinates. |
 | `response` | no | How the sensor's output depends on its reading (see *Responses*). Default: `linear`. |
 
-A sensor **reads** the value of its stimulus at the sensor's position in the arena, and its **output**, the signal its connections carry, is that reading passed through its response. Sensors at different places on the body read different values; that is what lets Vehicles 2 and up steer.
+A sensor **reads** the value of its stimulus at the sensor's position in the arena (or, for an `energy` sensor, the vehicle's own energy; see *5. Energy*), and its **output**, the signal its connections carry, is that reading passed through its response. Sensors at different places on the body read different values; that is what lets Vehicles 2 and up steer.
 
 #### Responses
 
@@ -119,6 +119,31 @@ A threshold unit adds up the signals of its **active** inputs, excitatory ones w
 **Units react with a delay.** As Braitenberg puts it, in a threshold device "the output does not appear immediately upon activation of the input, but only after a short delay, say one tenth of a second". This project uses a default of 0.05 seconds. A unit's output at time `t` is what its inputs called for at time `t - delay`. Brains have to be designed with this in mind: a signal that passes through a chain of units arrives one delay later per unit, and a loop of units has a rhythm set by its delays.
 
 **Inputs close in time count as simultaneous.** Two inputs do not have to arrive at exactly the same instant to add up: if they arrive less than the unit's `delay` apart, the unit treats them as simultaneous. Concretely, each input contributes the largest value it had during the last `delay` seconds (the steps less than `delay` before now, and now), not only its value at this instant. This applies to inhibitory inputs too: an inhibition that arrived shortly before still counts. The window is measured in whole steps, so it only spans more than the current step when `delay` is larger than `dt`: with `delay` 0.05 and `dt` 0.05 it is just the current step, and with `dt` 0.01 it is the last 5 steps.
+
+### 5. Energy
+
+A vehicle may have an **energy** level: an internal store that movement uses up and a stimulus recharges. Without an `energy` section the vehicle has none.
+
+```yaml
+energy:
+  initial: 50
+  max: 100
+  consumption: 1        # per unit of distance traveled
+  charge_from: light    # the stimulus that recharges it
+  charge_gain: 2        # per second, per unit of that stimulus at the body center
+```
+
+| Key | Required | Meaning |
+|---|---|---|
+| `initial` | yes | Energy at the start, between 0 and `max`. |
+| `max` | yes | The most energy the vehicle can hold. Positive. |
+| `consumption` | yes | Energy used per unit of distance the vehicle travels. Not negative. A vehicle that stands still uses none. |
+| `charge_from` | no | The stimulus that recharges it. It must be defined in the world. Without it, the vehicle never recharges. |
+| `charge_gain` | no | Energy gained per second for each unit of `charge_from` read at the center of the body. Default 1. Not negative. |
+
+Each step, after the vehicle moves a distance `d`: `energy += charge_gain * reading * dt - consumption * d`, clipped to `[0, max]`, where `reading` is `charge_from` at the body center before the move. Energy has no effect on movement: a vehicle with no energy left keeps moving, it just stays at 0.
+
+The vehicle senses its own energy through a sensor of type `energy`. It reads the current energy, like any other sensor reading, and can have a `response`. An `energy` sensor's `position` only places it in the diagram. A vehicle with an `energy` sensor must have an `energy` section.
 
 ### Names
 
@@ -196,6 +221,7 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - an input has a `type` other than `excitatory` or `inhibitory`, or a `strength` outside `[0, 1]`;
 - a `position` is outside `[-1, 1]`;
 - a unit's `delay` is not positive;
+- an `energy` value is missing, of the wrong type or out of range (e.g. `initial` above `max`), or a sensor has type `energy` and there is no `energy` section;
 - a `response` has an unknown `type`, is missing a required field for its type, has a field that its type does not use, or has a `width` that is not positive;
 - a sensor, actuator or unit `type` is unknown;
 - there are no actuators.
@@ -302,7 +328,8 @@ actuators:
 6. **Threshold units:** a unit outputs 1 exactly when the sum of its active inputs reaches its threshold. An inhibitory input lowers that sum. A connection with strength `0.7` or less has no effect, and one above `0.7` does. A unit with threshold `0` fires with no input and stops when an active inhibitory input carries a signal. A unit's output appears `delay` seconds (rounded to steps, at least one) after its activation: in a chain sensor → unit A → unit B with the default delay and `dt` 0.05, A's output turns on 1 step after the sensor reading crosses A's threshold, and B's 1 step after that. With `delay` 0.1, each takes 2 steps. A unit wired to itself keeps firing after its input stops. Two excitatory inputs, each too weak alone to reach the threshold, make the unit fire when they arrive less than `delay` apart, and do not when they arrive `delay` or more apart.
 7. **Diagram:** the diagram has one part per sensor, actuator and unit and one wire per input, with the right signs.
 8. **Responses:** a sensor without `response` outputs its reading. A `peak` response outputs `height` at `at` and `height * exp(-1/2)` at `at ± width`. A `step` response outputs `0` just below `at` and `height` from `at` up.
-9. **Headless:** loading and running a definition never imports pygame.
+9. **Energy:** with no light, a vehicle's energy drops by `consumption` times the distance it travels, and does not change while it stands still. Near a `charge_from` source it rises by `charge_gain` times the reading at the body center, per second, minus what movement uses. It never goes below 0 or above `max`. An `energy` sensor reads the current energy.
+10. **Headless:** loading and running a definition never imports pygame.
 
 ## Out of scope
 

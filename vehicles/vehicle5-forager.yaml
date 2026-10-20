@@ -1,0 +1,211 @@
+general:
+  type: "5"
+  name: Forager
+  description: The searcher with an energy store. While hungry it zigzags until it sees a light and then goes to it to recharge; once full, it zigzags away to explore, even with the light in sight, until it is hungry again.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.9, 0.9]
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.9, 0.9]
+  - sensor:
+      name: energy
+      type: energy         # the vehicle's own energy
+      position: [0, -0.8]
+
+energy:
+  initial: 50
+  max: 100
+  consumption: 1           # per unit of distance traveled
+  charge_from: light
+  charge_gain: 2           # per second, per unit of light at the body center
+
+units:
+  # Oscillator: a ring of three units, each silenced by the one before it.
+  # The extra excitation from osc_a to osc_c keeps them from firing in step.
+  - unit:
+      name: osc_a
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      position: [0, 0.2]
+      inputs:
+        - input:
+            from: osc_c
+            type: inhibitory
+  - unit:
+      name: osc_b
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      position: [0.35, -0.02]
+      inputs:
+        - input:
+            from: osc_a
+            type: inhibitory
+  - unit:
+      name: osc_c
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      position: [-0.35, -0.02]
+      inputs:
+        - input:
+            from: osc_b
+            type: inhibitory
+        - input:
+            from: osc_a
+
+  # Is there a light in sight, and on which side?
+  - unit:
+      name: sees
+      type: threshold
+      threshold: 3             # both eyes together: within about 37 units of a light
+      position: [0, 0.55]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+  - unit:
+      name: left_brighter
+      type: threshold
+      threshold: 0.05
+      position: [-0.5, 0.55]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+            type: inhibitory
+  - unit:
+      name: right_brighter
+      type: threshold
+      threshold: 0.05
+      position: [0.5, 0.55]
+      inputs:
+        - input:
+            from: right_eye
+        - input:
+            from: left_eye
+            type: inhibitory
+
+  # Energy: full from 90 until hungry again at 30 (a latch, like the moth's burned).
+  - unit:
+      name: charged
+      type: threshold
+      threshold: 90
+      position: [0.75, 0.25]
+      inputs:
+        - input:
+            from: energy
+  - unit:
+      name: hungry
+      type: threshold
+      threshold: -30         # fires when -energy >= -30, that is, energy <= 30
+      position: [-0.75, 0.25]
+      inputs:
+        - input:
+            from: energy
+            type: inhibitory
+  - unit:
+      name: full
+      type: threshold
+      threshold: 1
+      position: [0.75, -0.02]
+      inputs:
+        - input:
+            from: charged
+        - input:
+            from: full       # feeds back into itself: stays on once charged...
+        - input:
+            from: hungry     # ...until hungry again
+            type: inhibitory
+  - unit:
+      name: seeking
+      type: threshold
+      threshold: 1
+      position: [-0.75, -0.02]
+      inputs:
+        - input:
+            from: sees
+        - input:
+            from: full
+            type: inhibitory
+
+  # Zigzag unless seeking; steer to the light while seeking.
+  - unit:
+      name: zig
+      type: threshold
+      threshold: 1
+      position: [0.27, -0.35]
+      inputs:
+        - input:
+            from: osc_b
+        - input:
+            from: seeking
+            type: inhibitory
+  - unit:
+      name: zag
+      type: threshold
+      threshold: 1
+      position: [-0.27, -0.35]
+      inputs:
+        - input:
+            from: osc_c
+        - input:
+            from: seeking
+            type: inhibitory
+  - unit:
+      name: seek_left
+      type: threshold
+      threshold: 2
+      position: [0.8, -0.35]
+      inputs:
+        - input:
+            from: left_brighter
+        - input:
+            from: seeking
+  - unit:
+      name: seek_right
+      type: threshold
+      threshold: 2
+      position: [-0.8, -0.35]
+      inputs:
+        - input:
+            from: right_brighter
+        - input:
+            from: seeking
+
+actuators:
+  # Speeding up the right motor turns left, the left motor turns right.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      inputs:
+        - input:
+            from: zag
+        - input:
+            from: seek_right
+      gain: 3
+      base_speed: 3
+      max_speed: 6
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      inputs:
+        - input:
+            from: zig
+        - input:
+            from: seek_left
+      gain: 3
+      base_speed: 3
+      max_speed: 6
