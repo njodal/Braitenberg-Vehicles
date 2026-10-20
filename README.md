@@ -23,18 +23,52 @@ See [specs/vehicle-05.md](specs/vehicle-05.md) for the design.
 
 ## Running
 
-Requires Python 3.11 or later.
+### Setup
+
+Requires Python 3.11 or later. From the repo folder:
 
 ```
-pip install -e ".[dev]"
-python -m braitenberg scenarios/vehicle1-hot-spot.yaml        # opens a window
-python -m braitenberg scenarios/vehicle2-fear-and-aggression.yaml
-python -m braitenberg scenarios/vehicle3-love-and-explorer.yaml
-python -m braitenberg scenarios/vehicle4-orbiter-and-decider.yaml
-python -m braitenberg scenarios/vehicle5-moth.yaml
-python -m braitenberg --world worlds/one-light.yaml --vehicle vehicles/vehicle2b-aggression.yaml
-python -m braitenberg scenarios/vehicle1-hot-spot.yaml --headless --steps 100000
-pytest
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev,record]"
+```
+
+### Running the examples
+
+Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` and the scenario file; a window opens with the arena on the left and a live diagram of the selected vehicle on the right.
+
+| Example | What it shows | Command |
+|---|---|---|
+| Vehicle 1: Getting around | Speeds up where it is warm, lingers where it is cold | `python -m braitenberg scenarios/vehicle1-hot-spot.yaml` |
+| Vehicle 2: Fear and aggression | 2a turns away from the light, 2b turns toward it and speeds into it | `python -m braitenberg scenarios/vehicle2-fear-and-aggression.yaml` |
+| Vehicle 3: Love and explorer | 3a comes to rest facing the light, 3b slows down near it and wanders off | `python -m braitenberg scenarios/vehicle3-love-and-explorer.yaml` |
+| Vehicle 4: Orbiter and decider | 4a circles the light, 4b turns away abruptly at a boundary | `python -m braitenberg scenarios/vehicle4-orbiter-and-decider.yaml` |
+| Vehicle 5: Moth | Drawn to light until it gets burned once; then keeps its distance | `python -m braitenberg scenarios/vehicle5-moth.yaml` |
+| Vehicle 5: Searcher | Zigzags until it sees a light, then goes straight to it | `python -m braitenberg scenarios/vehicle5-searcher.yaml` |
+| Vehicle 5: Forager | Recharges at the light when hungry, zigzags away when full | `python -m braitenberg scenarios/vehicle5-forager.yaml` |
+| Vehicle 5: Driver | Stops before a red traffic light, goes on green | `python -m braitenberg scenarios/vehicle5-driver.yaml` |
+
+In the window:
+
+| Key or action | Does |
+|---|---|
+| Space | Pause or resume |
+| Right arrow (while paused) | One step |
+| R | Restart the scenario |
+| T | Show or hide the trails |
+| + / − | Faster or slower |
+| Tab | Show the next stimulus in the heat map (e.g. `red` and `green`) |
+| Drag a source | Move it; the vehicles react to the new field |
+| Click a vehicle | Show its diagram in the panel |
+| Esc | Quit |
+
+### Other ways to run
+
+```
+python -m braitenberg scenarios/vehicle5-moth.yaml --seed 3                          # another random seed
+python -m braitenberg scenarios/vehicle1-hot-spot.yaml --headless --steps 100000     # no window, as fast as possible
+python -m braitenberg --world worlds/one-light.yaml --vehicle vehicles/vehicle2b-aggression.yaml   # any world and vehicle(s)
+pytest                                                                               # run the tests
 ```
 
 A simulation is built from three kinds of YAML files: worlds (`worlds/`), vehicle definitions (`vehicles/`) and scenarios that combine them (`scenarios/`). See [specs/scenarios.md](specs/scenarios.md).
