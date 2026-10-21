@@ -117,6 +117,7 @@ class Energy:
     consumption: float          # per unit of distance traveled
     charge_from: str | None = None
     charge_gain: float = 1.0    # per second, per unit of charge_from at the body center
+    basal: float = 0.0          # per second, for being alive, even standing still
 
 
 @dataclass
@@ -158,16 +159,17 @@ class _DefinitionParser(Parser):
 
     def energy(self, data) -> Energy:
         data = self.mapping(data, "energy", {"initial", "max", "consumption"},
-                            {"charge_from", "charge_gain"})
+                            {"charge_from", "charge_gain", "basal"})
         e = Energy(self.number(data["initial"], "energy.initial"),
                    self.number(data["max"], "energy.max", positive=True),
                    self.number(data["consumption"], "energy.consumption"),
                    self.string(data["charge_from"], "energy.charge_from")
                    if "charge_from" in data else None,
-                   self.number(data.get("charge_gain", 1.0), "energy.charge_gain"))
+                   self.number(data.get("charge_gain", 1.0), "energy.charge_gain"),
+                   self.number(data.get("basal", 0.0), "energy.basal"))
         if not 0 <= e.initial <= e.max:
             raise self.error("energy.initial", "must be between 0 and max")
-        for key in ("consumption", "charge_gain"):
+        for key in ("consumption", "charge_gain", "basal"):
             if getattr(e, key) < 0:
                 raise self.error(f"energy.{key}", "must not be negative")
         return e

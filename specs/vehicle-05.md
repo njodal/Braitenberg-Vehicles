@@ -120,7 +120,7 @@ The full design, the definition (`vehicles/vehicle5-searcher.yaml`), the scenari
 
 *The forager's default scenario, first 90 seconds (seed 0, played at four times the speed). Watch `energy`, `full` and `seeking` in the panel.*
 
-The forager is the searcher with an **energy** store ([vehicle-definition.md](vehicle-definition.md), *5. Energy*): moving uses it up, and being near the light recharges it. A sensor of type `energy` lets the forager sense its own energy. While hungry it searches and goes to the light like the searcher; there it recharges. Once **full** it zigzags away to explore, even with the light in sight, until it is hungry again.
+The forager is the searcher with an **energy** store ([vehicle-definition.md](vehicle-definition.md), *5. Energy*): being alive and moving use it up, and being near the light recharges it. A sensor of type `energy` lets the forager sense its own energy. While hungry it searches and goes to the light like the searcher; there it recharges. Once **full** it zigzags away to explore, even with the light in sight, until it is hungry again.
 
 A unit that feeds back into itself remembers being full, as the moth's `burned` remembers the burn: `full` turns on when the energy reaches 90 (`charged`) and stays on until it falls to 30 (`hungry`). Without that memory, the forager would leave the light as soon as its energy crossed a single line, turn back as soon as it dropped below it, and hover at the edge.
 

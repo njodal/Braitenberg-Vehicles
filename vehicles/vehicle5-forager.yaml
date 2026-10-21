@@ -22,7 +22,8 @@ sensors:
 energy:
   initial: 50
   max: 100
-  consumption: 1           # per unit of distance traveled
+  consumption: 0.5         # per unit of distance traveled
+  basal: 2                 # per second, for being alive, even standing still
   charge_from: light
   charge_gain: 2           # per second, per unit of light at the body center
 

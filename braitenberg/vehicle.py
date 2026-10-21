@@ -186,7 +186,8 @@ class Vehicle:
         if e is None:
             return
         gain = e.charge_gain * charge_reading * dt if e.charge_from else 0.0
-        self.energy = min(max(self.energy + gain - e.consumption * distance, 0.0), e.max)
+        used = e.consumption * distance + e.basal * dt
+        self.energy = min(max(self.energy + gain - used, 0.0), e.max)
 
     # --- diagram ---
 

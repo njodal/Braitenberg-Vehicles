@@ -51,6 +51,16 @@ def test_no_energy_used_standing_still(write):
     assert v.energy == 50
 
 
+def test_basal_cost_standing_still(write):
+    v, _ = run(write, energy_vehicle(base_speed=0, basal=1.5), dark_world(write))
+    assert v.energy == pytest.approx(50 - 1.5 * 0.05 * 100)
+
+
+def test_basal_cost_adds_to_movement(write):
+    v, path = run(write, energy_vehicle(basal=1.5), dark_world(write))
+    assert v.energy == pytest.approx(50 - 2 * path - 1.5 * 0.05 * 100)
+
+
 def test_energy_recharges_near_the_source(write):
     # Standing on the light (reading 10), gaining 1 per second per unit: +10 per second.
     v, _ = run(write, energy_vehicle(base_speed=0, charge_from="light"), ONE_LIGHT, start="60,50,0",
@@ -79,6 +89,7 @@ def test_energy_sensor_reads_the_energy(write):
     (lambda d: d["energy"].pop("max"), "energy.max"),
     (lambda d: d["energy"].update(consumption=-1), "energy.consumption"),
     (lambda d: d["energy"].update(charge_gain=-1), "energy.charge_gain"),
+    (lambda d: d["energy"].update(basal=-1), "energy.basal"),
     (lambda d: d["energy"].update(battery=3), "energy.battery"),
 ])
 def test_energy_validation(write, change, key):

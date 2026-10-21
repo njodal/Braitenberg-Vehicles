@@ -143,7 +143,8 @@ A vehicle may have an **energy** level: an internal store that movement uses up 
 energy:
   initial: 50
   max: 100
-  consumption: 1        # per unit of distance traveled
+  consumption: 0.5      # per unit of distance traveled
+  basal: 2              # per second, for being alive, even standing still
   charge_from: light    # the stimulus that recharges it
   charge_gain: 2        # per second, per unit of that stimulus at the body center
 ```
@@ -152,11 +153,12 @@ energy:
 |---|---|---|
 | `initial` | yes | Energy at the start, between 0 and `max`. |
 | `max` | yes | The most energy the vehicle can hold. Positive. |
-| `consumption` | yes | Energy used per unit of distance the vehicle travels. Not negative. A vehicle that stands still uses none. |
+| `consumption` | yes | Energy used per unit of distance the vehicle travels. Not negative. |
+| `basal` | no | Energy used per second just for being alive, whether the vehicle moves or not. Default 0: a vehicle that stands still uses none. Not negative. |
 | `charge_from` | no | The stimulus that recharges it. It must be defined in the world. Without it, the vehicle never recharges. |
 | `charge_gain` | no | Energy gained per second for each unit of `charge_from` read at the center of the body. Default 1. Not negative. |
 
-Each step, after the vehicle moves a distance `d`: `energy += charge_gain * reading * dt - consumption * d`, clipped to `[0, max]`, where `reading` is `charge_from` at the body center before the move. Energy has no effect on movement: a vehicle with no energy left keeps moving, it just stays at 0.
+Each step, after the vehicle moves a distance `d`: `energy += charge_gain * reading * dt - consumption * d - basal * dt`, clipped to `[0, max]`, where `reading` is `charge_from` at the body center before the move. Energy has no effect on movement: a vehicle with no energy left keeps moving, it just stays at 0.
 
 The vehicle senses its own energy through a sensor of type `energy`. It reads the current energy, like any other sensor reading, and can have a `response`. An `energy` sensor's `position` only places it in the diagram. A vehicle with an `energy` sensor must have an `energy` section.
 
@@ -383,7 +385,7 @@ actuators:
 6. **Threshold units:** a unit outputs 1 exactly when the sum of its active inputs reaches its threshold. An inhibitory input lowers that sum. A connection with strength `0.7` or less has no effect, and one above `0.7` does. A unit with threshold `0` fires with no input and stops when an active inhibitory input carries a signal. A unit's output appears `delay` seconds (rounded to steps, at least one) after its activation: in a chain sensor → unit A → unit B with the default delay and `dt` 0.05, A's output turns on 1 step after the sensor reading crosses A's threshold, and B's 1 step after that. With `delay` 0.1, each takes 2 steps. A unit wired to itself keeps firing after its input stops. Two excitatory inputs, each too weak alone to reach the threshold, make the unit fire when they arrive less than `delay` apart, and do not when they arrive `delay` or more apart.
 7. **Diagram:** the diagram has one part per sensor, actuator and unit and one wire per input, with the right signs.
 8. **Responses:** a sensor without `response` outputs its reading. A `peak` response outputs `height` at `at` and `height * exp(-1/2)` at `at ± width`. A `step` response outputs `0` just below `at` and `height` from `at` up.
-9. **Energy:** with no light, a vehicle's energy drops by `consumption` times the distance it travels, and does not change while it stands still. Near a `charge_from` source it rises by `charge_gain` times the reading at the body center, per second, minus what movement uses. It never goes below 0 or above `max`. An `energy` sensor reads the current energy.
+9. **Energy:** with no light, a vehicle's energy drops by `consumption` times the distance it travels plus `basal` per second; without `basal` it does not change while the vehicle stands still, and with it it drops by `basal` per second. Near a `charge_from` source it rises by `charge_gain` times the reading at the body center, per second, minus what movement uses. It never goes below 0 or above `max`. An `energy` sensor reads the current energy.
 10. **Field of view:** a sensor with a `field_of_view` reads a source straight ahead exactly as a sensor without one does, reads nothing from a source behind it or outside the cone, and a sensor without a `field_of_view` reads sources in every direction.
 11. **Headless:** loading and running a definition never imports pygame.
 

@@ -151,12 +151,12 @@ def test_copying():
 
 # 5. Trials
 
-def walker(write, consumption):
+def walker(write, consumption, basal=0):
     """A vehicle that drives straight at speed 2, with 10 energy and nothing to recharge it."""
     data = {
         "general": {"type": "6", "name": "Walker", "size": 4},
         "sensors": [],
-        "energy": {"initial": 10, "max": 10, "consumption": consumption},
+        "energy": {"initial": 10, "max": 10, "consumption": consumption, "basal": basal},
         "actuators": [{"actuator": {"name": "motor", "type": "motor", "position": [0, -0.8],
                                     "inputs": [], "base_speed": 2}}],
     }
@@ -169,6 +169,8 @@ def test_trial_ends_when_energy_runs_out(write):
     t = trial(walker(write, 1), world, start, duration=60, dt=0.01)
     assert t == pytest.approx(10 / (1 * 2), abs=0.01)
     assert trial(walker(write, 0), world, start, duration=60, dt=0.01) == 60
+    t = trial(walker(write, 1, basal=3), world, start, duration=60, dt=0.01)
+    assert t == pytest.approx(10 / (1 * 2 + 3), abs=0.01)
 
 
 def test_trial_time_is_the_step_where_energy_reaches_zero(write):

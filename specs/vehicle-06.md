@@ -20,10 +20,10 @@ In `worlds/one-light.yaml`, starting at `[10, 70]` heading 0, the hand-tuned for
 
 | World | Hand-tuned | `sees` threshold 1.5 | `sees` threshold 1 |
 |---|---|---|---|
-| `one-light` (100 × 100, one light) | median 88 s, 3 of 10 alive at 300 s | median 300 s, 6 of 10 | 10 of 10 |
-| two far lights (200 × 200) | median 50 s, 0 of 10 | median 137 s, 2 of 10 | median 170 s, 2 of 10 |
+| `one-light` (100 × 100, one light) | median 178 s, 2 of 10 alive at 300 s | median 300 s, 9 of 10 | 10 of 10 |
+| two far lights (200 × 200) | median 23 s, 0 of 10 | median 105 s, 2 of 10 | median 105 s, 1 of 10 |
 
-One number changes the outcome by a factor of three, and the best value is not obvious in advance (a `sees` threshold of 1 means seeing a light from almost anywhere, which silences the zigzag). The larger world is used for evolution because no single change saturates it.
+One number changes the outcome several times over, and the best value is not obvious in advance (a `sees` threshold of 1 means seeing a light from almost anywhere, which silences the zigzag). The larger world is used for evolution because no single change saturates it.
 
 ## The world
 
@@ -216,61 +216,74 @@ The output folder holds:
 
 ## The committed run
 
-`python -m braitenberg.evolve evolutions/forager.yaml` (seed 0, 30 generations, about two minutes on 10 processes).
+`python -m braitenberg.evolve evolutions/forager.yaml` (seed 0, 30 generations, about two minutes on 10 processes). The forager uses the energy of [vehicle-05-forager.md](vehicle-05-forager.md), with a basal cost of 2 per second (see *Starting from random numbers* for why).
 
 ![The hand-tuned and the evolved forager start side by side; the hand-tuned one runs out of energy in the dark while the evolved one reaches a light](images/vehicle6-forager.gif)
 
-*The default scenario, first 30 seconds (seed 0, played at twice the speed). The panel shows the hand-tuned forager: its energy reaches 0 at about 16 s, still zigzagging in the dark, while the evolved one has already found the lower light. (Outside a trial a vehicle with no energy keeps moving, so the hand-tuned one may still stumble onto a light later; in a trial it would be dead.)*
+*The default scenario, first 30 seconds (seed 0, played at twice the speed). The panel shows the hand-tuned forager: its energy reaches 0 at about 18 s, still zigzagging in the dark, while the evolved one has already found the lower light. (Outside a trial a vehicle with no energy keeps moving, so the hand-tuned one may still stumble onto a light later; in a trial it would be dead.)*
 
 ![Best and mean survival per generation](images/vehicle6-survival.png)
 
-The best survival rises from 75 s in generation 0 to the full 300 s in generation 7, and the mean follows. From then on the best vehicles last the whole trial at every start, so they all tie and selection has nothing left to choose between them: the best genome stays the same. A longer `duration` or harder starts would be needed to push further.
+The best survival rises from 70 s in generation 0 to the full 300 s in generation 7, and the mean follows. From then on the best vehicles last the whole trial at every start, so they all tie and selection has nothing left to choose between them: the best genome stays the same. A longer `duration` or harder starts would be needed to push further.
 
 ![The value of each gene in the survivors of each generation](images/vehicle6-genes.png)
 
 | Gene | Hand-tuned | Evolved |
 |---|---|---|
-| `sees` | 3 | 0.95 |
+| `sees` | 3 | 0.99 |
 | `brighter` | 0.05 | 0.01 (its minimum) |
-| `charged` | 90 | 100 (its maximum) |
-| `hungry` | -30 | -27.6 |
-| `rhythm` | 0.3 | 0.40 |
-| `gain` | 3 | 2.81 |
-| `base_speed` | 3 | 2.90 |
-| `max_speed` | 6 | 4.52 |
+| `charged` | 90 | 86.1 |
+| `hungry` | -30 | -36.0 |
+| `rhythm` | 0.3 | 0.32 |
+| `gain` | 3 | 3.34 |
+| `base_speed` | 3 | 3.14 |
+| `max_speed` | 6 | 5.62 |
 
 | Survival | Hand-tuned | Evolved |
 |---|---|---|
-| Selection trials (5) | 47 s | 300 s |
-| Validation trials (20) | 74 s | 294 s |
+| Selection trials (5) | 60 s | 300 s |
+| Validation trials (20) | 68 s | 278 s |
 
-Selection changed mostly what the forager can see. In `far-lights` the light is about 0.86 even at the darkest points, halfway between the lights, so with `sees` at 0.95 the two eyes together (about 1.7) always cross the threshold: the forager sees a light from everywhere in the arena. It never zigzags while hungry, and goes straight to a light; `brighter` at its minimum lets it steer on the faintest difference between its eyes. The zigzag is left only for when it is full, to wander away from the light it just used. It also fills up completely (`charged` at 100) before leaving. The motors became a little slower, which makes that zigzag narrower. The hunger level hardly moved.
+Selection changed mostly what the forager can see. In `far-lights` the light is about 0.86 even at the darkest points, halfway between the lights, so with `sees` at 0.99 the two eyes together (about 1.7) always cross the threshold: the forager sees a light from everywhere in the arena. It never zigzags while hungry, and goes straight to a light; `brighter` at its minimum lets it steer on the faintest difference between its eyes. The zigzag is left only for when it is full, to wander away from the light it just used. It also gets hungry a little earlier (at 36 instead of 30), which leaves more margin for the trip to the next light. The other numbers hardly moved.
 
 Selection found what a designer might have done in a few seconds of thought: if light can be seen from everywhere, searching is a waste. But it found it without anyone knowing the field, only by keeping the foragers that lasted. On the 20 starts it was never selected on, the evolved forager lasts four times as long as the hand-tuned one.
 
+(Before the basal cost was added, the same run found the same thing: `sees` 0.95, `brighter` 0.01, validation survival 294 s against 74 s.)
+
 ## Starting from random numbers
 
-`evolutions/forager-random.yaml` is the same evolution with `start: random`: generation 0 knows the forager's wiring but none of its numbers. Three runs, seeds 0 to 2 (`--seed`), give:
+`evolutions/forager-random.yaml` is the same evolution with `start: random`: generation 0 knows the forager's wiring but none of its numbers.
+
+### Without a basal cost: going slowly is enough
+
+The first version of the forager's energy had no basal cost: moving cost 1 per unit of distance, and nothing else. Three runs from random numbers, seeds 0 to 2, then lasted 300, 275 and 300 s in validation, as long as the forager evolved from the hand-tuned one, but none of them foraged. They found something simpler: **go slowly**. In seeds 0 and 1 `base_speed` (5.5 and 5.2) was above `max_speed` (1.4 and 2.1), so both motors always ran at `max_speed` whatever the brain said: the vehicle drove straight and slowly, and no unit had any effect on it. In seed 2 the motors ran at 0.8, and 1.4 with a signal. Already in generation 0, a few random vehicles lasted the whole trial this way.
+
+It worked because moving cost energy per unit of distance, while light recharges per second. A slow vehicle spent little per second, and when it drifted through the glow of a light it stayed there longer and charged more. On the torus a straight line sooner or later passes near a light. Nothing in the world punished being slow. This is Braitenberg's point about selection: it does not care how a vehicle survives, only that it does, and it finds the loopholes of its environment.
+
+That is why the forager now has a basal cost of 2 per second for being alive ([vehicle-definition.md](vehicle-definition.md), *5. Energy*), with the cost of moving lowered to 0.5 per unit of distance so that the Vehicle 5 forager behaves as before.
+
+### With a basal cost
+
+Three runs, seeds 0 to 2 (`--seed`):
 
 | Gene | Hand-tuned | From ancestor | Random, seed 0 | Random, seed 1 | Random, seed 2 |
 |---|---|---|---|---|---|
-| `sees` | 3 | 0.95 | 3.27 | 6.27 | 6.38 |
-| `brighter` | 0.05 | 0.01 | 0.56 | 0.53 | 0.02 |
-| `charged` | 90 | 100 | 71.6 | 40.4 | 50.8 |
-| `hungry` | -30 | -27.6 | -18.7 | -8.2 | -94.1 |
-| `rhythm` | 0.3 | 0.40 | 0.23 | 0.46 | 0.84 |
-| `gain` | 3 | 2.81 | 2.03 | 1.48 | 0.55 |
-| `base_speed` | 3 | 2.90 | 5.50 | 5.16 | 0.82 |
-| `max_speed` | 6 | 4.52 | 1.39 | 2.12 | 9.84 |
-| **Validation survival** (hand-tuned) | | 294 s (74 s) | 300 s (74 s) | 275 s (80 s) | 300 s (44 s) |
+| `sees` | 3 | 0.99 | 2.93 | 1.98 | 6.11 |
+| `brighter` | 0.05 | 0.01 | 0.56 | 0.79 | 0.01 |
+| `charged` | 90 | 86.1 | 71.6 | 67.3 | 39.4 |
+| `hungry` | -30 | -36.0 | -19.1 | -67.0 | -90.8 |
+| `rhythm` | 0.3 | 0.32 | 0.21 | 0.82 | 0.86 |
+| `gain` | 3 | 3.34 | 2.03 | 0.38 | 0 |
+| `base_speed` | 3 | 3.14 | 5.50 | 2.04 | 0.5 |
+| `max_speed` | 6 | 5.62 | 1.35 | 8.59 | 8.87 |
+| **Selection survival** | | 300 s | 97 s | 193 s | 203 s |
+| **Validation survival** (hand-tuned) | | 278 s (68 s) | 102 s (68 s) | 104 s (105 s) | 163 s (50 s) |
 
 (The hand-tuned survival differs between seeds because each seed draws its own starts.)
 
-All three last about as long as the forager evolved from the hand-tuned one, but none of them forages like it. They found something simpler: **go slowly**. In seeds 0 and 1 `base_speed` is above `max_speed`, so both motors always run at `max_speed` (1.4 and 2.1) whatever the brain says: the vehicle drives straight and slowly, and no unit has any effect on it. In seed 2 the motors run at 0.8, and 1.4 with a signal. Already in generation 0, a few of the random vehicles last the whole trial this way.
+Going slowly no longer pays as much: the best random runs last 100 to 160 s on new starts, against 278 s for the forager evolved from the hand-tuned one. But they still do not find a forager in 30 generations. Seed 0 still drives straight at 1.35 with the brain cut off (`base_speed` above `max_speed`) and hardly improves after generation 0. Seed 2 cuts it off the other way, with `gain` 0: the motors ignore every unit and crawl at the minimum speed. Seed 1 does use its brain, weakly (`gain` 0.38), and lasts 193 s on its selection starts but only 104 s on new ones: it was selected for those five starts, not for foraging.
 
-It works because of the energy rules ([vehicle-definition.md](vehicle-definition.md)): moving costs energy per unit of distance, while light recharges per second. A slow vehicle spends little per second, and when it drifts through the glow of a light it stays there longer and charges more. On the torus a straight line sooner or later passes near a light. Nothing in the world punishes being slow.
-
-So the two starts teach different things. Copying from the hand-tuned forager, selection only searches near it and finds a better forager. Starting anywhere, it finds the cheapest way to survive in this world, which does not need the brain. This is Braitenberg's point about selection: it does not care how a vehicle survives, only that it does, and it finds the loopholes of its environment. A world in which the forager's brain is needed would need, for example, an energy cost per second for being alive, even standing still.
+Once the brain is cut off, changes to its numbers make no difference to survival, so selection cannot tell good brain numbers from bad ones and has nothing to climb towards a forager. Starting from the hand-tuned forager, whose brain already works, every small change matters and selection improves it step by step. Selection tunes; it does not easily invent from scratch, at least not with 20 vehicles and 30 generations.
 
 ## Acceptance criteria
 
@@ -280,7 +293,7 @@ Criterion 8 needs a full run of `evolutions/forager.yaml` as committed; the othe
 2. **Validation:** each failure case under *Loading and validation* raises an error naming the file and the key.
 3. **Genomes:** applying a genome sets every target of every gene to the gene's value and changes nothing else in the definition. Applying the ancestor's genome gives a definition equal to the ancestor.
 4. **Copying:** copies stay within each gene's range. With `rate` 0 a copy equals its parent; with `rate` 1 every gene changes, and over many copies the changes of a gene far from its limits have mean about 0 and standard deviation about `sigma`.
-5. **Trials:** a trial ends at the step where the energy reaches 0, and its survival time is that step's time; a vehicle that never runs out lasts `duration`. A vehicle with `consumption` 0 lasts `duration`; one with no `charge_from` and a constant speed dies at `initial / (consumption * speed)`, within one step.
+5. **Trials:** a trial ends at the step where the energy reaches 0, and its survival time is that step's time; a vehicle that never runs out lasts `duration`. A vehicle with `consumption` and `basal` 0 lasts `duration`; one with no `charge_from` and a constant speed dies at `initial / (consumption * speed + basal)`, within one step.
 6. **Selection:** in each generation the survivors are the best by survival, they appear unchanged in the next generation, every other vehicle is a copy of a survivor following the rule above, and the best survival never decreases.
 7. **Determinism:** two runs of the same evolution file write identical `log.csv` and `best.yaml`, with 1 worker and with several.
 8. **It works:** after a run of `evolutions/forager.yaml` with seed 0, the evolved forager's validation survival is at least twice the ancestor's. (The rough measurement above suggests the room is there: the hand-tuned forager lasts about 50 s and a better `sees` threshold alone about 150 s.)

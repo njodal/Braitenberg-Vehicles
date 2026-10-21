@@ -20,7 +20,8 @@ sensors:
 energy:
   initial: 50
   max: 100
-  consumption: 1
+  consumption: 0.5
+  basal: 2
   charge_from: light
   charge_gain: 2
 units:
@@ -28,7 +29,7 @@ units:
     name: osc_a
     type: threshold
     threshold: 0
-    delay: 0.3952154213654132
+    delay: 0.31810564573532807
     position: [0, 0.2]
     inputs:
     - input:
@@ -38,7 +39,7 @@ units:
     name: osc_b
     type: threshold
     threshold: 0
-    delay: 0.3952154213654132
+    delay: 0.31810564573532807
     position: [0.35, -0.02]
     inputs:
     - input:
@@ -48,7 +49,7 @@ units:
     name: osc_c
     type: threshold
     threshold: 0
-    delay: 0.3952154213654132
+    delay: 0.31810564573532807
     position: [-0.35, -0.02]
     inputs:
     - input:
@@ -59,7 +60,7 @@ units:
 - unit:
     name: sees
     type: threshold
-    threshold: 0.9537838882636503
+    threshold: 0.9873654041424272
     position: [0, 0.55]
     inputs:
     - input:
@@ -91,7 +92,7 @@ units:
 - unit:
     name: charged
     type: threshold
-    threshold: 100.0
+    threshold: 86.12901088054335
     position: [0.75, 0.25]
     inputs:
     - input:
@@ -99,7 +100,7 @@ units:
 - unit:
     name: hungry
     type: threshold
-    threshold: -27.590630090005163
+    threshold: -35.97254220852793
     position: [-0.75, 0.25]
     inputs:
     - input:
@@ -181,9 +182,9 @@ actuators:
         from: zag
     - input:
         from: seek_right
-    gain: 2.8102413987008097
-    base_speed: 2.8961471113941575
-    max_speed: 4.519972835630219
+    gain: 3.335683216685162
+    base_speed: 3.136627107857716
+    max_speed: 5.620714133686235
 - actuator:
     name: right_motor
     type: motor
@@ -193,6 +194,6 @@ actuators:
         from: zig
     - input:
         from: seek_left
-    gain: 2.8102413987008097
-    base_speed: 2.8961471113941575
-    max_speed: 4.519972835630219
+    gain: 3.335683216685162
+    base_speed: 3.136627107857716
+    max_speed: 5.620714133686235

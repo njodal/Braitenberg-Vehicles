@@ -20,12 +20,13 @@ Moving uses energy; light recharges it. While the forager is hungry it behaves l
 energy:
   initial: 50
   max: 100
-  consumption: 1           # per unit of distance traveled
+  consumption: 0.5         # per unit of distance traveled
+  basal: 2                 # per second, for being alive, even standing still
   charge_from: light
   charge_gain: 2           # per second, per unit of light at the body center
 ```
 
-Moving at 3 to 6 units per second uses 3 to 6 energy per second. Near the light, where it reads 5 or more, the forager gains 10 or more per second, so it recharges in a few seconds; far from it, it drains in about 15 to 25 seconds.
+Being alive costs 2 energy per second, and moving at 3 to 6 units per second another 1.5 to 3: 3.5 to 5 per second in all. Near the light, where it reads 5 or more, the forager gains 10 or more per second, so it recharges in a few seconds; far from it, it drains from full to hungry in about 12 to 17 seconds. (The basal cost was added for Vehicle 6, [vehicle-06.md](vehicle-06.md): without it a vehicle that hardly moves spends almost nothing, and selection finds that slowness alone is enough to survive.)
 
 ### Full until hungry
 
