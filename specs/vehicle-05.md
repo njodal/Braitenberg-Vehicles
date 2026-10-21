@@ -97,7 +97,7 @@ All behavior criteria use the default scenario, run headless for 200 seconds of 
 
 ## Out of scope
 
-- Unlearning: once burned, the moth never trusts light again. (Forgetting would need connections whose strength changes over time, which belongs to later vehicles.)
+- Unlearning: once burned, the moth never trusts light again. (Forgetting needs connections whose strength changes over time. The wary moth of Vehicle 7, [vehicle-07.md](vehicle-07.md), learns which lamp burns and unlearns it when the lamp cools.)
 - Options B (logical AND of two stimuli) and C (counting encounters) from the design discussion. They can be later Vehicle 5 examples.
 
 ## Second example: Searcher

@@ -74,7 +74,7 @@ stimuli:
 
 At simulated time `t`, let `c = t mod period`. With `on_at < off_at` the source is on while `on_at <= c < off_at`. With `on_at > off_at` the cycle wraps: the source is on while `c >= on_at` or `c < off_at`. `on_at` and `off_at` must differ. (The keys are not `on` and `off` because YAML reads those as `true` and `false`.)
 
-A source that is off contributes nothing to its stimulus; nothing else about it changes. The renderer draws active sources filled and inactive ones as hollow rings (in that color when the stimulus is named after one, such as `red` or `green`), lists which scheduled stimuli are on, and its heat map follows them as they switch.
+A source that is off contributes nothing to its stimulus; nothing else about it changes. The renderer draws active sources filled and inactive ones as hollow rings (in that color when the stimulus is named after one, such as `red` or `green`, and on top of other sources at the same place, so a red lamp that is also hot shows red), lists which scheduled stimuli are on, and its heat map follows them as they switch.
 
 ### Edges
 

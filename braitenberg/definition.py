@@ -13,6 +13,7 @@ from braitenberg.yamlfile import Parser, read_yaml
 ACTUATOR_TYPES = ("motor",)
 UNIT_TYPES = ("threshold",)
 CONNECTION_TYPES = ("excitatory", "inhibitory")
+LEARNING_TYPES = ("mnemotrix",)
 # Sensor response types: required fields, and optional fields with their defaults.
 RESPONSE_FIELDS = {
     "linear": (set(), {}),
@@ -24,10 +25,20 @@ NAME_PATTERN = re.compile(r"[a-z][a-z0-9_]*\Z")
 
 
 @dataclass
+class Learning:
+    """How a connection's strength changes while the vehicle runs (Vehicle 7)."""
+
+    type: str = "mnemotrix"
+    learn: float = 0.0    # per second, while the source fires and the target's other inputs fire it
+    forget: float = 0.0   # per second, while the source fires and they do not
+
+
+@dataclass
 class Connection:
     source: str             # name of a sensor or unit
     sign: int = 1           # +1 excitatory, -1 inhibitory
     strength: float = 1.0   # from 0 to 1; the connection is active above ACTIVE_STRENGTH
+    learning: Learning | None = None   # for a learning connection, strength is where it starts
 
     @property
     def active(self) -> bool:
@@ -204,13 +215,26 @@ class _DefinitionParser(Parser):
         return [parse(body, ikey) for ikey, body in self.items(value, key, "input")]
 
     def connection(self, item, key: str) -> Connection:
-        item = self.mapping(item, key, {"from"}, {"type", "strength"})
+        item = self.mapping(item, key, {"from"}, {"type", "strength", "learning"})
         kind = self.kind(item.get("type", "excitatory"), f"{key}.type", CONNECTION_TYPES)
         strength = self.number(item.get("strength", 1.0), f"{key}.strength")
         if not 0 <= strength <= 1:
             raise self.error(f"{key}.strength", "must be between 0 and 1")
         return Connection(self.string(item["from"], f"{key}.from"),
-                          sign=1 if kind == "excitatory" else -1, strength=strength)
+                          sign=1 if kind == "excitatory" else -1, strength=strength,
+                          learning=self.learning(item["learning"], f"{key}.learning")
+                          if "learning" in item else None)
+
+    def learning(self, data, key: str) -> Learning:
+        if isinstance(data, dict) and "type" in data:
+            self.kind(data["type"], f"{key}.type", LEARNING_TYPES)
+        data = self.mapping(data, key, {"type", "learn"}, {"forget"})
+        learning = Learning(data["type"], self.number(data["learn"], f"{key}.learn"),
+                            self.number(data.get("forget", 0.0), f"{key}.forget"))
+        for rate in ("learn", "forget"):
+            if getattr(learning, rate) < 0:
+                raise self.error(f"{key}.{rate}", "must not be negative")
+        return learning
 
     def sensor(self, data, key: str, names) -> SensorDef:
         data = self.mapping(data, key, {"name", "type", "position"}, {"response", "field_of_view"})
@@ -269,11 +293,23 @@ class _DefinitionParser(Parser):
 
     def check_inputs(self, names, actuators, units) -> None:
         actuator_names = {a.name for a in actuators}
+        unit_names = {u.name for u in units}
         for section, wrapper, parts in (("actuators", "actuator", actuators), ("units", "unit", units)):
             for i, part in enumerate(parts):
                 for j, c in enumerate(part.inputs):
-                    key = f"{section}[{i}].{wrapper}.inputs[{j}].input.from"
+                    prefix = f"{section}[{i}].{wrapper}.inputs[{j}].input"
+                    key = f"{prefix}.from"
                     if c.source in actuator_names:
                         raise self.error(key, f"'{c.source}' is an actuator; inputs must be sensors or units")
                     if c.source not in names:
                         raise self.error(key, f"'{c.source}' is not a sensor or unit of this vehicle")
+                    if c.learning is None:
+                        continue
+                    if section == "actuators":
+                        raise self.error(f"{prefix}.learning",
+                                         "a learning connection must go into a unit, not an actuator")
+                    if c.source not in unit_names:
+                        raise self.error(key, f"'{c.source}' is a sensor; a learning connection "
+                                              "must come from a unit")
+                    if c.source == part.name:
+                        raise self.error(key, "a unit cannot have a learning connection from itself")

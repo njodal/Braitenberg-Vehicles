@@ -17,9 +17,9 @@ A world sensor reads the value of its stimulus's field at the sensor's position 
 
 | `type` | Stimulus | Worlds | Used by | Status |
 |---|---|---|---|---|
-| `temperature` | Heat from a hot spot | `hot-spot` | Vehicle 1 (`sensor`) | Implemented |
-| `light` | Light from one or more lamps | `one-light`, `two-lights` | Vehicles 2a, 2b, 3a, 3b, 4a, 4b; Vehicle 5 moth, searcher and forager (`left_eye`, `right_eye`) | Implemented |
-| `red` | The red lamp of a traffic light, switched by a schedule | `traffic-light` | Vehicle 5 driver (`red_eye`) | Implemented |
+| `temperature` | Heat from a hot spot, or from a hot lamp switched by a schedule | `hot-spot`, `hot-lamp` | Vehicle 1 (`sensor`); Vehicle 7 wary moth (`heat`) | Implemented (Vehicle 7: specified) |
+| `light` | Light from one or more lamps | `one-light`, `two-lights`, `far-lights`, `hot-lamp` | Vehicles 2a, 2b, 3a, 3b, 4a, 4b; Vehicle 5 moth, searcher and forager; Vehicle 7 wary moth (`left_eye`, `right_eye`) | Implemented |
+| `red` | The red lamp of a traffic light, switched by a schedule; a red lamp | `traffic-light`, `hot-lamp` | Vehicle 5 driver; Vehicle 7 wary moth (`red_eye`) | Implemented |
 | `green` | The green lamp of a traffic light, switched by a schedule | `traffic-light` | Vehicle 5 driver (`green_eye`) | Implemented |
 
 ```yaml

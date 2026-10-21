@@ -1,0 +1,14 @@
+name: Wary moth
+description: A moth between a white lamp and a red one that is hot half of the time. It learns that red means a burn, keeps away from the red lamp while still visiting the white one, and unlearns it when the red lamp cools down.
+
+world: ../worlds/hot-lamp.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle7-wary-moth.yaml
+      position: [70, 15]
+      heading: 90                # straight up toward the red lamp
+
+simulation:
+  dt: 0.01                   # finer than the units' 0.05 s delay, so delays and simultaneity show
+  seed: 0

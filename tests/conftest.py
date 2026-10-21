@@ -30,6 +30,9 @@ MOTH = REPO / "scenarios" / "vehicle5-moth.yaml"
 SEARCHER_SCENARIO = REPO / "scenarios" / "vehicle5-searcher.yaml"
 FORAGER_SCENARIO = REPO / "scenarios" / "vehicle5-forager.yaml"
 DRIVER_SCENARIO = REPO / "scenarios" / "vehicle5-driver.yaml"
+WARY_MOTH = REPO / "vehicles" / "vehicle7-wary-moth.yaml"
+HOT_LAMP = REPO / "worlds" / "hot-lamp.yaml"
+WARY_MOTH_SCENARIO = REPO / "scenarios" / "vehicle7-wary-moth.yaml"
 
 
 def read(path: Path):

@@ -26,6 +26,7 @@ PANEL_WIDTH = 420
 ROW = 20                  # height of one readout line in the panel
 UNIT_RADIUS = 14
 MAX_DIAGRAM_RADIUS = 150
+MIN_DIAGRAM_RADIUS = 110  # the window grows taller, if needed, to leave the diagram this much
 MIN_WINDOW_HEIGHT = 600   # so the panel fits even for a long, narrow arena
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
@@ -54,6 +55,9 @@ BODY_OUTLINE = (180, 185, 205)
 WIRE_OFF = (60, 64, 90)
 WIRE_ON = (255, 230, 140)
 WIRE_INACTIVE = (70, 74, 96)
+LEARN_DIM = (90, 70, 140)     # Mnemotrix wires (Vehicle 7)
+LEARN_ON = (200, 160, 255)
+STRENGTH_TICK = 0.7           # a connection is active above this strength
 
 
 def heat_colors(values: np.ndarray) -> np.ndarray:
@@ -71,7 +75,13 @@ class Renderer:
         arena = world.arena
         self.scale = MAX_WINDOW_SIDE / max(arena.width, arena.height)
         self.size = (round(arena.width * self.scale), round(arena.height * self.scale))
-        self.window_size = (self.size[0] + PANEL_WIDTH, max(self.size[1], MIN_WINDOW_HEIGHT))
+        # Tall enough for the panel of the vehicle with the most readout lines.
+        lines = max((len(p.definition.sensors) + len(p.definition.units) + len(p.definition.actuators)
+                     + sum(1 for part in p.definition.units for c in part.inputs if c.learning)
+                     for p in scenario.vehicles), default=0)
+        panel_height = 62 + 30 + 2 * MIN_DIAGRAM_RADIUS + 24 + ROW * (lines + 2) + 18
+        self.window_size = (self.size[0] + PANEL_WIDTH,
+                            max(self.size[1], MIN_WINDOW_HEIGHT, panel_height))
         self.stimulus_names = list(world.stimuli)
         sensors = [s for p in scenario.vehicles for s in p.definition.sensors]
         first_sensor = next((s.type for s in sensors if s.type in world.stimuli), None)
@@ -228,7 +238,9 @@ class Renderer:
                 pygame.draw.line(surface, color, self.to_screen(x0, y0), self.to_screen(x1, y1), 2)
 
     def draw_sources(self, surface: pygame.Surface) -> None:
-        for name, stimulus in self.sim.world.stimuli.items():
+        # Sources of stimuli named after a color go last, so a red lamp that is also hot shows red.
+        stimuli = sorted(self.sim.world.stimuli.items(), key=lambda item: item[0] in STIMULUS_COLORS)
+        for name, stimulus in stimuli:
             color = STIMULUS_COLORS.get(name, SOURCE_FILL)
             shown = name == self.stimulus
             for s in stimulus.sources:
@@ -289,7 +301,8 @@ class Renderer:
         surface.blit(self.title_font.render(diagram.title, True, TEXT), (x0, 14))
         surface.blit(self.font.render(diagram.subtitle, True, PANEL_DIM), (x0, 38))
         # Readouts and vehicle values fill the bottom; the diagram gets the space above them.
-        readouts_top = height - 10 - ROW * (len(diagram.parts) + 2) - 8
+        learning = [w for w in diagram.wires if w.learning]
+        readouts_top = height - 10 - ROW * (len(diagram.parts) + len(learning) + 2) - 8
         top = 62
         radius = min(MAX_DIAGRAM_RADIUS, (PANEL_WIDTH - 60) / 2, (readouts_top - top - 60) / 2)
         center = (left + PANEL_WIDTH // 2, top + 30 + radius)
@@ -309,16 +322,24 @@ class Renderer:
         parts = {p.name: p for p in diagram.parts}
         for w in diagram.wires:
             a, b = at(parts[w.source].position), at(parts[w.target].position)
-            color = lerp_color(WIRE_OFF, WIRE_ON, w.level) if w.active else WIRE_INACTIVE
-            width = 4 if w.active else 1
+            if w.learning:  # wider as it grows stronger, dashed until it is active
+                color = lerp_color(LEARN_DIM, LEARN_ON, w.level) if w.active else LEARN_DIM
+                width = 1 + round(4 * w.strength)
+            else:
+                color = lerp_color(WIRE_OFF, WIRE_ON, w.level) if w.active else WIRE_INACTIVE
+                width = 4 if w.active else 1
             if w.source == w.target:  # a unit feeding back into itself
                 pygame.draw.circle(surface, color, (a[0] + 12, a[1] - 12), 12, min(width, 3))
                 label_at = (a[0] + 26, a[1] - 30)
             else:
-                pygame.draw.line(surface, color, a, b, width)
+                if w.learning and not w.active:
+                    draw_dashed_line(surface, color, a, b, width)
+                else:
+                    pygame.draw.line(surface, color, a, b, width)
                 # Near the target, so crossed wires do not label the same spot.
                 label_at = (a[0] + 0.85 * (b[0] - a[0]) + 8, a[1] + 0.85 * (b[1] - a[1]) - 22)
-            surface.blit(self.title_font.render("+" if w.sign > 0 else "-", True, color), label_at)
+            sign = ("+" if w.sign > 0 else "-") + ("M" if w.learning else "")
+            surface.blit(self.title_font.render(sign, True, color), label_at)
 
         for p in diagram.parts:
             x, y = at(p.position)
@@ -363,6 +384,24 @@ class Renderer:
             value = self.font.render(f"{p.value:.2f}", True, TEXT)
             surface.blit(value, (x0 + width - value.get_width(), y + 2))
             y += ROW
+        # Then each learning connection: its strength, with a tick where it becomes active.
+        for w in diagram.wires:
+            if not w.learning:
+                continue
+            name = self.font.render(f"{w.source}->{w.target}", True, TEXT)
+            surface.blit(name, (x0, y + 2))
+            surface.blit(self.small_font.render("M", True, LEARN_ON),
+                         (x0 + name.get_width() + 6, y + 4))
+            pygame.draw.rect(surface, PANEL_BORDER, (bar_x, y + 7, bar_width, 6), border_radius=3)
+            filled = round(bar_width * w.strength)
+            if filled:
+                pygame.draw.rect(surface, LEARN_ON if w.active else LEARN_DIM,
+                                 (bar_x, y + 7, filled, 6), border_radius=3)
+            tick = bar_x + round(bar_width * STRENGTH_TICK)
+            pygame.draw.line(surface, TEXT, (tick, y + 4), (tick, y + 15), 1)
+            value = self.font.render(f"{w.strength:.2f}", True, TEXT)
+            surface.blit(value, (x0 + width - value.get_width(), y + 2))
+            y += ROW
         return y
 
     def draw_params(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> None:
@@ -370,6 +409,19 @@ class Renderer:
         for line in ("   ".join(items[:2]), "   ".join(items[2:])):
             surface.blit(self.font.render(line, True, PANEL_DIM), (x0, y + 2))
             y += ROW
+
+
+def draw_dashed_line(surface, color, a, b, width: int, dash: float = 6) -> None:
+    length = math.hypot(b[0] - a[0], b[1] - a[1])
+    if length == 0:
+        return
+    ux, uy = (b[0] - a[0]) / length, (b[1] - a[1]) / length
+    d = 0.0
+    while d < length:
+        e = min(d + dash, length)
+        pygame.draw.line(surface, color, (a[0] + ux * d, a[1] + uy * d),
+                         (a[0] + ux * e, a[1] + uy * e), width)
+        d += 2 * dash
 
 
 def lerp_color(a, b, t: float) -> tuple[int, int, int]:

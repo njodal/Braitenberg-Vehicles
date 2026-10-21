@@ -21,6 +21,18 @@ python -m braitenberg scenarios/vehicle5-moth.yaml
 
 See [specs/vehicle-05.md](specs/vehicle-05.md) for the design.
 
+### Vehicle 7 — A moth that learns which lamp burns, and unlearns it
+
+![The wary moth is burned by the red lamp, then turns away from it while it is hot, and flies through it once it is cold](specs/images/vehicle7-wary-moth.gif)
+
+The wary moth has a connection that learns: a *Mnemotrix* wire from `sees_red` to `danger`. It starts too weak to carry a signal and grows stronger whenever the moth sees red while it is being burned. After a burn or two, seeing red alone means danger, and the moth turns away from the red lamp before it gets close, while it keeps visiting the white one. When the red lamp goes cold, seeing red without a burn weakens the wire again, and the moth goes back. In the panel, watch the bar `sees_red->danger` at the bottom cross the tick at 0.7.
+
+```
+python -m braitenberg scenarios/vehicle7-wary-moth.yaml
+```
+
+See [specs/vehicle-07.md](specs/vehicle-07.md) for the design.
+
 ## Running
 
 ### Setup
@@ -48,6 +60,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 5: Forager | Recharges at the light when hungry, zigzags away when full | `python -m braitenberg scenarios/vehicle5-forager.yaml` |
 | Vehicle 5: Driver | Stops before a red traffic light, goes on green | `python -m braitenberg scenarios/vehicle5-driver.yaml` |
 | Vehicle 6: Evolved forager | The hand-tuned forager next to one tuned by selection | `python -m braitenberg scenarios/vehicle6-forager.yaml` |
+| Vehicle 7: Wary moth | Learns that the red lamp burns and keeps away from it; unlearns it when the lamp goes cold | `python -m braitenberg scenarios/vehicle7-wary-moth.yaml` |
 
 In the window:
 

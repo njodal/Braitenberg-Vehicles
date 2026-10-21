@@ -22,16 +22,33 @@ LEGEND_HEIGHT = 40
 EXCITATORY = "#2563eb"
 INHIBITORY = "#dc2626"
 INACTIVE = "#9ca3af"
+LEARNING = "#7c3aed"    # Mnemotrix wires (Vehicle 7), whatever their sign
 INK = "#1f2937"
 DIM = "#6b7280"
 PART_SIZE = {"sensor": 14, "motor": 17, "unit": 17}   # radius used to stop wires at the edge
 UNIT_RADIUS = 16
 
 
+LEGEND_COLUMNS = 2
+WIRE_COLORS = {"exc": EXCITATORY, "inh": INHIBITORY, "off": INACTIVE, "learn": LEARNING}
+
+
+def wire_kind(w) -> str:
+    if w.learning:
+        return "learn"
+    return "off" if not w.active else "exc" if w.sign > 0 else "inh"
+
+
 def definition_svg(definition: VehicleDefinition) -> str:
     diagram = Vehicle(definition, 0, 0, 0).diagram()
+    legend = [("exc", "", "+ excitatory"), ("inh", "", "− inhibitory")]
+    if any(not w.active and not w.learning for w in diagram.wires):
+        legend.append(("off", ' stroke-dasharray="5,4"', "inactive (strength ≤ 0.7)"))
+    if any(w.learning for w in diagram.wires):
+        legend.append(("learn", "", "M learning (Mnemotrix)"))
+    legend_rows = -(-len(legend) // LEGEND_COLUMNS)
     width = 2 * RADIUS + 2 * MARGIN
-    height = TITLE_HEIGHT + 2 * RADIUS + 2 * MARGIN + LEGEND_HEIGHT
+    height = TITLE_HEIGHT + 2 * RADIUS + 2 * MARGIN + LEGEND_HEIGHT * legend_rows
     cx, cy = width / 2, TITLE_HEIGHT + MARGIN + RADIUS
     parts = {p.name: p for p in diagram.parts}
     sensors = {s.name: s for s in definition.sensors}
@@ -48,7 +65,7 @@ def definition_svg(definition: VehicleDefinition) -> str:
         *(f'<marker id="arrow-{name}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" '
           f'markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" '
           f'fill="{color}"/></marker>'
-          for name, color in (("exc", EXCITATORY), ("inh", INHIBITORY), ("off", INACTIVE))),
+          for name, color in WIRE_COLORS.items()),
         "</defs>",
         f'<rect width="{width}" height="{height}" fill="white"/>',
         f'<text x="{width / 2}" y="32" text-anchor="middle" font-size="20" font-weight="bold" '
@@ -59,16 +76,18 @@ def definition_svg(definition: VehicleDefinition) -> str:
     ]
 
     for w in diagram.wires:
-        kind = "off" if not w.active else "exc" if w.sign > 0 else "inh"
-        color = {"exc": EXCITATORY, "inh": INHIBITORY, "off": INACTIVE}[kind]
+        kind = wire_kind(w)
+        color = WIRE_COLORS[kind]
         dash = ' stroke-dasharray="5,4"' if not w.active else ""
+        # A learning wire is drawn wider the stronger it starts.
+        stroke = f"{1.5 + 2.5 * w.strength:.1f}" if w.learning else "2"
         source, target = parts[w.source], parts[w.target]
         x1, y1 = at(source.position)
         if w.source == w.target:  # a unit feeding back into itself: a loop above it
             r = PART_SIZE[target.kind]
             out.append(f'<path d="M{x1 + r * 0.7:.1f},{y1 - r * 0.7:.1f} '
                        f'C{x1 + 3 * r:.1f},{y1 - 4 * r:.1f} {x1 + 4 * r:.1f},{y1 - r:.1f} '
-                       f'{x1 + r:.1f},{y1:.1f}" fill="none" stroke="{color}" stroke-width="2"'
+                       f'{x1 + r:.1f},{y1:.1f}" fill="none" stroke="{color}" stroke-width="{stroke}"'
                        f'{dash} marker-end="url(#arrow-{kind})"/>')
             label_x, label_y = x1 + 3.4 * r, y1 - 2.6 * r
         else:
@@ -79,11 +98,11 @@ def definition_svg(definition: VehicleDefinition) -> str:
             end = PART_SIZE[target.kind] + 2
             out.append(f'<line x1="{x1 + ux * start:.1f}" y1="{y1 + uy * start:.1f}" '
                        f'x2="{x2 - ux * end:.1f}" y2="{y2 - uy * end:.1f}" stroke="{color}" '
-                       f'stroke-width="2"{dash} marker-end="url(#arrow-{kind})"/>')
+                       f'stroke-width="{stroke}"{dash} marker-end="url(#arrow-{kind})"/>')
             # The sign sits near the target, beside the wire, so crossed wires do not share it.
             label_x = x1 + 0.8 * (x2 - x1) - uy * 9
             label_y = y1 + 0.8 * (y2 - y1) + ux * 9
-        sign = "+" if w.sign > 0 else "−"
+        sign = ("+" if w.sign > 0 else "−") + ("M" if w.learning else "")
         out.append(f'<text x="{label_x:.1f}" y="{label_y + 5:.1f}" text-anchor="middle" '
                    f'font-size="15" font-weight="bold" fill="{color}">{sign}</text>')
 
@@ -115,17 +134,15 @@ def definition_svg(definition: VehicleDefinition) -> str:
                        f'font-size="{12 if i == 0 else 10}" fill="{INK if i == 0 else DIM}">'
                        f'{escape(text)}</text>')
 
-    legend_y = height - LEGEND_HEIGHT / 2
-    items = [("exc", EXCITATORY, "", "+ excitatory"), ("inh", INHIBITORY, "", "− inhibitory")]
-    if any(not w.active for w in diagram.wires):
-        items.append(("off", INACTIVE, ' stroke-dasharray="5,4"', "inactive (strength ≤ 0.7)"))
-    x = MARGIN
-    for kind, color, dash, text in items:
-        out.append(f'<line x1="{x}" y1="{legend_y}" x2="{x + 30}" y2="{legend_y}" stroke="{color}" '
-                   f'stroke-width="2"{dash} marker-end="url(#arrow-{kind})"/>')
+    for i, (kind, dash, text) in enumerate(legend):
+        row, column = divmod(i, LEGEND_COLUMNS)
+        x = MARGIN + 180 * column
+        legend_y = height - LEGEND_HEIGHT * (legend_rows - row - 0.5)
+        out.append(f'<line x1="{x}" y1="{legend_y}" x2="{x + 30}" y2="{legend_y}" '
+                   f'stroke="{WIRE_COLORS[kind]}" stroke-width="2"{dash} '
+                   f'marker-end="url(#arrow-{kind})"/>')
         out.append(f'<text x="{x + 40}" y="{legend_y + 4}" font-size="12" fill="{INK}">'
                    f'{escape(text)}</text>')
-        x += 170
     out.append("</svg>")
     return "\n".join(out) + "\n"
 

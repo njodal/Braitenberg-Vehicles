@@ -1,0 +1,184 @@
+general:
+  type: "7"
+  name: Wary moth
+  description: Drawn to every lamp. A Mnemotrix wire from sees_red to danger grows while it is burned in sight of red, so it learns to turn away from the red lamp before it is burned, and forgets it when red no longer comes with a burn.
+  size: 4
+  noise_std: 0.3
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.9, 0.9]
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.9, 0.9]
+  - sensor:
+      name: red_eye
+      type: red
+      position: [0, 0.9]
+  - sensor:
+      name: heat
+      type: temperature
+      position: [0, -0.85]
+
+units:
+  # Which eye is brighter
+  - unit:
+      name: left_brighter
+      type: threshold
+      threshold: 0.05
+      position: [-0.45, 0.55]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+            type: inhibitory
+  - unit:
+      name: right_brighter
+      type: threshold
+      threshold: 0.05
+      position: [0.45, 0.55]
+      inputs:
+        - input:
+            from: right_eye
+        - input:
+            from: left_eye
+            type: inhibitory
+
+  # Red in sight, getting burned, and the concept that links them
+  - unit:
+      name: sees_red
+      type: threshold
+      threshold: 2.5         # within about 26 units of the red lamp
+      position: [0, 0.6]
+      inputs:
+        - input:
+            from: red_eye
+  - unit:
+      name: pain
+      type: threshold
+      threshold: 5           # within 4 units of a hot lamp
+      position: [0, -0.45]
+      inputs:
+        - input:
+            from: heat
+  - unit:
+      name: danger
+      type: threshold
+      threshold: 1
+      position: [0, 0.15]
+      inputs:
+        - input:
+            from: pain       # fixed: a burn always means danger
+        - input:
+            from: sees_red   # learned: red comes to mean danger
+            strength: 0
+            learning:
+              type: mnemotrix
+              learn: 0.5     # per second, while sees_red fires and pain fires danger
+              forget: 0.02   # per second, while sees_red fires and nothing else fires danger
+
+  # Restless: a while after reaching a lamp, the moth leaves it for a while
+  - unit:
+      name: dazzled
+      type: threshold
+      threshold: 16          # both eyes together: within about 7.5 units of a lamp
+      position: [-0.75, 0.3]
+      inputs:
+        - input:
+            from: left_eye
+        - input:
+            from: right_eye
+  - unit:
+      name: restless
+      type: threshold
+      threshold: 1
+      delay: 2               # on 2 s after it is first dazzled, off 4 s after the last
+      position: [-0.6, -0.1]
+      inputs:
+        - input:
+            from: dazzled
+
+  # Keep away from lamps while in danger or restless; seek them otherwise
+  - unit:
+      name: avoid
+      type: threshold
+      threshold: 1
+      position: [0.6, -0.1]
+      inputs:
+        - input:
+            from: danger
+        - input:
+            from: restless
+  - unit:
+      name: seek_left
+      type: threshold
+      threshold: 1
+      position: [0.8, -0.42]
+      inputs:
+        - input:
+            from: left_brighter
+        - input:
+            from: avoid
+            type: inhibitory
+  - unit:
+      name: seek_right
+      type: threshold
+      threshold: 1
+      position: [-0.8, -0.42]
+      inputs:
+        - input:
+            from: right_brighter
+        - input:
+            from: avoid
+            type: inhibitory
+  - unit:
+      name: flee_left
+      type: threshold
+      threshold: 2
+      position: [-0.3, -0.42]
+      inputs:
+        - input:
+            from: left_brighter
+        - input:
+            from: avoid
+  - unit:
+      name: flee_right
+      type: threshold
+      threshold: 2
+      position: [0.3, -0.42]
+      inputs:
+        - input:
+            from: right_brighter
+        - input:
+            from: avoid
+
+actuators:
+  # Speeding up the right motor turns left, the left motor turns right.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.75]
+      inputs:
+        - input:
+            from: seek_right
+        - input:
+            from: flee_left
+      gain: 3
+      base_speed: 3
+      max_speed: 6
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.75]
+      inputs:
+        - input:
+            from: seek_left
+        - input:
+            from: flee_right
+      gain: 3
+      base_speed: 3
+      max_speed: 6

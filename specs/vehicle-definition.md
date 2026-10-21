@@ -173,7 +173,8 @@ The vehicle senses its own energy through a sensor of type `energy`. It reads th
 |---|---|---|
 | `from` | yes | Name of a sensor or unit. |
 | `type` | no | `excitatory` (default) or `inhibitory`. |
-| `strength` | no | Connection strength, from `0` to `1`. Default `1`. |
+| `strength` | no | Connection strength, from `0` to `1`. Default `1`. For a learning connection, its starting strength. |
+| `learning` | no | Makes the strength change while the vehicle runs (see *Learning connections*). Without it the strength is fixed. |
 
 ```yaml
 inputs:
@@ -188,9 +189,44 @@ inputs:
       strength: 0.5          # inactive for now
 ```
 
-A connection is **active** when its strength is above `0.7`. Only active connections carry a signal; an inactive one is ignored, as if it were not there. Strength is a gate, not a multiplier: an active connection carries its source's full signal, added if it is excitatory and subtracted if it is inhibitory. (Later vehicles, such as Vehicle 7, change strengths while the vehicle runs, which switches connections on and off.)
+A connection is **active** when its strength is above `0.7`. Only active connections carry a signal; an inactive one is ignored, as if it were not there. Strength is a gate, not a multiplier: an active connection carries its source's full signal, added if it is excitatory and subtracted if it is inhibitory. (Learning connections, below, change strength while the vehicle runs, which switches them on and off.)
 
 Connections have no weights. How strongly a motor responds is set on the motor, with `gain`, `base_speed` and `max_speed`; when a unit fires is set on the unit, with `threshold`.
+
+#### Learning connections
+
+An input with a `learning` section changes its strength while the vehicle runs. The only learning type so far is Braitenberg's **Mnemotrix** wire from Vehicle 7 ([vehicle-07.md](vehicle-07.md)): it grows stronger when its source fires together with its destination.
+
+```yaml
+inputs:
+  - input:
+      from: sees_red
+      strength: 0            # starting strength: inactive
+      learning:
+        type: mnemotrix
+        learn: 0.3           # per second, while sees_red fires and the destination's other inputs make it fire
+        forget: 0.01         # per second, while sees_red fires and they do not
+```
+
+| Key | Required | Meaning |
+|---|---|---|
+| `type` | yes | `mnemotrix`, the only learning type for now. |
+| `learn` | yes | Strength gained per second while the source fires and the destination is driven by its other inputs. Not negative. |
+| `forget` | no | Strength lost per second while the source fires and the destination is not driven by its other inputs. Not negative. Default 0. |
+
+Each step, a Mnemotrix connection from source `S` to unit `D` checks whether the source is **on** (its contribution in `D`'s simultaneity window is 1) and whether `D` is **driven by its other inputs** (the sum of `D`'s other active inputs, leaving out this connection, reaches `D`'s threshold). Then:
+
+| Source | Destination driven by other inputs | Strength |
+|---|---|---|
+| on | yes | `+= learn * dt` |
+| on | no | `-= forget * dt` |
+| off | either | unchanged |
+
+The strength is clipped to `[0, 1]`. The connection's own contribution is left out so that a learned association cannot keep confirming itself and can still be unlearned ([vehicle-07.md](vehicle-07.md) explains why).
+
+- The source must be a unit and the destination must be a unit. A unit may not learn from itself.
+- A learning connection may be excitatory or inhibitory; the rule is the same.
+- Each vehicle starts with the strengths in its definition and learns on its own. Learning never changes the definition file.
 
 ### Sources
 
@@ -203,9 +239,10 @@ Simulation time is measured in seconds; each step advances it by `dt` (see [scen
 Each simulation step:
 
 1. **Sensors** read the stimulus at their current position.
-2. **Units** all update at once, in two parts:
+2. **Units** all update at once, in three parts:
    - **Outputs.** Each unit's visible output becomes the activation it computed `delay` seconds ago. Delays are rounded to a whole number of steps, at least one: with the default `delay` 0.05 and `dt` 0.05, one step; with `dt` 0.01, five steps. Outputs start at 0, and so do activations still on their way.
    - **Activations.** Each unit computes its activation, `1` or `0`, from its inputs: this step's sensor outputs and the unit outputs just made visible. Each input contributes the largest value it had within the unit's simultaneity window, which is the last `round(delay / dt)` steps including this one. The activation enters the unit's delay line, to become its output `delay` seconds later.
+   - **Learning.** Each learning connection updates its strength (see *Learning connections*) from the values just used for the activations: its source's contribution in the destination's window and the destination's other inputs. The new strength takes effect from the next step; within a step, a connection is active or not as decided by its strength at the start of the step.
 3. **Actuators** compute their speed from this step's sensor outputs and the visible unit outputs from step 2. Actuators have no delay: a sensor wired straight to a motor acts at once, as in Vehicles 1 to 4.
 4. **Movement** (below), then the arena's edge rule.
 
@@ -234,6 +271,8 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - a name is repeated (the message names both places) or is not a valid identifier;
 - an input names something that does not exist, or names an actuator;
 - an input has a `type` other than `excitatory` or `inhibitory`, or a `strength` outside `[0, 1]`;
+- a `learning` section has an unknown `type`, is missing `learn`, has an unknown key, or has a `learn` or `forget` that is negative or not a number;
+- a learning connection comes from a sensor, goes into an actuator, or connects a unit to itself;
 - a `position` is outside `[-1, 1]`;
 - a unit's `delay` is not positive;
 - a `field_of_view` is not greater than 0 and at most 360, or is given for an `energy` sensor;
@@ -348,9 +387,11 @@ actuators:
 10. **Field of view:** a sensor with a `field_of_view` reads a source straight ahead exactly as a sensor without one does, reads nothing from a source behind it or outside the cone, and a sensor without a `field_of_view` reads sources in every direction.
 11. **Headless:** loading and running a definition never imports pygame.
 
+Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (criteria 6 to 12).
+
 ## Out of scope
 
-- Other unit types (e.g. Vehicle 7's Mnemotrix connections that learn).
+- Other unit types, and learning types other than Mnemotrix (e.g. Vehicle 8's Ergotrix connections, which learn sequences).
 - Response curves other than `linear`, `peak` and `step`, and responses on actuators or connections.
 - Overriding definition values from a scenario.
 - Evolving or editing definitions at runtime (Vehicle 6).

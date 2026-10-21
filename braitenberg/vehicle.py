@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from braitenberg.definition import ENERGY_SENSOR, VehicleDefinition
+from braitenberg.definition import ACTIVE_STRENGTH, ENERGY_SENSOR, VehicleDefinition
 
 
 @dataclass
@@ -36,6 +36,8 @@ class Wire:
     sign: int     # +1 excitatory, -1 inhibitory
     level: float
     active: bool = True  # connections with strength 0.7 or less carry no signal
+    strength: float = 1.0
+    learning: str | None = None  # the learning type, for a connection that learns (Vehicle 7)
 
 
 @dataclass
@@ -69,6 +71,14 @@ class Vehicle:
         self.speed = 0.0        # forward speed
         self.turn_rate = 0.0
         self.energy = definition.energy.initial if definition.energy else None
+        self.dt = dt
+        # Current strength of each learning connection, by (unit name, input index). Each vehicle
+        # starts from its definition's strengths and learns on its own; the definition never changes.
+        self.strengths = {(u.name, j): c.strength for u in definition.units
+                          for j, c in enumerate(u.inputs) if c.learning}
+        self.fixed_strengths = {(p.name, j): c.strength
+                                for p in [*definition.units, *definition.actuators]
+                                for j, c in enumerate(p.inputs) if not c.learning}
         # A unit's delay and simultaneity window, in steps (see 'Signal flow' in the spec).
         self.unit_steps = {u.name: max(1, round(u.delay / dt)) for u in definition.units}
         # Activations on their way to becoming outputs, oldest first.
@@ -110,14 +120,39 @@ class Vehicle:
         for name, value in [*self.sensor_values.items(), *self.unit_outputs.items()]:
             self.history[name].append(value)
         # Activations now, from each input's largest value within the unit's window.
+        learned = {}
         for u in self.definition.units:
             n = self.unit_steps[u.name]
-            total = sum(c.sign * max(list(self.history[c.source])[-n:])
-                        for c in u.inputs if c.active)
-            self.pending[u.name].append(1.0 if total >= u.threshold else 0.0)
+            values = [max(list(self.history[c.source])[-n:]) for c in u.inputs]
+            signals = [c.sign * v if self.is_active(u.name, j) else 0.0
+                       for j, (c, v) in enumerate(zip(u.inputs, values))]
+            self.pending[u.name].append(1.0 if sum(signals) >= u.threshold else 0.0)
+            # Learning: a connection whose source is on learns when the unit's other inputs
+            # fire it, and forgets when they do not (see 'Learning connections').
+            for j, c in enumerate(u.inputs):
+                if c.learning and values[j] > 0:
+                    others = sum(signals[:j] + signals[j + 1:])
+                    rate = c.learning.learn if others >= u.threshold else -c.learning.forget
+                    learned[(u.name, j)] = clamp01(self.strengths[(u.name, j)] + rate * self.dt)
+        self.strengths.update(learned)  # takes effect from the next step
         for a in self.definition.actuators:
             total = sum(c.sign * self.signal(c.source) for c in a.inputs if c.active)
             self.motor_speeds[a.name] = min(max(a.base_speed + a.gain * total, 0.0), a.max_speed)
+
+    def is_active(self, unit: str, index: int) -> bool:
+        """Whether a unit's input carries a signal now, with its current strength."""
+        return self.connection_strength(unit, index) > ACTIVE_STRENGTH
+
+    def connection_strength(self, target: str, index: int) -> float:
+        """The current strength of input `index` of unit or actuator `target`."""
+        key = (target, index)
+        return self.strengths[key] if key in self.strengths else self.fixed_strengths[key]
+
+    def strength(self, source: str, target: str) -> float:
+        """The current strength of the first connection from `source` into `target`."""
+        parts = {p.name: p for p in [*self.definition.units, *self.definition.actuators]}
+        index = next(j for j, c in enumerate(parts[target].inputs) if c.source == source)
+        return self.connection_strength(target, index)
 
     def signal(self, name: str) -> float:
         if name in self.sensor_values:
@@ -178,8 +213,14 @@ class Vehicle:
             value = self.motor_speeds[a.name]
             level = clamp01(value / a.max_speed) if a.max_speed > 0 else 0.0
             parts.append(Part(a.type, a.name, a.position, a.type, value, level))
-        wires = [Wire(c.source, target.name, c.sign, levels[c.source] if c.active else 0.0, c.active)
-                 for target in [*d.units, *d.actuators] for c in target.inputs]
+        wires = []
+        for target in [*d.units, *d.actuators]:
+            for j, c in enumerate(target.inputs):
+                strength = self.connection_strength(target.name, j)
+                active = strength > ACTIVE_STRENGTH
+                wires.append(Wire(c.source, target.name, c.sign,
+                                  levels[c.source] if active else 0.0, active, strength,
+                                  c.learning.type if c.learning else None))
         return Diagram(
             title=self.label,
             subtitle=f"Vehicle {d.general.type}: {d.general.name}",
