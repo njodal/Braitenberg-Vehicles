@@ -147,6 +147,12 @@ The chapter suggests more combinations; they are not used by the hunter, but are
 
 ## The hunter
 
+The hunter is a predator that waits and watches, as a frog or a cat does. It stands still in a field of lamps, with its eye looking ahead. Somewhere in the field wanders its prey, which shines exactly as brightly as the lamps: in a single image the hunter cannot tell the prey from a lamp. What gives the prey away is that it moves.
+
+As long as nothing moves, the hunter does nothing. When the prey moves in view, the hunter turns toward it, stops, and looks again. When the prey is straight ahead, it lunges forward, stops, and looks again. It goes on like this, in short bursts, until it is close to the prey. If the prey stops, it vanishes among the lamps, and the hunter waits for it to move again.
+
+Its brain is the chapter's circuits in a row. Object detectors find the lumps in the image, and ignore little things and things far away. Lateral inhibition reduces each lump to one point. Movement detectors watch those points, and fire only for the ones that change column. Which part of the image the movement is in decides whether to turn left, turn right or lunge. One more unit blinds the hunter while it moves, since its own movement would make every lamp seem to move too.
+
 ### The world
 
 `worlds/still-lamps.yaml`: a 100 × 100 arena with `edges: wrap` and five lamps of `light`, at `[20, 20]`, `[80, 25]`, `[25, 80]`, `[75, 75]` and `[50, 85]`, each with `intensity` 10, `falloff` 15, `radius` 1.5 and `height` 3. Nothing in it moves.
