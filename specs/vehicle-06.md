@@ -228,16 +228,16 @@ The best survival rises from 70 s in generation 0 to the full 300 s in generatio
 
 ![The value of each gene in the survivors of each generation](images/vehicle6-genes.png)
 
-| Gene | Hand-tuned | Evolved |
-|---|---|---|
-| `sees` | 3 | 0.99 |
-| `brighter` | 0.05 | 0.01 (its minimum) |
-| `charged` | 90 | 86.1 |
-| `hungry` | -30 | -36.0 |
-| `rhythm` | 0.3 | 0.32 |
-| `gain` | 3 | 3.34 |
-| `base_speed` | 3 | 3.14 |
-| `max_speed` | 6 | 5.62 |
+| Gene | What it sets | Hand-tuned | Evolved | Change | Evolved without basal cost |
+|---|---|---|---|---|---|
+| `sees` | How much light both eyes together need to see a light | 3 | 0.99 | −67 % | 0.95 |
+| `brighter` | The smallest difference between the eyes that steers | 0.05 | 0.01 | −80 % (its minimum) | 0.01 |
+| `charged` | Energy at which the forager is full | 90 | 86.1 | −4 % | 100 (its maximum) |
+| `hungry` | Energy at which it is hungry again (threshold `-hungry`) | 30 | 36.0 | +20 % | 27.6 |
+| `rhythm` | Delay of the three oscillator units | 0.3 s | 0.32 s | +6 % | 0.40 s |
+| `gain` | How much a signal speeds up a motor | 3 | 3.34 | +11 % | 2.81 |
+| `base_speed` | Motor speed with no signal | 3 | 3.14 | +5 % | 2.90 |
+| `max_speed` | Motor speed cap | 6 | 5.62 | −6 % | 4.52 |
 
 | Survival | Hand-tuned | Evolved |
 |---|---|---|
@@ -248,7 +248,7 @@ Selection changed mostly what the forager can see. In `far-lights` the light is 
 
 Selection found what a designer might have done in a few seconds of thought: if light can be seen from everywhere, searching is a waste. But it found it without anyone knowing the field, only by keeping the foragers that lasted. On the 20 starts it was never selected on, the evolved forager lasts four times as long as the hand-tuned one.
 
-(Before the basal cost was added, the same run found the same thing: `sees` 0.95, `brighter` 0.01, validation survival 294 s against 74 s.)
+The last column is the same run before the basal cost was added (validation survival 294 s against 74 s for the hand-tuned forager). Both runs found the same main change: `sees` near 1 and `brighter` at its minimum, so the forager sees a light from everywhere and steers on the faintest difference. They differ in the rest. Without a basal cost, waiting cost nothing, so the forager stayed at the light until it was completely full (`charged` 100), and slower motors made its zigzag narrower (`max_speed` 4.5). With a basal cost every second away from a light costs 2, so it leaves a little earlier (`charged` 86), gets hungry earlier to have margin for the trip (`hungry` 36), and keeps its speed.
 
 ## Starting from random numbers
 
