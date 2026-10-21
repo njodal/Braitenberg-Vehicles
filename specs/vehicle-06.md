@@ -114,6 +114,7 @@ genes:
 | `survivors` | yes | Vehicles kept from each generation, at least 1 and less than `population`. |
 | `generations` | yes | How many generations to run after generation 0. Can be overridden on the command line. |
 | `seed` | no | Seeds the mutations and the trial starts. Default 0. |
+| `start` | no | How generation 0 is made: `ancestor` (copies of the ancestor) or `random` (genomes drawn at random). Default `ancestor`. See *Generations*. |
 | `trials` | yes | `count` (at least 1), `duration` (seconds, positive), `dt` (default 0.05) and `validation` (default 0). |
 | `mutation` | no | `rate`, from 0 to 1. Default 0.3. |
 | `genes` | yes | A list, each item wrapped in `- gene:`. At least one. |
@@ -129,7 +130,7 @@ Each gene:
 
 Allowed keys: for units `threshold` and `delay`; for actuators `gain`, `base_speed` and `max_speed`; for sensor responses `at`, `width` and `height`. Nothing else can be a gene. In particular the `energy` section (how much moving costs, how fast light recharges) and the body `size` belong to the world's physics, not to what the vehicle can change: a forager allowed to evolve `consumption` would simply set it to 0.
 
-A gene's starting value is the value its targets have in the ancestor. If the targets of a gene start with different values, or the starting value is outside `[min, max]`, loading fails.
+A gene's starting value is the value its targets have in the ancestor, also with `start: random` (it is the genome the evolved vehicle is compared with). If the targets of a gene start with different values, or the starting value is outside `[min, max]`, loading fails.
 
 ### Loading and validation
 
@@ -141,7 +142,7 @@ As with the other files: `yaml.safe_load`, validation into dataclasses, and fail
 - the ancestor does not fit the world (as checked for scenarios, [scenarios.md](scenarios.md));
 - a gene name is repeated, a target names a part the ancestor does not have or a key that is not allowed, `min` is not below `max`, or `sigma` is not positive;
 - a gene's targets start with different values, or outside `[min, max]`;
-- `population`, `survivors`, `trials` or `mutation.rate` are out of range.
+- `population`, `survivors`, `trials` or `mutation.rate` are out of range, or `start` is neither `ancestor` nor `random`.
 
 ## Running an evolution
 
@@ -165,13 +166,15 @@ A vehicle's **survival** is the mean of its survival times over the selection tr
 
 ### Generations
 
-- **Generation 0** is the ancestor's genome and `population - 1` copies of it.
+- **Generation 0**, with `start: ancestor`, is the ancestor's genome and `population - 1` copies of it. With `start: random` it is `population` genomes drawn at random, each gene uniformly in `[min, max]`: the ancestor gives only the wiring, not the numbers. This tests whether selection finds good numbers on its own, without a designer's first guess.
 - Every vehicle of a generation is tried, and the generation is **ranked** by survival, longest first. Ties keep their order in the generation.
 - The next generation is the `survivors` best, unchanged and in rank order, followed by `population - survivors` copies: copy `i` (from 0) is made from survivor `i mod survivors`.
 
 Because the survivors are kept unchanged and always face the same trials, the best survival never decreases from one generation to the next.
 
-All randomness of copying comes from one generator seeded with `seed`, used in a fixed order. A run is therefore fully determined by the evolution file. Trials may run in parallel processes; the number of processes does not change the results.
+The ancestor is also tried on the selection trials, whatever `start` is, so its survival can be compared with the evolved vehicle's.
+
+All randomness of copying and of a random generation 0 comes from one generator seeded with `seed`, used in a fixed order (after the trial starts are drawn). A run is therefore fully determined by the evolution file. Trials may run in parallel processes; the number of processes does not change the results.
 
 After the last generation, the best vehicle and the ancestor are also run on the validation trials. Their validation survival is reported but never used for selection: it shows whether the evolved forager is better in general or only at the starts it was selected on.
 
@@ -186,6 +189,7 @@ python -m braitenberg.evolve evolutions/forager.yaml --generations 5 --workers 8
 |---|---|
 | `--generations N` | Override `generations`. |
 | `--seed N` | Override `seed`. |
+| `--start ancestor\|random` | Override `start`. |
 | `--workers N` | Processes to run trials in. Default: the number of CPUs. |
 | `--out DIR` | Where to write the results. Default: `runs/<evolution file name>/`. The `runs/` folder is not committed. |
 
@@ -199,7 +203,7 @@ The output folder holds:
 |---|---|
 | `log.csv` | One row per vehicle per generation: `generation`, `rank`, `parent` (rank in the previous generation, empty for generation 0 and for the ancestor), `survival`, and one column per gene. |
 | `best.yaml` | The best vehicle of the last generation, as a vehicle definition file: the ancestor with the best genome applied, `general.name` followed by ` (evolved)`, and a `description` naming the evolution file, the seed and the generation. Comments in the ancestor are not kept. |
-| `summary.yaml` | The evolution file's name and seed, the number of generations, the best genome, and the survival and validation survival of the ancestor and of the best vehicle. |
+| `summary.yaml` | The evolution file's name, seed and `start`, the number of generations, the best genome, and the survival and validation survival of the ancestor and of the best vehicle. |
 | `survival.png` | A plot (matplotlib): best and mean survival per generation, with the ancestor's survival as a horizontal line. |
 | `genes.png` | A plot: for each gene, the value in each survivor per generation, on the gene's range from `min` to `max`. It shows which numbers selection pushed and which it left alone. |
 
@@ -244,9 +248,33 @@ Selection changed mostly what the forager can see. In `far-lights` the light is 
 
 Selection found what a designer might have done in a few seconds of thought: if light can be seen from everywhere, searching is a waste. But it found it without anyone knowing the field, only by keeping the foragers that lasted. On the 20 starts it was never selected on, the evolved forager lasts four times as long as the hand-tuned one.
 
+## Starting from random numbers
+
+`evolutions/forager-random.yaml` is the same evolution with `start: random`: generation 0 knows the forager's wiring but none of its numbers. Three runs, seeds 0 to 2 (`--seed`), give:
+
+| Gene | Hand-tuned | From ancestor | Random, seed 0 | Random, seed 1 | Random, seed 2 |
+|---|---|---|---|---|---|
+| `sees` | 3 | 0.95 | 3.27 | 6.27 | 6.38 |
+| `brighter` | 0.05 | 0.01 | 0.56 | 0.53 | 0.02 |
+| `charged` | 90 | 100 | 71.6 | 40.4 | 50.8 |
+| `hungry` | -30 | -27.6 | -18.7 | -8.2 | -94.1 |
+| `rhythm` | 0.3 | 0.40 | 0.23 | 0.46 | 0.84 |
+| `gain` | 3 | 2.81 | 2.03 | 1.48 | 0.55 |
+| `base_speed` | 3 | 2.90 | 5.50 | 5.16 | 0.82 |
+| `max_speed` | 6 | 4.52 | 1.39 | 2.12 | 9.84 |
+| **Validation survival** (hand-tuned) | | 294 s (74 s) | 300 s (74 s) | 275 s (80 s) | 300 s (44 s) |
+
+(The hand-tuned survival differs between seeds because each seed draws its own starts.)
+
+All three last about as long as the forager evolved from the hand-tuned one, but none of them forages like it. They found something simpler: **go slowly**. In seeds 0 and 1 `base_speed` is above `max_speed`, so both motors always run at `max_speed` (1.4 and 2.1) whatever the brain says: the vehicle drives straight and slowly, and no unit has any effect on it. In seed 2 the motors run at 0.8, and 1.4 with a signal. Already in generation 0, a few of the random vehicles last the whole trial this way.
+
+It works because of the energy rules ([vehicle-definition.md](vehicle-definition.md)): moving costs energy per unit of distance, while light recharges per second. A slow vehicle spends little per second, and when it drifts through the glow of a light it stays there longer and charges more. On the torus a straight line sooner or later passes near a light. Nothing in the world punishes being slow.
+
+So the two starts teach different things. Copying from the hand-tuned forager, selection only searches near it and finds a better forager. Starting anywhere, it finds the cheapest way to survive in this world, which does not need the brain. This is Braitenberg's point about selection: it does not care how a vehicle survives, only that it does, and it finds the loopholes of its environment. A world in which the forager's brain is needed would need, for example, an energy cost per second for being alive, even standing still.
+
 ## Acceptance criteria
 
-The criteria that need a full run (6 and 7) use `evolutions/forager.yaml` as committed; the others use small evolution files written for the tests (small population, few short trials, a large `dt`) so they run in seconds.
+Criterion 8 needs a full run of `evolutions/forager.yaml` as committed; the others use small evolution files written for the tests (small population, few short trials, a large `dt`) so they run in seconds.
 
 1. **Load:** loading the example evolution file produces the ancestor, the world, the settings and the genes, with each gene's starting value taken from the ancestor.
 2. **Validation:** each failure case under *Loading and validation* raises an error naming the file and the key.
@@ -256,8 +284,9 @@ The criteria that need a full run (6 and 7) use `evolutions/forager.yaml` as com
 6. **Selection:** in each generation the survivors are the best by survival, they appear unchanged in the next generation, every other vehicle is a copy of a survivor following the rule above, and the best survival never decreases.
 7. **Determinism:** two runs of the same evolution file write identical `log.csv` and `best.yaml`, with 1 worker and with several.
 8. **It works:** after a run of `evolutions/forager.yaml` with seed 0, the evolved forager's validation survival is at least twice the ancestor's. (The rough measurement above suggests the room is there: the hand-tuned forager lasts about 50 s and a better `sees` threshold alone about 150 s.)
-9. **Results:** a run writes the files listed under *Results*; `best.yaml` loads as a valid definition equal, apart from `general`, to the ancestor with the best genome applied; `summary.yaml` matches the last generation of `log.csv`.
-10. **Headless:** loading and running an evolution never imports pygame.
+9. **Random start:** with `start: random`, generation 0 has `population` genomes, each gene within its range, none of them the ancestor's and none with a parent; two runs with the same seed draw the same generation 0, and different seeds draw different ones. The ancestor's survival is reported all the same.
+10. **Results:** a run writes the files listed under *Results*; `best.yaml` loads as a valid definition equal, apart from `general`, to the ancestor with the best genome applied; `summary.yaml` matches the last generation of `log.csv`.
+11. **Headless:** loading and running an evolution never imports pygame.
 
 Criterion 8 runs for a few minutes; its test is marked `slow` and skipped unless `pytest -m slow` is given.
 

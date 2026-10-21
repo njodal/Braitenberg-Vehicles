@@ -1,0 +1,70 @@
+name: Forager tuning from random numbers
+description: The same as forager.yaml, but generation 0 is drawn at random within each gene's range instead of copied from the hand-tuned forager.
+
+ancestor: ../vehicles/vehicle5-forager.yaml
+world: ../worlds/far-lights.yaml
+
+population: 20               # vehicles per generation
+survivors: 5                 # how many are kept and copied
+generations: 30
+seed: 0                      # mutation and trial starts
+start: random                # generation 0 drawn at random, not copied from the ancestor
+
+trials:
+  count: 5                   # each vehicle is tried this many times, alone
+  duration: 300              # seconds; a vehicle alive at the end lasted 300
+  dt: 0.01
+  validation: 20             # extra trials, never used for selection, to check the result
+
+mutation:
+  rate: 0.3                  # chance that each gene changes in a copy
+
+genes:
+  - gene:
+      name: sees
+      targets: [units.sees.threshold]
+      min: 0.5
+      max: 8
+      sigma: 0.5
+  - gene:
+      name: brighter
+      targets: [units.left_brighter.threshold, units.right_brighter.threshold]
+      min: 0.01
+      max: 1
+      sigma: 0.05
+  - gene:
+      name: charged
+      targets: [units.charged.threshold]
+      min: 30
+      max: 100
+      sigma: 5
+  - gene:
+      name: hungry
+      targets: [units.hungry.threshold]
+      min: -95
+      max: -5
+      sigma: 5
+  - gene:
+      name: rhythm
+      targets: [units.osc_a.delay, units.osc_b.delay, units.osc_c.delay]
+      min: 0.1
+      max: 1
+      sigma: 0.05
+  - gene:
+      name: gain
+      targets: [actuators.left_motor.gain, actuators.right_motor.gain]
+      min: 0
+      max: 5
+      sigma: 0.3
+  - gene:
+      name: base_speed
+      targets: [actuators.left_motor.base_speed, actuators.right_motor.base_speed]
+      min: 0.5
+      max: 6
+      sigma: 0.3
+  - gene:
+      name: max_speed
+      targets: [actuators.left_motor.max_speed, actuators.right_motor.max_speed]
+      min: 1
+      max: 10
+      sigma: 0.5

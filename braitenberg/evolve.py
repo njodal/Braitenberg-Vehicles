@@ -28,6 +28,8 @@ from braitenberg.sim import Simulation
 from braitenberg.world import World, load_world
 from braitenberg.yamlfile import ConfigError, Parser, read_yaml
 
+START_KINDS = ("ancestor", "random")
+
 # What a gene may set: section -> allowed keys. Sensors are reached through their response.
 GENE_KEYS = {
     "units": ("threshold", "delay"),
@@ -78,6 +80,7 @@ class Evolution:
     genes: list[Gene]
     seed: int = 0
     rate: float = 0.3
+    start: str = "ancestor"   # ancestor | random: how generation 0 is made
     description: str = ""
 
 
@@ -102,6 +105,7 @@ class Result:
     evolution: Evolution
     generations: list[list[Member]] = field(default_factory=list)  # each ranked, best first
     validation: dict[str, float] = field(default_factory=dict)     # ancestor, best
+    ancestor_survival: float = 0.0
 
     @property
     def best(self) -> Member:
@@ -139,7 +143,7 @@ class _EvolutionParser(Parser):
     def evolution(self, data) -> Evolution:
         data = self.mapping(data, "", {"name", "ancestor", "world", "population", "survivors",
                                        "generations", "trials", "genes"},
-                            {"description", "seed", "mutation"})
+                            {"description", "seed", "mutation", "start"})
         ancestor = self.referenced(data["ancestor"], "ancestor", load_definition)
         world = self.referenced(data["world"], "world", load_world)
         center = (world.arena.width / 2, world.arena.height / 2)
@@ -178,7 +182,14 @@ class _EvolutionParser(Parser):
             genes=genes,
             seed=self.integer(data.get("seed", 0), "seed"),
             rate=rate,
+            start=self.start_kind(data.get("start", "ancestor"), "start"),
         )
+
+    def start_kind(self, value, key: str) -> str:
+        start = self.string(value, key)
+        if start not in START_KINDS:
+            raise self.error(key, f"must be {' or '.join(START_KINDS)}, not '{start}'")
+        return start
 
     def trials(self, data) -> Trials:
         data = self.mapping(data, "trials", {"count", "duration"}, {"dt", "validation"})
@@ -249,6 +260,11 @@ def apply_genome(evolution: Evolution, genome) -> VehicleDefinition:
         for t in gene.targets:
             setattr(part(definition, t), t.key, float(value))
     return definition
+
+
+def random_genome(genes: list[Gene], rng: np.random.Generator):
+    """A genome drawn uniformly within each gene's range."""
+    return tuple(float(rng.uniform(g.min, g.max)) for g in genes)
 
 
 def copy_genome(genes: list[Gene], genome, rate: float, rng: np.random.Generator):
@@ -328,8 +344,14 @@ def evolve(evolution: Evolution, workers: int = 1, report=None) -> Result:
         evaluate = Evaluator(evolution, starts, pool)
         result = Result(evolution)
         first = ancestor_genome(evolution)
-        members = [Member(first)] + [Member(copy_genome(evolution.genes, first, evolution.rate, rng))
-                                     for _ in range(evolution.population - 1)]
+        if evolution.start == "random":
+            members = [Member(random_genome(evolution.genes, rng))
+                       for _ in range(evolution.population)]
+        else:
+            members = [Member(first)] + [
+                Member(copy_genome(evolution.genes, first, evolution.rate, rng))
+                for _ in range(evolution.population - 1)]
+        result.ancestor_survival = evaluate([first])[0]
         for g in range(evolution.generations + 1):
             if g > 0:
                 survivors = result.generations[-1][:evolution.survivors]
@@ -401,11 +423,12 @@ def write_results(result: Result, out: Path) -> None:
     (out / "best.yaml").write_text(yaml.dump(best_definition_data(result), Dumper=_FlowDumper,
                                              sort_keys=False, allow_unicode=True))
     first = ancestor_genome(evolution)
-    ancestor_survival = next(m.survival for m in result.generations[0] if m.genome == first)
+    ancestor_survival = result.ancestor_survival
     summary = {
         "evolution": evolution.name,
         "file": evolution.path.name,
         "seed": evolution.seed,
+        "start": evolution.start,
         "generations": len(result.generations) - 1,
         "best_genome": dict(zip(names, result.best.genome)),
         "ancestor_genome": dict(zip(names, first)),
@@ -483,6 +506,7 @@ def main(argv=None) -> None:
     parser.add_argument("evolution", help="evolution file")
     parser.add_argument("--generations", type=int, help="override generations")
     parser.add_argument("--seed", type=int, help="override seed")
+    parser.add_argument("--start", choices=START_KINDS, help="override start")
     parser.add_argument("--workers", type=int, default=os.cpu_count() or 1,
                         help="processes to run trials in (default: the number of CPUs)")
     parser.add_argument("--out", help="output folder (default: runs/<evolution file name>/)")
@@ -495,6 +519,8 @@ def main(argv=None) -> None:
         evolution.generations = args.generations
     if args.seed is not None:
         evolution.seed = args.seed
+    if args.start is not None:
+        evolution.start = args.start
     out = Path(args.out) if args.out else Path("runs") / evolution.path.stem
 
     def report(g, members):

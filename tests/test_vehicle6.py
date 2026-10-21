@@ -83,6 +83,7 @@ def gene(**changes):
     ({"trials": {"count": 0, "duration": 10}}, "trials.count"),
     ({"trials": {"count": 1, "duration": -1}}, "trials.duration"),
     ({"mutation": {"rate": 1.5}}, "mutation.rate"),
+    ({"start": "best"}, "start"),
     ({"genes": []}, "genes"),
     ({"genes": [{"name": "g"}]}, "genes[0]"),
     ({"genes": [gene(), gene()]}, "genes[1].gene.name"),
@@ -177,7 +178,7 @@ def test_trial_time_is_the_step_where_energy_reaches_zero(write):
     assert t == pytest.approx(17 * 0.3)
 
 
-# 6. Selection, 7. Determinism, 9. Results
+# 6. Selection, 7. Determinism, 10. Results
 
 @pytest.fixture(scope="module")
 def runs(tmp_path_factory):
@@ -281,7 +282,34 @@ def test_committed_evolved_forager():
     assert evolved == expected
 
 
-# 10. Headless
+# 9. Random start
+
+def test_random_start(write):
+    e = load_evolution(write(small(start="random", generations=0)))
+    assert e.start == "random"
+    a, b = evolve(e), evolve(e)
+    first = a.generations[0]
+    assert len(first) == e.population
+    assert all(m.parent is None for m in first)
+    assert all(m.genome != ancestor_genome(e) for m in first)
+    for m in first:
+        for g, v in zip(e.genes, m.genome):
+            assert g.min <= v <= g.max
+    assert sorted(m.genome for m in first) == sorted(m.genome for m in b.generations[0])
+    e.seed += 1
+    c = evolve(e)
+    assert sorted(m.genome for m in first) != sorted(m.genome for m in c.generations[0])
+    assert a.ancestor_survival > 0
+
+
+
+def test_random_example():
+    e = load_evolution(REPO / "evolutions" / "forager-random.yaml")
+    assert e.start == "random"
+    assert e.genes == load_evolution(FORAGER_EVOLUTION).genes
+
+
+# 11. Headless
 
 def test_headless():
     r = run_python(
@@ -293,3 +321,4 @@ def test_headless():
         "evolve(e)\n"
         "assert 'pygame' not in sys.modules\n")
     assert r.returncode == 0, r.stderr
+
