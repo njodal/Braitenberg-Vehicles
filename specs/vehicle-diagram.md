@@ -6,7 +6,7 @@ The simulator window shows, next to the arena, a separate panel with a live sche
 
 ## Layout
 
-- The window is the arena on the left and the panel on the right, 420 pixels wide. The window is as tall as the arena, and at least 600 pixels so that the panel fits; a long, narrow arena (such as a road) is drawn at the top, with empty space below it. A vehicle with many readout lines (such as the Vehicle 7 wary moth) makes the window taller still, so that its diagram keeps a radius of at least 110 pixels.
+- The window is the arena on the left and the panel on the right, 420 pixels wide. The window is as tall as the arena, and at least 600 pixels so that the panel fits; a long, narrow arena (such as a road) is drawn at the top, with empty space below it. A vehicle with many readout lines (such as the Vehicle 7 wary moth) makes the window taller still, so that its diagram keeps a radius of at least 110 pixels, or of 150 pixels for a vehicle with cameras or arrays of units (such as the Vehicle 8 hunter).
 - The panel shows, from top to bottom:
   1. A title with the vehicle's label from the scenario, e.g. `Aggression #1`, and below it the Braitenberg type and name from its definition, e.g. `Vehicle 2b: Aggression`.
   2. The diagram: a top-down view of the body with its front pointing up. The diagram does not rotate with the vehicle, so it stays easy to read.
@@ -21,6 +21,7 @@ The simulator window shows, next to the arena, a separate panel with a live sche
 - **Wires:** lines from source to destination, marked `+` for excitatory and `-` for inhibitory connections. The mark sits near the destination, so crossed wires do not share it. A unit wired to itself is drawn as a small loop. Inactive connections (strength `0.7` or less, see [vehicle-definition.md](vehicle-definition.md)) are drawn as thin dim lines that never light up.
 - **Learning wires:** a Mnemotrix connection ([vehicle-07.md](vehicle-07.md)) has its own color and is labeled `M`. Its width grows with its current strength, and it is dashed while inactive, so the moment it switches on, or off again, is visible.
 - **Live signals:** each part and wire is colored by its current activity level, from dim (0) to bright (1).
+- **Cameras and arrays of units:** drawn as grids of cells, one per pixel or element, each lit by its level. Their wires are drawn as one per pair of parts and sign, and the readouts show one line per camera or array, with its cells and how many are on ([camera.md](camera.md), [vehicle-08.md](vehicle-08.md)). In the arena, the `V` key shows the selected vehicle's camera views.
 
 ## Data model
 

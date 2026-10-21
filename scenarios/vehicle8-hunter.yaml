@@ -1,0 +1,18 @@
+name: Hunter
+description: A hunter that watches a field of still lamps. Its prey is as bright as a lamp; the hunter sees it only when it moves, turns toward it and lunges.
+
+world: ../worlds/still-lamps.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle8-hunter.yaml
+      position: [50, 40]
+      heading: 90                # up
+  - vehicle:
+      definition: ../vehicles/vehicle8-prey.yaml
+      position: [40, 52]
+      heading: 0                 # moving right, across the hunter's view
+
+simulation:
+  dt: 0.01
+  seed: 0

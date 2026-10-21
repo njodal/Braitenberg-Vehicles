@@ -18,7 +18,7 @@ The chapter also combines them: object detectors feeding movement detectors, so 
 
 This spec builds those circuits as units, with the same structure as the book's figures, and adds what they need to work in the simulator:
 
-- **Arrays of units**, so that one item in the definition stands for one unit per position. The hunter below has about 250 units.
+- **Arrays of units**, so that one item in the definition stands for one unit per position. The hunter below has about 190 units.
 - **One point per object**, so that movement detectors do not fire for still objects (see *Why movement detectors need points*).
 
 The example vehicle is the **hunter**. It sits still and watches a field of lamps. When something moves, and only then, it turns toward it and lunges. The lamps are as bright as its prey, so it can tell the prey apart only by its movement. Its pipeline is the book's combination: object detectors, reduced to one point each by lateral inhibition, feeding movement detectors.
@@ -68,7 +68,7 @@ An array of units is a shorthand. A definition with an array behaves exactly lik
 [vehicle-diagram.md](vehicle-diagram.md) is updated to match:
 
 - An array is drawn as a strip of small cells (a grid for a two-dimensional array), one per element, each lit by its element's output, like a camera ([camera.md](camera.md), *In the arena and the diagram*). The array's `position`, if any, places the middle of the strip.
-- The wiring between two arrays is drawn as one arrow for all elements, labeled with the index it takes (such as `i-1`); wires from a single unit to every element as one arrow to the strip; a range of elements as one arrow from that part of the strip.
+- The wires between two parts with the same sign are drawn as one arrow, whatever elements they connect, labeled with the inputs as written (such as `lump[i-1]`). Wires of different signs between the same two parts are drawn side by side.
 - The readouts show an array as one line with its strip of cells, instead of one line per element.
 
 ### Loading and validation
@@ -151,7 +151,11 @@ The hunter is a predator that waits and watches, as a frog or a cat does. It sta
 
 As long as nothing moves, the hunter does nothing. When the prey moves in view, the hunter turns toward it, stops, and looks again. When the prey is straight ahead, it lunges forward, stops, and looks again. It goes on like this, in short bursts, until it is close to the prey. If the prey stops, it vanishes among the lamps, and the hunter waits for it to move again.
 
-Its brain is the chapter's circuits in a row. Object detectors find the lumps in the image, and ignore little things and things far away. Lateral inhibition reduces each lump to one point. Movement detectors watch those points, and fire only for the ones that change column. Which part of the image the movement is in decides whether to turn left, turn right or lunge. One more unit blinds the hunter while it moves, since its own movement would make every lamp seem to move too.
+Its brain is the chapter's circuits in a row. Object detectors find the lumps in the image, and ignore little things and things far away. Lateral inhibition reduces each lump to one point. Movement detectors watch those points, and fire only for the ones that change column. Which part of the image the movement is in decides whether to turn left, turn right or lunge. One more unit blinds the hunter while it moves, since its own movement would make the lamps seem to move too.
+
+![The hunter turns toward the prey, stops, looks, and lunges, in bursts, until it reaches it](images/vehicle8-hunter.gif)
+
+*The default scenario with seed 3, first 20 seconds (played at twice the speed). In the panel, `lump` and `front` follow the objects in view; the commands fire in short bursts, each after `right` or `left` has seen the prey move. The hunter reaches the prey at 17 s.*
 
 ### The world
 
@@ -163,13 +167,13 @@ Its brain is the chapter's circuits in a row. Object detectors find the lumps in
 
 ### Design
 
-![Diagram of the hunter: a 4 × 24 camera, object detectors, lump, front, slow, and the right and left movement detectors; the units that read regions of the image; three commands; and acting, which silences front while the hunter moves](images/vehicle8-hunter.svg)
+![Diagram of the hunter, drawn by python -m braitenberg.diagram: a 4 × 24 camera, object detectors, lump, front, slow, and the right and left movement detectors; the units that read regions of the image; three commands; and acting, which silences front while the hunter moves](images/vehicle8-hunter.svg)
 
 #### Parts
 
 - **Body:** `size` 4, `noise_std` 0. Without noise it stays perfectly still when nothing moves; with noise its own small turns would shift the image.
-- **Camera:** `retina` at `[0, 0.9]`, `type: light`, `field_of_view` 180, `columns` 24 (7.5° each), `rows` 4, `vertical_field_of_view` 8 (2° each, two rows above the horizon and two below), `height` 1, `range` 30, `response: {type: step, at: 3}`. A pixel is lit when a thing fills about a third of it. Every lamp and the prey stand on the ground and are taller than the camera, so near enough they cross the horizon and fill the two middle rows. A thing of radius 1.5 fills two columns, and so an object detector, within about 18 units, sometimes farther.
-- **Motors:** `left_motor` at `[-0.5, -0.7]` and `right_motor` at `[0.5, -0.7]`, `base_speed` 0, `gain` 3, `max_speed` 3. With no input the hunter stands still.
+- **Camera:** `retina` at `[0, 0.88]`, `type: light`, `field_of_view` 180, `columns` 24 (7.5° each), `rows` 4, `vertical_field_of_view` 8 (2° each, two rows above the horizon and two below), `height` 1, `range` 30, `response: {type: step, at: 3}`. With the default 3 × 3 lines of sight per pixel, a pixel is lit when one of its three columns of lines of sight meets a thing. Every lamp and the prey stand on the ground and are taller than the camera, so they cross the horizon and light the two middle rows. A thing lights two neighboring columns, and so fills an object detector, when it is more than about 2.5° wide: the prey or a lamp anywhere within the camera's range of 30, but a thing of radius 0.2 only within about 9 units.
+- **Motors:** `left_motor` at `[-0.5, -0.7]` and `right_motor` at `[0.5, -0.7]`, `base_speed` 0, `gain` 3, `max_speed` 6. With no input the hunter stands still. Each motor takes `forward` twice, so the hunter turns with one wheel at 3 and lunges with both at 6, three times as fast as the prey.
 
 #### Units
 
@@ -177,24 +181,28 @@ The arrays of the circuits above: `object` (3 × 23), `lump`, `front` and `slow`
 
 | Unit | Inputs | Threshold | Delay | Fires when |
 |---|---|---|---|---|
-| `moves_left` | `right[0:9]`, `left[0:9]` | 1 | 0.05 | something moves on the left |
-| `moves_ahead` | `right[9:13]`, `left[9:13]` | 1 | 0.05 | something moves straight ahead |
-| `moves_right` | `right[13:22]`, `left[13:22]` | 1 | 0.05 | something moves on the right |
-| `near` | `lump[10:13]` | 3 | 0.05 | an object fills the middle columns: 6 to 9 units away for the prey |
-| `turn_left` | `moves_left`, inhibitory `moves_ahead` | 1 | 0.3 | movement on the left and not ahead |
-| `turn_right` | `moves_right`, inhibitory `moves_ahead` | 1 | 0.3 | movement on the right and not ahead |
+| `moves_left` | `right[0:8]`, `left[0:8]` | 1 | 0.05 | something moves on the left, more than about 25° from straight ahead |
+| `moves_ahead` | `right[8:14]`, `left[8:14]` | 1 | 0.05 | something moves ahead, within about 25° |
+| `moves_right` | `right[14:22]`, `left[14:22]` | 1 | 0.05 | something moves on the right |
+| `near` | `lump[10:13]` | 3 | 0.05 | an object fills the middle columns: within about 10 units for a thing the size of the prey |
+| `turn_left` | `moves_left`, inhibitory `moves_ahead` | 1 | 0.1 | movement on the left and not ahead |
+| `turn_right` | `moves_right`, inhibitory `moves_ahead` | 1 | 0.1 | movement on the right and not ahead |
 | `forward` | `moves_ahead`, inhibitory `near` | 1 | 0.3 | movement ahead, and not already near it |
-| `acting` | `moves_left`, `moves_ahead`, `moves_right`, `turn_left`, `turn_right`, `forward` | 1 | 0.3 | from when the hunter starts moving until 0.6 s after it stops |
+| `acting` | `moves_left`, `moves_ahead`, `moves_right`, `turn_left`, `turn_right`, `forward` | 1 | 0.1 | from when the hunter starts moving until it has stopped |
 
-The motors are wired crossed for turning: `right_motor` takes `turn_left` and `forward`, `left_motor` takes `turn_right` and `forward`.
+The motors are wired crossed for turning: `right_motor` takes `turn_left` and `forward` (twice), `left_motor` takes `turn_right` and `forward` (twice).
 
-The commands have a delay of 0.3 s, so each lasts at least 0.6 s after the movement that called for it: a detection gives a turn of 50° to 80° (one wheel at 3, the other still: 86° per second), or a lunge of 2 to 3 units.
+A unit's output lasts its delay longer than its input, plus its simultaneity window, so a command lasts twice its delay longer than the movement that called for it. A detection typically gives a turn of about 35° (86° per second, for about 0.4 s), or a lunge of about 4 units (6 per second, for about 0.6 s). The turns are short so that the hunter does not swing past a prey that is only a little to one side; the zone ahead is wide for the same reason. The lunges are long and fast so that the hunter gains on a prey that never stops.
 
 #### Holding still to look
 
-When the hunter turns, the whole image slides across the eye. Every lamp's point moves from column to column, which is exactly what movement looks like to the detectors: a hunter that kept watching while it turned would keep seeing movement, and keep turning. Animals have the same problem with their own eye movements, and the same solution: they do not see during them.
+When the hunter moves, the whole image slides across the eye, and every lamp's point moves from column to column, which is exactly what movement looks like to the detectors. Animals have the same problem with their own eye movements, and the same solution: they do not see during them.
 
-`acting` silences every `front`. It takes the same inputs as the commands and has the same delay, so it switches on at the moment the motors do, and it stays on 0.6 s after they stop. With `front` silent, `slow` empties too, so no trace of the image during the turn is left. When `front` wakes up, every object's point appears at once, which is not movement, and only what moves after that is seen.
+The turns turned out to need little help: at 86° per second a point crosses a column in less than 0.1 s, too fast for the movement detectors (see *Movement detectors*), which do not see what they are not tuned to. The lunges are another matter. They shift nearby lamps slowly across the image, at a speed the detectors do see, and a hunter that kept watching would lunge again and again at lamps.
+
+`acting` silences every `front`. It takes the same inputs as the turns and has the same delay, so it switches on at the moment the motors do, and goes off just after they stop. With `front` silent, `slow` empties too, so no trace of the image during the move is left. When `front` wakes up, every object's point appears at once, which is not movement, and only what moves after that is seen.
+
+Measured over seeds 0 to 4, in 60 s each: without `acting`, the hunter gives commands for 8.5 s while its prey is behind it or out of range, reacting to its own movement; with `acting`, never. Being blind has a price, though: a hunter without `acting` keeps moving, and so finds its prey sooner (all 15 seeds from 0 to 14, against 14 of 15). The hunter here is the one that looks before it moves.
 
 So the hunter moves in bursts: watch, turn or lunge, stop, watch again.
 
@@ -202,11 +210,12 @@ So the hunter moves in bursts: watch, turn or lunge, stop, watch again.
 
 - **A still world:** no point moves, so no detector fires, and the hunter stands still. At the very start every point appears at once, which is not movement either.
 - **The prey moves in view:** its point moves from column to column, the detectors in that part of the image fire, and the hunter turns toward that side. After the turn it holds still and looks again. When the prey is ahead, it lunges instead.
-- **Reaching it:** once the prey fills the three middle `lump` columns, 6 to 9 units away, `near` stops the lunges. The hunter keeps turning to follow it.
+- **Reaching it:** once the prey fills the three middle `lump` columns, within about 10 units, `near` stops the lunges. The hunter keeps turning to follow it.
 - **The prey stops:** it becomes as invisible as a lamp, and the hunter waits.
-- **The prey is far:** beyond about 18 units it fills an object detector only now and then, when it happens to straddle two columns, and beyond about 28 never. The hunter ignores it, as it ignores anything small.
+- **The prey is far:** beyond the camera's range of 30 the hunter does not see it at all. A prey that wanders off while the hunter waits is lost.
+- **The prey is behind:** a camera of 180° sees nothing behind the hunter. A prey that goes around it is lost until it comes back into view.
 
-The values above are a first design. When the hunter is implemented they are tuned on seeds 0 to 14, as for the wary moth ([vehicle-07.md](vehicle-07.md)), so that every criterion below holds; the spec is updated with the values that work.
+The values were tuned on seeds 0 to 14: within 120 s the hunter comes within 8 units of its prey in 14 of the 15 (in 13 of them within 40 s). In the one that fails, the prey wanders out of range before the hunter reaches it. The first design (turns of 0.3 s delay and lunges at 3) reached the prey in only 10 of the 15: it swung past the prey on every turn, and fell behind a prey that never stops.
 
 ## Definitions, world and scenario
 
@@ -214,12 +223,13 @@ The values above are a first design. When the hunter is implemented they are tun
 - `vehicles/vehicle8-prey.yaml`: the prey.
 - `worlds/still-lamps.yaml`: the world above.
 - `scenarios/vehicle8-hunter.yaml`: one hunter at `[50, 40]`, heading 90° (up), and one prey at `[40, 52]`, heading 0° (moving right, across the hunter's view, about 16 units away), `dt` 0.01.
-- `specs/images/vehicle8-objects.svg`, `vehicle8-lateral-inhibition.svg`, `vehicle8-movement.svg` and `vehicle8-hunter.svg`: the circuit diagrams above, drawn by hand in the style of the generated diagrams. Once arrays are implemented, `vehicle8-hunter.svg` is replaced by the one `python -m braitenberg.diagram` draws, and a recording `vehicle8-hunter.gif` is added.
+- `specs/images/vehicle8-objects.svg`, `vehicle8-lateral-inhibition.svg` and `vehicle8-movement.svg`: the circuit diagrams above, drawn by hand in the style of the generated diagrams; the timing charts are computed with the project's units.
+- `specs/images/vehicle8-hunter.svg` and `specs/images/vehicle8-hunter.gif`: the hunter's diagram and the recording above.
 
 ```
 python -m braitenberg scenarios/vehicle8-hunter.yaml
 python -m braitenberg.diagram vehicles/vehicle8-hunter.yaml --out specs/images/vehicle8-hunter.svg
-python -m braitenberg.record scenarios/vehicle8-hunter.yaml --seconds 60 --every 0.1 --speed 4 --out specs/images/vehicle8-hunter.gif
+python -m braitenberg.record scenarios/vehicle8-hunter.yaml --seed 3 --seconds 20 --every 0.1 --speed 2 --scale 0.5 --out specs/images/vehicle8-hunter.gif
 ```
 
 ## Related specs
@@ -239,12 +249,12 @@ Criteria 3 to 7 test the circuits on a **watcher**: the hunter's definition with
 4. **Lateral inhibition:** with the input row of the lateral inhibition figure, `spot` and `front` fire exactly where the figure shows.
 5. **Direction:** with `front[j]` on for `T` seconds and then `front[j+1]` on for `T` seconds: `right[j]` fires for every `T` from 0.2 to 5 s, and never for `T` up to 0.1 s; `left[j]` never fires. In the other order, the same holds with `left[j]` and `right[j]` swapped.
 6. **Why points:** with `right` and `left` fed from the pixels of one row instead of from `front`, a still thing two columns wide makes both fire; fed from `front`, neither fires.
-7. **A thing crossing:** a prey crossing the watcher's view from left to right, 12 units ahead at speed 3, makes `right` fire in column after column from left to right, and `left` never. From right to left, the opposite. A prey with radius 0.3 crossing the same way fires no object detector and no movement detector. A lamp switched on by a schedule in view fires no movement detector. In a world where nothing moves, no movement detector ever fires.
+7. **A thing crossing:** a prey crossing the watcher's view from left to right, 12 units ahead at speed 3, makes `right` fire in column after column from left to right, and `left` never. From right to left, the opposite. A prey with radius 0.2 crossing the same way fires no object detector and no movement detector. A lamp switched on by a schedule in view fires no movement detector. In a world where nothing moves, no movement detector ever fires.
 8. **Still world:** the hunter in the default scenario with a prey whose motors have `base_speed` 0 does not move: after 60 s its position and heading are those it started with.
 9. **Hunts:** in the default scenario, for each of seeds 0 to 4, within 120 s the hunter comes within 8 units of the prey (center to center) at least once.
-10. **Holding still to look:** with the inhibitory input from `acting` removed from `front`, in the default scenario with seed 0, the hunter's commands are on for at least twice as long in 60 s as with it, and it does not come within 8 units of the prey in 120 s. (Tuning sets the exact numbers; the point is that without it the hunter chases its own movement.)
-11. **Diagram:** the diagram of the hunter reports each array as one part with one value and level per element, and draws it as a strip or grid. The SVG draws one arrow per wiring between arrays, labeled with its index. Building it never imports pygame.
-12. **Headless and fast:** the default scenario runs 60 simulated seconds headless in under 15 seconds.
+10. **Holding still to look:** in the default scenario, over seeds 0 to 4, in 60 s each, the hunter gives no command while its prey is behind it (more than 90° from its heading) or out of range (more than 30 units away). With the inhibitory input from `acting` removed from `front`, it does, for at least 4 s in all.
+11. **Diagram:** the diagram of the hunter reports each array as one part with one value and level per element, and draws it as a strip or grid. The SVG draws one arrow for the wires between two parts with the same sign, labeled with the inputs as written (such as `lump[i-1]`). Building it never imports pygame, and the renderer draws the hunter's window without errors.
+12. **Headless and fast:** the default scenario runs 60 simulated seconds headless in under 15 seconds. (It takes about 1.5 s.)
 
 ## Out of scope
 

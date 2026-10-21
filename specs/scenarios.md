@@ -92,7 +92,7 @@ Loading a scenario loads the world and every vehicle definition it names, then c
 - a referenced file does not exist. The message names the scenario key that refers to it, e.g. `vehicles[1].definition`;
 - a referenced file is invalid. The message names that file and key, and the scenario key that refers to it;
 - a vehicle's `position` is outside the world's arena;
-- a vehicle has a sensor whose `type` is not a stimulus of the world (other than `energy`, which the vehicle senses in itself), or an `energy` section whose `charge_from` is not a stimulus of the world. The message names the scenario, the vehicle, the sensor or key, and the world file.
+- a vehicle has a sensor whose `type` is not a stimulus of the world (other than `energy`, which the vehicle senses in itself), or an `energy` section whose `charge_from` is not a stimulus of the world, or an `appearance` that names a stimulus the world does not define. The message names the scenario, the vehicle, the sensor or key, and the world file.
 
 The quick form reports its problems the same way, naming the command-line option instead of a scenario key.
 

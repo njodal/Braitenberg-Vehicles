@@ -33,6 +33,18 @@ python -m braitenberg scenarios/vehicle7-wary-moth.yaml
 
 See [specs/vehicle-07.md](specs/vehicle-07.md) for the design.
 
+### Vehicle 8 — A hunter that sees only what moves
+
+![The hunter turns toward the prey, stops, looks, and lunges, in bursts, until it reaches it](specs/images/vehicle8-hunter.gif)
+
+The hunter has an eye: a camera of 4 × 24 pixels. It stands among lamps, and its prey shines exactly as brightly as they do, so the hunter can tell the prey apart only when it moves. Behind the eye are Braitenberg's circuits from the Vehicle 8 chapter, one per column of the image: object detectors that find the lumps in the image, lateral inhibition that keeps one point of each, and movement detectors that fire when a point passes from one column to the next. When something moves the hunter turns toward it or lunges, and while it moves it does not look, since its own movement would make the lamps seem to move.
+
+```
+python -m braitenberg scenarios/vehicle8-hunter.yaml
+```
+
+See [specs/vehicle-08.md](specs/vehicle-08.md) for the circuits and [specs/camera.md](specs/camera.md) for the camera.
+
 ## Running
 
 ### Setup
@@ -61,6 +73,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 5: Driver | Stops before a red traffic light, goes on green | `python -m braitenberg scenarios/vehicle5-driver.yaml` |
 | Vehicle 6: Evolved forager | The hand-tuned forager next to one tuned by selection | `python -m braitenberg scenarios/vehicle6-forager.yaml` |
 | Vehicle 7: Wary moth | Learns that the red lamp burns and keeps away from it; unlearns it when the lamp goes cold | `python -m braitenberg scenarios/vehicle7-wary-moth.yaml` |
+| Vehicle 8: Hunter | Ignores the still lamps; turns toward and lunges at its prey when it moves | `python -m braitenberg scenarios/vehicle8-hunter.yaml` |
 
 In the window:
 
@@ -70,6 +83,7 @@ In the window:
 | Right arrow (while paused) | One step |
 | R | Restart the scenario |
 | T | Show or hide the trails |
+| V | Show or hide the selected vehicle's camera views |
 | + / − | Faster or slower |
 | Tab | Show the next stimulus in the heat map (e.g. `red` and `green`) |
 | Drag a source | Move it; the vehicles react to the new field |

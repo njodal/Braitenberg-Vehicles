@@ -187,7 +187,7 @@ In addition to the cases in [worlds.md](worlds.md) and [vehicle-definition.md](v
 - **Readouts:** one block per camera, with its name and stimulus, and the image as a grid of `R × C` cells shaded by level, instead of one bar. The panel shrinks the cells to fit large cameras.
 - **Levels:** each pixel's level is computed like a sensor's ([vehicle-diagram.md](vehicle-diagram.md), *Levels*), from that pixel's own targets.
 - **Data model:** `diagram()` reports a camera as one part of kind `camera`, whose value and level are `R × C` matrices (lists of rows); a wire from a camera gives the row and column it comes from.
-- **Static SVG:** a camera is drawn as the same grid of cells, labeled with its name and, below it, its stimulus, size and fields of view (e.g. `light, 6×12 px, 120°×60°`). Each pixel input is its own arrow.
+- **Static SVG:** a camera is drawn as the same grid of cells, labeled with its name and, below it, its stimulus, size and fields of view (e.g. `light, step at 3, 6×12 px, 120°×60°`). The wires from a camera to a part are one arrow, labeled with the inputs as written, such as `retina[:, 0:6]` (see [vehicle-08.md](vehicle-08.md), *In the diagram*). A vehicle with cameras or arrays of units is drawn at a larger scale, since it has many parts.
 
 ## Related specs
 
@@ -214,7 +214,7 @@ Unless stated otherwise the criteria use a camera at the body center with `field
 11. **Pixel inputs:** `retina[2, 3]` connects that pixel only; `retina[:, 0:6]` is the same as the 36 inputs `retina[0, 0]` to `retina[5, 5]` with its type and strength; a unit summing `retina[:, 0:6]` with a threshold fires for a thing on the left and not for one on the right.
 12. **Validation:** each failure case under *Loading and validation* raises an error naming the file and the key.
 13. **Nothing else changes:** fields with a `radius` and `height` are identical to those without, worlds and definitions without things or cameras load and behave as before, and every existing test passes unchanged.
-14. **Diagram:** the diagram reports a camera as one part whose value and level are `R × C` matrices, every level in [0, 1], and each pixel wire with its row and column. The SVG draws the camera's grid and one arrow per pixel input. The renderer draws a frame with things, a camera and camera views without errors, using SDL's dummy video driver.
+14. **Diagram:** the diagram reports a camera as one part whose value and level are `R × C` matrices, every level in [0, 1], and each pixel wire with its row and column. The SVG draws the camera's grid, one cell per pixel, and one arrow per part its pixels feed, labeled with the inputs as written. The renderer draws a frame with things, a camera and camera views without errors, using SDL's dummy video driver.
 15. **Headless and fast:** loading and running a vehicle with a camera never imports pygame. A scenario with 4 vehicles, each with an 8 × 16 camera and the default `samples`, in a world with 10 things, runs 60 simulated seconds at `dt` 0.05 headless in under 5 seconds.
 
 ## Out of scope

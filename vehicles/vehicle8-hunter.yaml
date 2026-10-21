@@ -1,0 +1,226 @@
+general:
+  type: "8"
+  name: Hunter
+  description: >-
+    Stands still and watches. Object detectors find the lumps in the image, lateral inhibition
+    keeps one point of each, and movement detectors watch those points. It turns toward what
+    moves, lunges when it is ahead, and does not look while it moves.
+  size: 4
+  noise_std: 0
+
+sensors:
+  - sensor:
+      name: retina
+      type: light
+      position: [0, 0.88]
+      field_of_view: 180
+      camera:
+        columns: 24                 # 7.5 degrees each
+        rows: 4                     # 2 degrees each: two above the horizon, two below
+        vertical_field_of_view: 8
+        height: 1
+        range: 30
+      response:
+        type: step                  # lit: a thing fills about a third of the pixel
+        at: 3
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      gain: 3
+      max_speed: 6
+      inputs:
+        - input:
+            from: turn_right
+        - input:
+            from: forward
+        - input:
+            from: forward             # twice: lunges at 6, turns at 3
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      gain: 3
+      max_speed: 6
+      inputs:
+        - input:
+            from: turn_left
+        - input:
+            from: forward
+        - input:
+            from: forward
+
+units:
+  # Object detectors (Braitenberg's figure 12): a square of four lit pixels.
+  - unit:
+      name: object
+      type: threshold
+      threshold: 4
+      array: [3, 23]
+      position: [0, 0.6]
+      inputs:
+        - input:
+            from: retina[i, j]
+        - input:
+            from: retina[i, j+1]
+        - input:
+            from: retina[i+1, j]
+        - input:
+            from: retina[i+1, j+1]
+  # An object in column i, whatever its row.
+  - unit:
+      name: lump
+      type: threshold
+      threshold: 1
+      array: 23
+      position: [0, 0.38]
+      inputs:
+        - input:
+            from: object[:, i]
+  # Lateral inhibition from the left (figure 14, one-sided): the object's left end.
+  - unit:
+      name: front
+      type: threshold
+      threshold: 1
+      array: 23
+      position: [-0.34, 0.16]
+      inputs:
+        - input:
+            from: lump[i]
+        - input:
+            from: lump[i-1]
+            type: inhibitory
+        - input:
+            from: acting            # blind while moving
+            type: inhibitory
+  # Movement detectors (figure 13): a sluggish copy of each point, and its neighbor now.
+  - unit:
+      name: slow
+      type: threshold
+      threshold: 1
+      delay: 0.3
+      array: 23
+      position: [0.36, 0.16]
+      inputs:
+        - input:
+            from: front[i]
+  - unit:
+      name: right
+      type: threshold
+      threshold: 2
+      array: 22
+      position: [-0.36, -0.06]
+      inputs:
+        - input:
+            from: slow[i]
+        - input:
+            from: front[i+1]
+  - unit:
+      name: left
+      type: threshold
+      threshold: 2
+      array: 22
+      position: [0.36, -0.06]
+      inputs:
+        - input:
+            from: slow[i+1]
+        - input:
+            from: front[i]
+  # Where the movement is.
+  - unit:
+      name: moves_left
+      type: threshold
+      threshold: 1
+      position: [-0.36, -0.28]
+      inputs:
+        - input:
+            from: right[0:8]
+        - input:
+            from: left[0:8]
+  - unit:
+      name: moves_ahead
+      type: threshold
+      threshold: 1
+      position: [0, -0.28]
+      inputs:
+        - input:
+            from: right[8:14]
+        - input:
+            from: left[8:14]
+  - unit:
+      name: moves_right
+      type: threshold
+      threshold: 1
+      position: [0.36, -0.28]
+      inputs:
+        - input:
+            from: right[14:22]
+        - input:
+            from: left[14:22]
+  - unit:
+      name: near
+      type: threshold
+      threshold: 3
+      position: [-0.75, -0.28]
+      inputs:
+        - input:
+            from: lump[10:13]
+  # Commands: short turns, longer lunges.
+  - unit:
+      name: turn_left
+      type: threshold
+      threshold: 1
+      delay: 0.1
+      position: [-0.2, -0.48]
+      inputs:
+        - input:
+            from: moves_left
+        - input:
+            from: moves_ahead
+            type: inhibitory
+  - unit:
+      name: forward
+      type: threshold
+      threshold: 1
+      delay: 0.3
+      position: [0, -0.6]
+      inputs:
+        - input:
+            from: moves_ahead
+        - input:
+            from: near
+            type: inhibitory
+  - unit:
+      name: turn_right
+      type: threshold
+      threshold: 1
+      delay: 0.1
+      position: [0.2, -0.48]
+      inputs:
+        - input:
+            from: moves_right
+        - input:
+            from: moves_ahead
+            type: inhibitory
+  # On from when the hunter starts moving until it has stopped.
+  - unit:
+      name: acting
+      type: threshold
+      threshold: 1
+      delay: 0.1
+      position: [0.75, -0.48]
+      inputs:
+        - input:
+            from: moves_left
+        - input:
+            from: moves_ahead
+        - input:
+            from: moves_right
+        - input:
+            from: turn_left
+        - input:
+            from: turn_right
+        - input:
+            from: forward

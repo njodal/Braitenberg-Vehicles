@@ -4,7 +4,7 @@ It reads the simulation state and draws it; user interaction (dragging sources,
 pausing, resetting) changes only the running simulation, never the files.
 
 Keys: space pause/resume, right arrow step (when paused), R reset, T trail,
-Tab next stimulus, +/- simulation speed, Esc quit. Drag sources with the mouse;
+V camera views, Tab next stimulus, +/- simulation speed, Esc quit. Drag sources with the mouse;
 click a vehicle to show it in the diagram panel (specs/vehicle-diagram.md).
 """
 
@@ -12,14 +12,15 @@ from __future__ import annotations
 
 import math
 from collections import deque
+from dataclasses import replace
 
 import numpy as np
 import pygame
 
+from braitenberg.diagram import bundles
 from braitenberg.sim import Simulation
 from braitenberg.vehicle import Diagram
 from braitenberg.scenario import Scenario
-from braitenberg.world import Source
 
 MAX_WINDOW_SIDE = 720
 PANEL_WIDTH = 420
@@ -48,6 +49,8 @@ STIMULUS_COLORS = {"red": (235, 70, 60), "green": (70, 210, 100), "blue": (80, 1
                    "yellow": (250, 220, 70)}
 TEXT = (235, 235, 235)
 SELECTED_RING = (120, 220, 255)
+CAMERA_VIEW = (120, 220, 255)
+GRID_WIDTH = 0.6          # body units: the width of a camera's or an array's grid of cells
 PANEL_BG = (22, 24, 34)
 PANEL_BORDER = (60, 64, 84)
 PANEL_DIM = (150, 155, 175)
@@ -76,10 +79,16 @@ class Renderer:
         self.scale = MAX_WINDOW_SIDE / max(arena.width, arena.height)
         self.size = (round(arena.width * self.scale), round(arena.height * self.scale))
         # Tall enough for the panel of the vehicle with the most readout lines.
-        lines = max((len(p.definition.sensors) + len(p.definition.units) + len(p.definition.actuators)
+        # An array of units is one line.
+        lines = max((len(p.definition.sensors) + len({u.array or u.name for u in p.definition.units})
+                     + len(p.definition.actuators)
                      + sum(1 for part in p.definition.units for c in part.inputs if c.learning)
                      for p in scenario.vehicles), default=0)
-        panel_height = 62 + 30 + 2 * MIN_DIAGRAM_RADIUS + 24 + ROW * (lines + 2) + 18
+        # A vehicle with cameras or arrays of units has many parts: give its diagram all the room.
+        crowded = any(p.definition.arrays or any(s.camera for s in p.definition.sensors)
+                      for p in scenario.vehicles)
+        radius = MAX_DIAGRAM_RADIUS if crowded else MIN_DIAGRAM_RADIUS
+        panel_height = 62 + 30 + 2 * radius + 24 + ROW * (lines + 2) + 18
         self.window_size = (self.size[0] + PANEL_WIDTH,
                             max(self.size[1], MIN_WINDOW_HEIGHT, panel_height))
         self.stimulus_names = list(world.stimuli)
@@ -88,6 +97,7 @@ class Renderer:
         self.stimulus_index = (self.stimulus_names.index(first_sensor)
                                if first_sensor in self.stimulus_names else 0)
         self.show_trail = True
+        self.show_views = False
         self.paused = False
         # About 0.05 simulated seconds per frame, whatever the time step.
         self.steps_per_frame = max(1, round(0.05 / scenario.simulation.dt))
@@ -147,6 +157,8 @@ class Renderer:
                 self.reset()
             elif event.key == pygame.K_t:
                 self.show_trail = not self.show_trail
+            elif event.key == pygame.K_v:
+                self.show_views = not self.show_views
             elif event.key == pygame.K_TAB and self.stimulus_names:
                 self.stimulus_index = (self.stimulus_index + 1) % len(self.stimulus_names)
                 self.heatmap = None
@@ -168,7 +180,7 @@ class Renderer:
             x, y = self.to_world(*event.pos)
             x, y = min(max(x, 0), arena.width), min(max(y, 0), arena.height)
             old = self.sim.world.stimuli[name].sources[i]
-            self.sim.world.stimuli[name].sources[i] = Source((x, y), old.intensity, old.falloff)
+            self.sim.world.stimuli[name].sources[i] = replace(old, position=(x, y))
             self.heatmap = None
         return True
 
@@ -200,6 +212,8 @@ class Renderer:
             self.draw_trails(surface)
         self.draw_sources(surface)
         self.draw_vehicles(surface)
+        if self.show_views:
+            self.draw_views(surface)
         self.draw_hud(surface)
         self.draw_panel(surface)
 
@@ -245,9 +259,11 @@ class Renderer:
             shown = name == self.stimulus
             for s in stimulus.sources:
                 center = self.to_screen(*s.position)
+                # A thing cameras see is drawn to scale; a point source with a fixed size.
+                radius = s.radius * self.scale if s.radius is not None else SOURCE_RADIUS
                 if s.active(self.sim.time):     # on: filled; off: a hollow ring only
-                    pygame.draw.circle(surface, color, center, SOURCE_RADIUS)
-                pygame.draw.circle(surface, color, center, SOURCE_RADIUS + 3, 2 if shown else 1)
+                    pygame.draw.circle(surface, color, center, radius)
+                pygame.draw.circle(surface, color, center, radius + 3, 2 if shown else 1)
 
     def draw_vehicles(self, surface: pygame.Surface) -> None:
         for v in self.sim.vehicles:
@@ -260,12 +276,28 @@ class Renderer:
                 (cx + length * 0.6 * math.cos(a + 2.5), cy + length * 0.6 * math.sin(a + 2.5)),
                 (cx + length * 0.6 * math.cos(a - 2.5), cy + length * 0.6 * math.sin(a - 2.5)),
             ]
-            pygame.draw.polygon(surface, VEHICLE_FILL, points)
+            # A vehicle that cameras see as a color is drawn in that color.
+            fill = next((STIMULUS_COLORS[name] for name in v.definition.appearance
+                         if name in STIMULUS_COLORS), VEHICLE_FILL)
+            pygame.draw.polygon(surface, fill, points)
             pygame.draw.polygon(surface, VEHICLE_OUTLINE, points, 1)
         if self.sim.vehicles:
             v = self.sim.vehicles[self.selected]
             pygame.draw.circle(surface, SELECTED_RING, self.to_screen(v.x, v.y),
                                max(v.half_size * self.scale, 8) + 5, 2)
+
+    def draw_views(self, surface: pygame.Surface) -> None:
+        """The edges of each camera's field of view, for the selected vehicle."""
+        if not self.sim.vehicles:
+            return
+        v = self.sim.vehicles[self.selected]
+        arena = self.sim.world.arena
+        for sensor, x, y in v.cameras():
+            reach = min(sensor.camera.range, max(arena.width, arena.height))
+            for side in (-1, 1):
+                a = v.heading + math.radians(sensor.camera.direction + side * sensor.field_of_view / 2)
+                end = (x + reach * math.cos(a), y + reach * math.sin(a))
+                pygame.draw.line(surface, CAMERA_VIEW, self.to_screen(x, y), self.to_screen(*end), 1)
 
     def draw_hud(self, surface: pygame.Surface) -> None:
         lines = [f"t = {self.sim.time:.1f}   x{self.steps_per_frame}"
@@ -276,7 +308,7 @@ class Renderer:
                      if any(s.schedule for s in st.sources)]
         if scheduled:
             lines.append("   ".join(f"{name} {'on' if on else 'off'}" for name, on in scheduled))
-        lines += ["space pause  Right step  R reset  T trail  +/- speed",
+        lines += ["space pause  Right step  R reset  T trail  V views  +/- speed",
                   "Tab stimulus  drag source  click vehicle"]
         # Over a tall arena, in its top corner; below a short one, so it hides nothing.
         y = 6 if self.size[1] >= MIN_WINDOW_HEIGHT else self.size[1] + 10
@@ -320,7 +352,7 @@ class Renderer:
         pygame.draw.rect(surface, BODY_OUTLINE, body, 2, border_radius=int(radius * 0.3))
 
         parts = {p.name: p for p in diagram.parts}
-        for w in diagram.wires:
+        for w in bundles(diagram.wires):
             a, b = at(parts[w.source].position), at(parts[w.target].position)
             if w.learning:  # wider as it grows stronger, dashed until it is active
                 color = lerp_color(LEARN_DIM, LEARN_ON, w.level) if w.active else LEARN_DIM
@@ -339,17 +371,21 @@ class Renderer:
                 # Near the target, so crossed wires do not label the same spot.
                 label_at = (a[0] + 0.85 * (b[0] - a[0]) + 8, a[1] + 0.85 * (b[1] - a[1]) - 22)
             sign = ("+" if w.sign > 0 else "-") + ("M" if w.learning else "")
-            surface.blit(self.title_font.render(sign, True, color), label_at)
+            if not w.label:   # bundles of an array's wires would crowd the diagram with signs
+                surface.blit(self.title_font.render(sign, True, color), label_at)
 
         for p in diagram.parts:
             x, y = at(p.position)
-            fill = tuple(int(c) for c in heat_colors(np.array(p.level)))
+            fill = (tuple(int(c) for c in heat_colors(np.array(p.level)))
+                    if p.shape is None else None)
             if p.kind == "sensor":
                 # A round sensor with two short antennae pointing forward.
                 for dx in (-9, 9):
                     pygame.draw.line(surface, BODY_OUTLINE, (x, y), (x + dx, y - 22), 2)
                 pygame.draw.circle(surface, fill, (x, y), 13)
                 pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 13, 2)
+            elif p.shape is not None:
+                self.draw_cells(surface, p.level, (x, y), GRID_WIDTH * radius, centered=True)
             elif p.kind == "motor":
                 rect = pygame.Rect(0, 0, 34, 22)
                 rect.center = (x, y)
@@ -364,8 +400,33 @@ class Renderer:
                     value = self.small_font.render(f"{p.threshold:g}", True, color)
                     surface.blit(value, (x - value.get_width() / 2, y - value.get_height() / 2))
             label = self.small_font.render(p.name, True, PANEL_DIM)
-            below = UNIT_RADIUS + 4 if p.kind == "unit" else 15
+            below = (UNIT_RADIUS + 4 if p.kind == "unit"
+                     else self.cells_height(p.level, GRID_WIDTH * radius) / 2 + 3
+                     if p.shape is not None else 15)
             surface.blit(label, (x - label.get_width() / 2, y + below))
+
+    @staticmethod
+    def rows_of(levels) -> list[list[float]]:
+        return levels if levels and isinstance(levels[0], list) else [levels]
+
+    def cells_height(self, levels, width: float) -> float:
+        rows = self.rows_of(levels)
+        return len(rows) * min(width / len(rows[0]), 8)
+
+    def draw_cells(self, surface: pygame.Surface, levels, at, width: float,
+                   centered: bool = False) -> None:
+        """A camera's pixels or an array's elements, as a grid of cells lit by their levels."""
+        rows = self.rows_of(levels)
+        cell = min(width / len(rows[0]), 8)
+        x0, y0 = at
+        if centered:
+            x0, y0 = x0 - cell * len(rows[0]) / 2, y0 - cell * len(rows) / 2
+        for r, row in enumerate(rows):
+            for c, level in enumerate(row):
+                color = tuple(int(v) for v in heat_colors(np.array(level)))
+                pygame.draw.rect(surface, color, (x0 + c * cell, y0 + r * cell,
+                                                  math.ceil(cell), math.ceil(cell)))
+        pygame.draw.rect(surface, BODY_OUTLINE, (x0, y0, cell * len(rows[0]), cell * len(rows)), 1)
 
     def draw_readouts(self, surface: pygame.Surface, diagram: Diagram, x0: int, y: int) -> int:
         """One line per part: name and label, a level bar, and the value."""
@@ -376,6 +437,17 @@ class Renderer:
             surface.blit(name, (x0, y + 2))
             surface.blit(self.small_font.render(p.label, True, PANEL_DIM),
                          (x0 + name.get_width() + 6, y + 4))
+            if p.shape is not None:
+                # The image, or the array's elements, instead of a bar; and how many are on.
+                rows = self.rows_of(p.level)
+                cells_width = min(bar_width, (ROW - 4) / len(rows) * len(rows[0]))
+                top = y + (ROW - self.cells_height(p.level, cells_width)) / 2
+                self.draw_cells(surface, p.level, (bar_x, top), cells_width)
+                lit = sum(1 for row in rows for level in row if level > 0)
+                value = self.font.render(f"{lit}/{len(rows) * len(rows[0])}", True, TEXT)
+                surface.blit(value, (x0 + width - value.get_width(), y + 2))
+                y += ROW
+                continue
             pygame.draw.rect(surface, PANEL_BORDER, (bar_x, y + 7, bar_width, 6), border_radius=3)
             filled = round(bar_width * p.level)
             if filled:

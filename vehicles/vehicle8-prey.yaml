@@ -1,0 +1,26 @@
+general:
+  type: "8"
+  name: Prey
+  description: Wanders at random. As bright as a lamp, so a camera tells it from one only when it moves.
+  size: 3
+  height: 2
+  noise_std: 0.8
+
+appearance:
+  light: 10
+
+sensors: []
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      base_speed: 2
+      inputs: []
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      base_speed: 2
+      inputs: []

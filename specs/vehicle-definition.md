@@ -45,7 +45,7 @@ actuators:
 units: []
 ```
 
-Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its kind: `- sensor:`, `- actuator:` and `- unit:` respectively, with the item's fields indented below it. `general`, `sensors` and `actuators` are required (`sensors` may be an empty list); `units` and `energy` may be omitted.
+Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its kind: `- sensor:`, `- actuator:` and `- unit:` respectively, with the item's fields indented below it. `general`, `sensors` and `actuators` are required (`sensors` may be an empty list); `units`, `energy` and `appearance` may be omitted. `appearance` (how other vehicles' cameras see this one) is defined in [camera.md](camera.md), *Vehicles as things*.
 
 ### 1. General
 
@@ -56,6 +56,7 @@ Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its k
 | `description` | no | Free text. |
 | `size` | yes | Body length and width in arena units. The body is a square; body coordinates `[-1, 1]` map to `[-size/2, size/2]`. |
 | `noise_std` | no | Heading perturbation strength, as in [vehicle-01.md](vehicle-01.md). Default 0. |
+| `height` | no | The body's height, as cameras see it ([camera.md](camera.md)). Positive. Default `size / 2`. |
 
 ### 2. Sensors
 
@@ -66,6 +67,7 @@ Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its k
 | `position` | yes | `[x, y]` in body coordinates. |
 | `response` | no | How the sensor's output depends on its reading (see *Responses*). Default: `linear`. |
 | `field_of_view` | no | The angle, in degrees, of the cone in front of the vehicle in which the sensor detects sources (see *Field of view*). Default 360: it detects sources in every direction. |
+| `camera` | no | Makes the sensor a camera, whose output is a matrix of pixels instead of one value ([camera.md](camera.md)). A camera needs a `field_of_view`. |
 
 A sensor **reads** the value of its stimulus at the sensor's position in the arena (or, for an `energy` sensor, the vehicle's own energy; see *5. Energy*), and its **output**, the signal its connections carry, is that reading passed through its response. Sensors at different places on the body read different values; that is what lets Vehicles 2 and up steer.
 
@@ -128,6 +130,7 @@ A motor adds up the signals of its active inputs, excitatory ones with `+` and i
 | `inputs` | yes | Sensors and/or other units, including itself (see *Inputs*). |
 | `delay` | no | Seconds between the inputs reaching the threshold and the output appearing. Default `0.05`. Must be positive. |
 | `position` | no | `[x, y]` in body coordinates, used only to place the unit in the diagram. If missing, the diagram lays it out automatically. |
+| `array` | no | Makes the item an array of units, one per index, all wired alike ([vehicle-08.md](vehicle-08.md), *Arrays of units*). |
 
 A threshold unit adds up the signals of its **active** inputs, excitatory ones with `+` and inhibitory ones with `-`, and outputs `1` when that sum is greater than or equal to `threshold`, and `0` otherwise. Inactive inputs are ignored. With no active input the sum is `0`, so a unit with `threshold` `0` or less fires on its own; an active inhibitory input with a strong enough signal brings the sum below the threshold and stops it.
 
@@ -173,7 +176,7 @@ The vehicle senses its own energy through a sensor of type `energy`. It reads th
 
 | Key | Required | Meaning |
 |---|---|---|
-| `from` | yes | Name of a sensor or unit. |
+| `from` | yes | Name of a sensor or unit. A camera's pixels and an array's elements are named with indices, such as `retina[0, 3]`, `lump[0:12]` or, inside an array, `lump[i-1]` ([camera.md](camera.md), *Pixel inputs*; [vehicle-08.md](vehicle-08.md), *Indices in inputs*). |
 | `type` | no | `excitatory` (default) or `inhibitory`. |
 | `strength` | no | Connection strength, from `0` to `1`. Default `1`. For a learning connection, its starting strength. |
 | `learning` | no | Makes the strength change while the vehicle runs (see *Learning connections*). Without it the strength is fixed. |

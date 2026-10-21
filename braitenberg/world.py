@@ -68,6 +68,8 @@ class Source:
     intensity: float
     falloff: float
     schedule: Schedule | None = None
+    radius: float | None = None   # a source with a radius is a thing cameras see (specs/camera.md)
+    height: float | None = None   # of that thing, standing on the ground
 
     def active(self, time: float | None) -> bool:
         """Whether the source is on at `time`; with no time given, every source counts as on."""
@@ -117,6 +119,21 @@ class World:
             return True
         off = (math.atan2(dy, dx) - heading + math.pi) % (2 * math.pi) - math.pi
         return abs(math.degrees(off)) <= field_of_view / 2
+
+    def things(self, stimulus: str, time: float | None) -> list[tuple[float, float, float, float, float]]:
+        """The things cameras can see, as (x, y, radius, height, brightness for `stimulus`).
+
+        Sources with the same position, radius and height are one thing, lit in several stimuli.
+        """
+        things: dict[tuple, float] = {}
+        for name, st in self.stimuli.items():
+            for s in st.sources:
+                if s.radius is None:
+                    continue
+                key = (*s.position, s.radius, s.height)
+                lit = s.intensity if name == stimulus and s.active(time) else 0.0
+                things[key] = things.get(key, 0.0) + lit
+        return [(*key, brightness) for key, brightness in things.items()]
 
     def active_sources(self, time: float | None) -> tuple:
         """Which sources are on, stimulus by stimulus (to tell when the field changes)."""
@@ -179,11 +196,19 @@ class _WorldParser(Parser):
             sources = []
             for i, s in enumerate(body["sources"]):
                 skey = f"{key}.sources[{i}]"
-                s = self.mapping(s, skey, {"position", "intensity", "falloff"}, {"schedule"})
-                sources.append(Source(self.point(s["position"], f"{skey}.position", arena),
-                                      self.number(s["intensity"], f"{skey}.intensity"),
-                                      self.number(s["falloff"], f"{skey}.falloff", positive=True),
-                                      self.schedule(s["schedule"], f"{skey}.schedule")
-                                      if "schedule" in s else None))
+                s = self.mapping(s, skey, {"position", "intensity", "falloff"},
+                                 {"schedule", "radius", "height"})
+                source = Source(self.point(s["position"], f"{skey}.position", arena),
+                                self.number(s["intensity"], f"{skey}.intensity"),
+                                self.number(s["falloff"], f"{skey}.falloff", positive=True),
+                                self.schedule(s["schedule"], f"{skey}.schedule")
+                                if "schedule" in s else None)
+                if "radius" in s:
+                    source.radius = self.number(s["radius"], f"{skey}.radius", positive=True)
+                    source.height = (self.number(s["height"], f"{skey}.height", positive=True)
+                                     if "height" in s else 2 * source.radius)
+                elif "height" in s:
+                    raise self.error(f"{skey}.height", "a height needs a radius")
+                sources.append(source)
             stimuli[str(name)] = Stimulus(str(name), sources)
         return stimuli

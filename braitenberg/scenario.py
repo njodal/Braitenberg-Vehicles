@@ -86,6 +86,10 @@ def check_fit(scenario: Scenario, keys: Callable[[int], tuple[str, str]]) -> Non
         if energy and energy.charge_from and energy.charge_from not in world.stimuli:
             raise ConfigError(f"{definition_key}: energy.charge_from '{energy.charge_from}' "
                               f"is not a stimulus of world {world.path}")
+        for name in p.definition.appearance:
+            if name not in world.stimuli:
+                raise ConfigError(f"{definition_key}: appearance '{name}' "
+                                  f"is not a stimulus of world {world.path}")
         for s in p.definition.sensors:
             if s.type != ENERGY_SENSOR and s.type not in world.stimuli:
                 raise ConfigError(f"{definition_key}: sensor '{s.name}' reads '{s.type}', "

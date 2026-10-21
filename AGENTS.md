@@ -30,6 +30,7 @@ braitenberg/            # the package
   world.py              # arena, stimulus sources and fields
   definition.py         # vehicle definition files
   vehicle.py            # a vehicle built from a definition: signals, movement, diagram
+  camera.py             # what a camera sees: lines of sight against things (specs/camera.md)
   scenario.py           # scenarios: a world plus placed vehicles
   sim.py                # simulation loop (headless) and command line
   render.py             # pygame renderer

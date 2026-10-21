@@ -41,6 +41,7 @@ Each stimulus has a list of `sources`. Each source has:
 - `intensity`: value at the source itself.
 - `falloff`: distance at which the value drops to half.
 - `schedule` (optional): when the source is on (see *Schedules*). Without it the source is always on.
+- `radius` and `height` (optional): make the source a thing that cameras see, an upright cylinder standing on the ground ([camera.md](camera.md), *Things*). `height` needs a `radius` and defaults to `2 * radius`. They change nothing about the field.
 
 Field value at a point = sum over the stimulus' **active** sources of `intensity / (1 + (distance / falloff)^2)`. With `edges: wrap`, distance is measured on the torus (the shortest way around).
 
@@ -91,6 +92,7 @@ When a vehicle moves past an edge:
   - an unknown key appears (catches typos such as `falof`, and `vehicles` or `simulation` sections, which belong in scenarios);
   - a source position lies outside the arena;
   - a `schedule` is missing a key, has a non-positive `period`, has `on_at` or `off_at` outside `[0, period]`, or has `on_at` equal to `off_at`.
+  - a source's `radius` or `height` is not a positive number, or it has a `height` without a `radius`.
 - Defaults are applied by the loader, so the rest of the code sees a complete world.
 - The world model lives in the simulation side (`world.py`) and must not import pygame.
 

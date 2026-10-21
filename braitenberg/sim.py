@@ -12,6 +12,7 @@ import math
 
 import numpy as np
 
+from braitenberg.camera import camera_image, sight_lines
 from braitenberg.scenario import Scenario, load_scenario, quick_scenario
 from braitenberg.vehicle import Vehicle
 from braitenberg.yamlfile import ConfigError
@@ -29,13 +30,32 @@ class Simulation:
         self.steps = 0
         self.vehicles = [Vehicle(p.definition, *p.position, p.heading, p.label, self.dt)
                          for p in scenario.vehicles]
+        self.sight_lines = {}   # camera sensor -> its lines of sight, computed once
+        self.has_cameras = any(s.camera for p in scenario.vehicles for s in p.definition.sensors)
 
     def step(self) -> None:
-        for v in self.vehicles:
+        # Cameras see every vehicle where it was at the start of the step.
+        bodies = [(v.x, v.y, v.half_size, v.definition.general.height, v.definition.appearance)
+                  for v in self.vehicles] if self.has_cameras else []
+        things = {}   # stimulus -> things of the world
+        for k, v in enumerate(self.vehicles):
             fov = {s.name: s.field_of_view for s in v.definition.sensors}
             readings = {name: float(self.world.stimulus_at(stimulus, x, y, self.time,
                                                            v.heading, fov[name]))
                         for name, stimulus, x, y in v.sensor_points()}
+            for sensor, x, y in v.cameras():
+                if sensor.type not in things:
+                    things[sensor.type] = self.world.things(sensor.type, self.time)
+                seen = np.array(things[sensor.type]
+                                + [(bx, by, r, h, look.get(sensor.type, 0.0))
+                                   for i, (bx, by, r, h, look) in enumerate(bodies) if i != k])
+                key = id(sensor)
+                if key not in self.sight_lines:
+                    self.sight_lines[key] = sight_lines(sensor)
+                readings[sensor.name] = camera_image(*self.sight_lines[key], x, y,
+                                                     sensor.camera.height, v.heading,
+                                                     seen.reshape(-1, 5), self.world.arena.delta,
+                                                     sensor.camera.range)
             energy = v.definition.energy
             charge = (float(self.world.stimulus_at(energy.charge_from, v.x, v.y, self.time))
                       if energy and energy.charge_from else 0.0)
