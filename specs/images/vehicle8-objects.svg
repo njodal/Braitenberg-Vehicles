@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520" font-family="Helvetica, Arial, sans-serif">
+<defs>
+<marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+<marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+</defs>
+<rect width="900" height="520" fill="white"/>
+<line x1="110.0" y1="117.0" x2="146.9" y2="313.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<line x1="210.0" y1="117.0" x2="154.6" y2="313.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<line x1="110.0" y1="187.0" x2="145.4" y2="313.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<line x1="210.0" y1="187.0" x2="156.6" y2="314.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="170.3" y="309.9" text-anchor="middle" font-size="15" fill="#2563eb" font-weight="bold">+</text>
+<line x1="210.0" y1="117.0" x2="265.4" y2="313.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<line x1="310.0" y1="117.0" x2="273.1" y2="313.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<line x1="210.0" y1="187.0" x2="263.4" y2="314.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<line x1="310.0" y1="187.0" x2="274.6" y2="313.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="287.0" y="307.6" text-anchor="middle" font-size="15" fill="#2563eb" font-weight="bold">+</text>
+<text x="450.0" y="32.0" text-anchor="middle" font-size="20" fill="#1f2937" font-weight="bold">Vehicle 8: object detectors</text>
+<text x="210.0" y="66.0" text-anchor="middle" font-size="13" fill="#6b7280" font-style="italic">Each unit sees a square of four pixels</text>
+<rect x="90.0" y="93.0" width="40" height="24" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="110.0" y="86.0" text-anchor="middle" font-size="12" fill="#1f2937">retina[0, 0]</text>
+<rect x="190.0" y="93.0" width="40" height="24" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="210.0" y="86.0" text-anchor="middle" font-size="12" fill="#1f2937">retina[0, 1]</text>
+<rect x="290.0" y="93.0" width="40" height="24" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="310.0" y="86.0" text-anchor="middle" font-size="12" fill="#1f2937">retina[0, 2]</text>
+<rect x="90.0" y="163.0" width="40" height="24" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="110.0" y="156.0" text-anchor="middle" font-size="12" fill="#1f2937">retina[1, 0]</text>
+<rect x="190.0" y="163.0" width="40" height="24" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="210.0" y="156.0" text-anchor="middle" font-size="12" fill="#1f2937">retina[1, 1]</text>
+<rect x="290.0" y="163.0" width="40" height="24" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="310.0" y="156.0" text-anchor="middle" font-size="12" fill="#1f2937">retina[1, 2]</text>
+<circle cx="150" cy="330" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="150.0" y="334.0" text-anchor="middle" font-size="11" fill="#1f2937" font-weight="bold">4</text>
+<text x="150.0" y="361.0" text-anchor="middle" font-size="12" fill="#1f2937">object[0, 0]</text>
+<text x="150.0" y="374.0" text-anchor="middle" font-size="10" fill="#6b7280">all four lit</text>
+<circle cx="270" cy="330" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="270.0" y="334.0" text-anchor="middle" font-size="11" fill="#1f2937" font-weight="bold">4</text>
+<text x="270.0" y="361.0" text-anchor="middle" font-size="12" fill="#1f2937">object[0, 1]</text>
+<text x="270.0" y="374.0" text-anchor="middle" font-size="10" fill="#6b7280">all four lit</text>
+<text x="210.0" y="410.0" text-anchor="middle" font-size="11" fill="#6b7280">Neighboring detectors share pixels, as in the book's figure 12.</text>
+<text x="210.0" y="425.0" text-anchor="middle" font-size="11" fill="#6b7280">Only a thing that fills a whole square fires one:</text>
+<text x="210.0" y="440.0" text-anchor="middle" font-size="11" fill="#6b7280">scattered small things do not, however many there are.</text>
+<text x="680.0" y="66.0" text-anchor="middle" font-size="13" fill="#6b7280" font-style="italic">An example image, and which detectors fire</text>
+<rect x="572.0" y="100" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="590.0" y="100" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="608.0" y="100" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="626.0" y="100" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="644.0" y="100" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="662.0" y="100" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="680.0" y="100" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="698.0" y="100" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="716.0" y="100" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="734.0" y="100" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="752.0" y="100" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="770.0" y="100" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="572.0" y="118" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="590.0" y="118" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="608.0" y="118" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="626.0" y="118" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="644.0" y="118" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="662.0" y="118" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="680.0" y="118" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="698.0" y="118" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="716.0" y="118" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="734.0" y="118" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="752.0" y="118" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="770.0" y="118" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="572.0" y="136" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="590.0" y="136" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="608.0" y="136" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="626.0" y="136" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="644.0" y="136" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="662.0" y="136" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="680.0" y="136" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="698.0" y="136" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="716.0" y="136" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="734.0" y="136" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="752.0" y="136" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="770.0" y="136" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="572.0" y="154" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="590.0" y="154" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="608.0" y="154" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="626.0" y="154" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="644.0" y="154" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="662.0" y="154" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<rect x="680.0" y="154" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="698.0" y="154" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="716.0" y="154" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="734.0" y="154" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="752.0" y="154" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="770.0" y="154" width="18" height="18" fill="#fde68a" stroke="#1f2937" stroke-width="1"/>
+<text x="564.0" y="140.0" text-anchor="end" font-size="12" fill="#1f2937">retina</text>
+<text x="581.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">0</text>
+<text x="599.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">1</text>
+<text x="617.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">2</text>
+<text x="635.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">3</text>
+<text x="653.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">4</text>
+<text x="671.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">5</text>
+<text x="689.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">6</text>
+<text x="707.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">7</text>
+<text x="725.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">8</text>
+<text x="743.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">9</text>
+<text x="761.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">10</text>
+<text x="779.0" y="95.0" text-anchor="middle" font-size="9" fill="#6b7280">11</text>
+<rect x="581.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="599.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="617.0" y="200" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="635.0" y="200" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="653.0" y="200" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="671.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="689.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="707.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="725.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="743.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="761.0" y="200" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="581.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="599.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="617.0" y="218" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="635.0" y="218" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="653.0" y="218" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="671.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="689.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="707.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="725.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="743.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="761.0" y="218" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="581.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="599.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="617.0" y="236" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="635.0" y="236" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="653.0" y="236" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="671.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="689.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="707.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="725.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="743.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="761.0" y="236" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<text x="573.0" y="231.0" text-anchor="end" font-size="12" fill="#1f2937">object</text>
+<rect x="581.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="599.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="617.0" y="280" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="635.0" y="280" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="653.0" y="280" width="18" height="18" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<rect x="671.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="689.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="707.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="725.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="743.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<rect x="761.0" y="280" width="18" height="18" fill="white" stroke="#1f2937" stroke-width="1"/>
+<text x="573.0" y="293.0" text-anchor="end" font-size="12" fill="#1f2937">lump</text>
+<text x="680.0" y="330.0" text-anchor="middle" font-size="11" fill="#6b7280">A big thing in columns 2 to 5 fires a block of detectors;</text>
+<text x="680.0" y="345.0" text-anchor="middle" font-size="11" fill="#6b7280">the scattered points fire none. lump[j] says that some</text>
+<text x="680.0" y="360.0" text-anchor="middle" font-size="11" fill="#6b7280">detector in column j fires: an object in that direction.</text>
+<line x1="30" y1="490" x2="60" y2="490" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="70.0" y="494.0" text-anchor="start" font-size="12" fill="#1f2937">excitatory</text>
+<circle cx="160" cy="490" r="9" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="178.0" y="494.0" text-anchor="start" font-size="12" fill="#1f2937">threshold unit</text>
+<rect x="280" y="483" width="14" height="14" fill="#f59e0b" stroke="#1f2937" stroke-width="1"/>
+<text x="302.0" y="494.0" text-anchor="start" font-size="12" fill="#1f2937">unit firing</text>
+</svg>

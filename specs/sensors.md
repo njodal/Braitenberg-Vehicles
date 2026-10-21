@@ -4,10 +4,12 @@
 
 A catalog of the sensor types used so far, each by its `type`, with how it reads and which vehicles use it. The rules themselves are defined in [vehicle-definition.md](vehicle-definition.md) (*2. Sensors* and *5. Energy*) and [worlds.md](worlds.md); this spec gathers them in one place and is the place to add new sensor types.
 
-There are two kinds of sensors:
+There are two kinds of sensors, plus cameras:
 
 - **World sensors** read a stimulus of the world at the sensor's position. Their `type` is the **name of a stimulus**, and any stimulus the world defines can be sensed: a new kind of world sensor needs a new stimulus in a world file, not new code.
 - **Internal sensors**, also called **proprioceptive** sensors, read something about the vehicle itself. Their `type` is a **reserved name**. So far there is one: `energy`.
+
+- **Cameras** are world sensors with a `camera` section: instead of reading a field at one point, they see the things around them as a matrix of pixels ([camera.md](camera.md)).
 
 Whatever it reads, a sensor's **reading** passes through its **response** to give its **output**, the signal its connections carry (see *Responses* below).
 
@@ -32,6 +34,10 @@ A world sensor reads the value of its stimulus's field at the sensor's position 
 ### Field of view
 
 A world sensor may have a `field_of_view`, in degrees: it then only detects sources within half that angle of the vehicle's heading, so it ignores what is behind it ([vehicle-definition.md](vehicle-definition.md), *Field of view*). Without one it detects sources in every direction. **Status:** implemented; used by the Vehicle 5 driver (90°). Every other sensor so far detects in every direction.
+
+### Cameras
+
+A world sensor with a `camera` section sees its stimulus as an image: a matrix of pixels, rows by columns, each reporting the brightness of the things it sees (sources with a `radius` and a `height`, and vehicles with an `appearance`), with nearer things hiding farther ones. Its output is one value per pixel, and inputs take a pixel or a block of them, as in `from: retina[:, 0:6]`. See [camera.md](camera.md). **Status:** specified; to be used by Vehicle 8.
 
 ## Internal (proprioceptive) sensors
 
