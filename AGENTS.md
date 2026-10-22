@@ -37,6 +37,7 @@ braitenberg/            # the package
   record.py             # record a scenario to a GIF: python -m braitenberg.record
   diagram.py            # draw a definition as an SVG: python -m braitenberg.diagram
   evolve.py             # Vehicle 6, tuning by selection: python -m braitenberg.evolve
+  webots.py             # run a definition on Webots' e-puck (specs/webots.md)
 specs/                  # one spec per vehicle (vehicle-01.md, ...) plus shared specs
   images/               # GIFs and diagrams shown in the specs, generated with record and diagram
 worlds/                 # environments in YAML, see specs/worlds.md
@@ -45,6 +46,7 @@ modules/                # pieces of nervous system that vehicles include, see sp
 scenarios/              # experiments in YAML, see specs/scenarios.md
 evolutions/             # evolution runs in YAML, see specs/vehicle-06.md
 runs/                   # results of evolution runs (not committed)
+webots/                 # Webots project: the braitenberg controller and e-puck worlds
 tests/                  # pytest tests, one file per spec covering its acceptance criteria
 ```
 
