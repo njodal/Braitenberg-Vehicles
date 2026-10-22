@@ -1,0 +1,121 @@
+module:
+  name: Wander
+  description: >-
+    Now and then, a short pulse on left or on right, while it is enabled and not held. When and
+    to which side follow no simple rhythm: they come from clocks that run at different speeds.
+    A vehicle that turns with the pulses wanders slowly in a direction that keeps changing.
+
+inputs:
+  enable: while it carries a signal, the module may fire
+  hold: while it carries a signal, the module waits, such as while the vehicle is already moving
+
+outputs: [left, right]
+
+units:
+  # Three clocks: each unit silences itself, so it is on for its delay and off for twice that.
+  - unit:
+      name: fast
+      type: threshold
+      threshold: 0
+      delay: 0.45
+      inputs:
+        - input:
+            from: fast
+            type: inhibitory
+  - unit:
+      name: slow
+      type: threshold
+      threshold: 0
+      delay: 0.7
+      inputs:
+        - input:
+            from: slow
+            type: inhibitory
+  # A ring of two: side is on and off for about as long, so left and right come as often.
+  - unit:
+      name: ring
+      type: threshold
+      threshold: 0
+      delay: 0.95
+      inputs:
+        - input:
+            from: side
+            type: inhibitory
+  - unit:
+      name: side
+      type: threshold
+      threshold: 1
+      delay: 0.95
+      inputs:
+        - input:
+            from: ring
+  # The two fast clocks on together: at irregular moments, every 2.3 s on average.
+  - unit:
+      name: both
+      type: threshold
+      threshold: 2
+      inputs:
+        - input:
+            from: fast
+        - input:
+            from: slow
+  - unit:
+      name: was
+      type: threshold
+      threshold: 1
+      inputs:
+        - input:
+            from: both
+  # The moment both come on, if enabled and not held.
+  - unit:
+      name: tick
+      type: threshold
+      threshold: 2
+      inputs:
+        - input:
+            from: both
+        - input:
+            from: was
+            type: inhibitory
+        - input:
+            from: enable
+        - input:
+            from: hold
+            type: inhibitory
+  # Which side: whatever side says at that moment.
+  - unit:
+      name: go_left
+      type: threshold
+      threshold: 2
+      inputs:
+        - input:
+            from: tick
+        - input:
+            from: side
+  - unit:
+      name: go_right
+      type: threshold
+      threshold: 1
+      inputs:
+        - input:
+            from: tick
+        - input:
+            from: side
+            type: inhibitory
+  # Stretched to a pulse of about 0.4 s.
+  - unit:
+      name: left
+      type: threshold
+      threshold: 1
+      delay: 0.4
+      inputs:
+        - input:
+            from: go_left
+  - unit:
+      name: right
+      type: threshold
+      threshold: 1
+      delay: 0.4
+      inputs:
+        - input:
+            from: go_right

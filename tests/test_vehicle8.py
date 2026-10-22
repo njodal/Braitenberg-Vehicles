@@ -33,13 +33,22 @@ def hunter_scenario(seed=0, hunter=None, prey=None):
     return scenario
 
 
+def hunter_data():
+    """The hunter's definition as a dict, with its modules' files made absolute, so that it
+    can be written anywhere."""
+    d = read(HUNTER)
+    for m in d.get("modules", []):
+        m["module"]["file"] = str((HUNTER.parent / m["module"]["file"]).resolve())
+    return d
+
+
 def distance(sim, a, b):
     return math.hypot(*sim.world.arena.delta(b.x - a.x, b.y - a.y))
 
 
 def watcher(write):
     """The hunter with its motors disconnected: it never moves."""
-    d = read(HUNTER)
+    d = hunter_data()
     for a in d["actuators"]:
         a["actuator"]["inputs"] = []
     return write(d, "watcher.yaml")
@@ -91,14 +100,17 @@ def test_arrays_expand_into_elements():
 
 
 def written_out(write):
-    """The hunter with every element of its arrays written out by hand, as front_3 etc."""
+    """The hunter with every element of its arrays, and its module's units, written out by
+    hand, as front_3 and wander_left."""
     d = load_definition(HUNTER)
     rename = lambda name: re.sub(r"\[(\d+)(?:, (\d+))?\]",
-                                lambda m: "_" + "_".join(g for g in m.groups() if g), name)
+                                lambda m: "_" + "_".join(g for g in m.groups() if g),
+                                name).replace(".", "_")   # and modules' units too
     source = lambda name: name if name.startswith("retina") else rename(name)
     data = read(HUNTER)
+    del data["modules"]
     data["units"] = [{"unit": {"name": rename(u.name), "type": u.type, "threshold": u.threshold,
-                               "delay": u.delay, **({"rate": u.rate} if u.type == "random" else {}),
+                               "delay": u.delay,
                                "inputs": [{"input": {"from": source(c.source),
                                                      "type": "excitatory" if c.sign > 0
                                                      else "inhibitory"}} for c in u.inputs]}}
@@ -151,7 +163,7 @@ ERRORS = [
 
 @pytest.mark.parametrize("change, key", ERRORS)
 def test_validation(write, change, key):
-    d = read(HUNTER)
+    d = hunter_data()
     change(d)
     with pytest.raises(ConfigError) as e:
         load_definition(write(d))

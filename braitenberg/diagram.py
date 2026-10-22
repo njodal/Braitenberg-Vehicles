@@ -197,7 +197,9 @@ def definition_svg(definition: VehicleDefinition) -> str:
             out.append(f'<rect x="{x - w / 2:.1f}" y="{y - h / 2:.1f}" width="{w:.1f}" '
                        f'height="{h:.1f}" fill="none" stroke="{INK}" stroke-width="1.5"/>')
             size = "×".join(str(n) for n in p.shape)
-            if p.kind == "camera":
+            if p.kind == "module":
+                caption = [p.name, p.label]
+            elif p.kind == "camera":
                 s = sensors[p.name]
                 caption = [p.name, f"{sensor_caption(s)}, {size} px, "
                                    f"{s.field_of_view:g}°×{s.camera.vertical_field_of_view:g}°"]

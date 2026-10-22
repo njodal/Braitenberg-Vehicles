@@ -45,7 +45,7 @@ actuators:
 units: []
 ```
 
-Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its kind: `- sensor:`, `- actuator:` and `- unit:` respectively, with the item's fields indented below it. `general`, `sensors` and `actuators` are required (`sensors` may be an empty list); `units`, `energy` and `appearance` may be omitted. `appearance` (how other vehicles' cameras see this one) is defined in [camera.md](camera.md), *Vehicles as things*.
+Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its kind: `- sensor:`, `- actuator:` and `- unit:` respectively, with the item's fields indented below it. `general`, `sensors` and `actuators` are required (`sensors` may be an empty list); `units`, `energy`, `appearance` and `modules` may be omitted. `appearance` (how other vehicles' cameras see this one) is defined in [camera.md](camera.md), *Vehicles as things*, and `modules` (pieces of nervous system in files of their own, included and wired into the vehicle) in [modules.md](modules.md).
 
 ### 1. General
 
@@ -129,27 +129,18 @@ A motor adds up the signals of its active inputs, excitatory ones with `+` and i
 | Key | Required | Meaning |
 |---|---|---|
 | `name` | yes | Unique name. |
-| `type` | yes | `threshold`: Braitenberg's threshold device from Vehicle 5. `random`: a threshold device that fires only now and then, at random (see *Random units*). |
+| `type` | yes | `threshold` (the only type for now): Braitenberg's threshold device from Vehicle 5. |
 | `threshold` | yes | The unit fires when the sum of its active inputs reaches this value. `0` or less means the unit fires on its own, unless an inhibitory connection stops it. |
 | `inputs` | yes | Sensors and/or other units, including itself (see *Inputs*). |
 | `delay` | no | Seconds between the inputs reaching the threshold and the output appearing. Default `0.05`. Must be positive. |
 | `position` | no | `[x, y]` in body coordinates, used only to place the unit in the diagram. If missing, the diagram lays it out automatically. |
 | `array` | no | Makes the item an array of units, one per index, all wired alike ([vehicle-08.md](vehicle-08.md), *Arrays of units*). |
-| `rate` | for `random` only | How often a random unit fires, on average, in firings per second. Positive. |
 
 A threshold unit adds up the signals of its **active** inputs, excitatory ones with `+` and inhibitory ones with `-`, and outputs `1` when that sum is greater than or equal to `threshold`, and `0` otherwise. Inactive inputs are ignored. With no active input the sum is `0`, so a unit with `threshold` `0` or less fires on its own; an active inhibitory input with a strong enough signal brings the sum below the threshold and stops it.
 
 **Units react with a delay.** As Braitenberg puts it, in a threshold device "the output does not appear immediately upon activation of the input, but only after a short delay, say one tenth of a second". This project uses a default of 0.05 seconds. A unit's output at time `t` is what its inputs called for at time `t - delay`. Brains have to be designed with this in mind: a signal that passes through a chain of units arrives one delay later per unit, and a loop of units has a rhythm set by its delays.
 
 **Inputs close in time count as simultaneous.** Two inputs do not have to arrive at exactly the same instant to add up: if they arrive less than the unit's `delay` apart, the unit treats them as simultaneous. Concretely, each input contributes the largest value it had during the last `delay` seconds (the steps less than `delay` before now, and now), not only its value at this instant. This applies to inhibitory inputs too: an inhibition that arrived shortly before still counts. The window is measured in whole steps, so it only spans more than the current step when `delay` is larger than `dt`: with `delay` 0.05 and `dt` 0.05 it is just the current step, and with `dt` 0.01 it is the last 5 steps.
-
-#### Random units
-
-A `random` unit is a source of chance in the nervous system: it fires at random moments, on average `rate` times per second, and only while its inputs allow it. Its inputs are added up as for a threshold unit; while the sum is below `threshold` it does not fire. While the sum reaches the threshold, in each step it starts firing with probability `1 - exp(-rate * dt)`, so that the waiting time between firings is random, with mean `1 / rate` seconds.
-
-Each firing lasts the unit's `delay`: once it starts, its activation stays on for `delay` seconds, unless its inputs drop below the threshold first, and its output follows `delay` later, as for any unit. A start during a firing is ignored. So a random unit with `delay` 0.4 sends pulses of 0.4 s at random times, and a unit with `threshold` 0 and no inputs fires on its own, now and then.
-
-The chance comes from the simulation's random generator, the one that drives `noise_std`, so a run with the same seed gives the same firings. A vehicle without random units draws nothing from it.
 
 ### 5. Energy
 
@@ -294,7 +285,6 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - a `position` is outside `[-1, 1]`;
 - `general.length` or `general.width` is not a positive number;
 - a unit's `delay` is not positive;
-- a `random` unit has no `rate`, or a `rate` that is not positive; or a `threshold` unit has a `rate`;
 - a `field_of_view` is not greater than 0 and at most 360, or is given for an `energy` sensor;
 - an `energy` value is missing, of the wrong type or out of range (e.g. `initial` above `max`), or a sensor has type `energy` and there is no `energy` section;
 - a `response` has an unknown `type`, is missing a required field for its type, has a field that its type does not use, or has a `width` that is not positive;
@@ -407,7 +397,6 @@ actuators:
 10. **Field of view:** a sensor with a `field_of_view` reads a source straight ahead exactly as a sensor without one does, reads nothing from a source behind it or outside the cone, and a sensor without a `field_of_view` reads sources in every direction.
 11. **Headless:** loading and running a definition never imports pygame.
 12. **Body shape:** a definition without `length` and `width` loads with both equal to `size`, and moves and places its parts exactly as before. With `width` 6 and `length` 2, a sensor at `[1, 1]` sits 3 units to the right of the center and 1 unit ahead of it, and two motors at `x = ±1` turn the vehicle at `(s_right - s_left) / 6`.
-13. **Random units:** a random unit with `rate` 2 and `delay` 0.1, whose inputs reach its threshold, starts firing on average 2 times per second, counting from the end of each firing (within 10% over 1000 s), and each firing keeps its output on for 0.1 s. While its inputs are below the threshold it never fires. Two runs with the same seed fire at the same steps, and a definition without random units gives the same trajectory as before for the same seed.
 
 Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (criteria 6 to 12).
 

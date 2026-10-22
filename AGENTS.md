@@ -41,13 +41,14 @@ specs/                  # one spec per vehicle (vehicle-01.md, ...) plus shared 
   images/               # GIFs and diagrams shown in the specs, generated with record and diagram
 worlds/                 # environments in YAML, see specs/worlds.md
 vehicles/               # vehicle definitions in YAML, see specs/vehicle-definition.md
+modules/                # pieces of nervous system that vehicles include, see specs/modules.md
 scenarios/              # experiments in YAML, see specs/scenarios.md
 evolutions/             # evolution runs in YAML, see specs/vehicle-06.md
 runs/                   # results of evolution runs (not committed)
 tests/                  # pytest tests, one file per spec covering its acceptance criteria
 ```
 
-A new vehicle is a new file in `vehicles/` (and usually a scenario to show it), not new code. Code changes are needed only for new kinds of parts, such as new unit types. Split a module into a subpackage when it grows too large.
+A new vehicle is a new file in `vehicles/` (and usually a scenario to show it), not new code. A behavior that more than one vehicle can use goes in a module in `modules/`. Code changes are needed only for new kinds of parts, such as new unit types. Split a module into a subpackage when it grows too large.
 
 ## Architecture rule
 

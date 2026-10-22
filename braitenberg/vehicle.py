@@ -61,11 +61,6 @@ class Diagram:
     body: tuple[float, float] = (1.0, 1.0)
 
 
-def unit_label(u) -> str:
-    """How the readouts describe a unit."""
-    return f"random {u.rate:g}/s" if u.type == "random" else f"threshold {u.threshold:g}"
-
-
 def clamp01(x: float) -> float:
     return min(max(x, 0.0), 1.0)
 
@@ -114,12 +109,6 @@ class Vehicle:
         steps = np.array([self.unit_steps[u.name] for u in units], dtype=int)
         self.steps = steps
         self.thresholds = np.array([u.threshold for u in units])
-        # Random units: the chance that each one fires in a step, while its inputs let it, and
-        # the step until which its last firing lasts (its delay).
-        self.random_units = np.array([k for k, u in enumerate(units) if u.type == "random"], dtype=int)
-        self.fire_chance = np.array([-math.expm1(-units[k].rate * self.dt) for k in self.random_units])
-        self.firing_until = np.full(len(self.random_units), -1)
-        self.own_rng = np.random.default_rng(0)   # for random units when think is given none
         # Activations on their way to becoming outputs: a unit's output is its activation
         # `steps` steps ago (zero before that).
         self.activations = np.zeros((int(steps.max(initial=0)) + 1, len(units)))
@@ -171,11 +160,10 @@ class Vehicle:
 
     # --- signals ---
 
-    def think(self, readings: dict, rng: np.random.Generator | None = None) -> None:
+    def think(self, readings: dict) -> None:
         """Update units and motors from this step's sensor readings (see 'Signal flow').
 
-        A camera's reading is a matrix with one value per pixel. `rng` decides when random
-        units fire; a vehicle without random units does not use it.
+        A camera's reading is a matrix with one value per pixel.
         """
         d = self.definition
         readings = dict(readings)
@@ -205,14 +193,7 @@ class Vehicle:
         inputs = recent[self.input_group, self.input_signal]
         contributions = np.where(self.input_active, self.input_sign * inputs, 0.0)
         sums = np.bincount(self.input_unit, contributions, minlength=n_units)
-        fires = sums >= self.thresholds
-        if len(self.random_units):
-            rng = rng if rng is not None else self.own_rng
-            k = self.random_units
-            starts = (rng.random(len(k)) < self.fire_chance) & (self.t >= self.firing_until) & fires[k]
-            self.firing_until = np.where(starts, self.t + self.steps[k], self.firing_until)
-            fires[k] &= self.t < self.firing_until
-        self.activations[self.t % len(self.activations)] = fires
+        self.activations[self.t % len(self.activations)] = sums >= self.thresholds
         # Learning: a connection whose source is on learns when the unit's other inputs
         # fire it, and forgets when they do not (see 'Learning connections').
         learned = {}
@@ -276,7 +257,7 @@ class Vehicle:
     def step(self, readings: dict[str, float], dt: float, rng: np.random.Generator,
              charge_reading: float = 0.0) -> None:
         """One step. `charge_reading` is the energy's charge_from stimulus at the body center."""
-        self.think(readings, rng)
+        self.think(readings)
         self.move(dt, rng)
         self.update_energy(charge_reading, dt, abs(self.speed) * dt)
 
@@ -318,8 +299,18 @@ class Vehicle:
                                   self.sensor_values[s.name], levels[s.name]))
         positions = self.unit_layout()
         group_of = {}   # signal name -> part name
+        module_units = {name: [u for u in d.units if u.module == name] for name in d.modules}
         for u in d.units:
-            if u.array:
+            if u.module:
+                # A module is one part: a strip of cells, one per unit, lit by its output.
+                group_of[u.name] = u.module
+                if u is not module_units[u.module][0]:
+                    continue
+                values = [self.unit_outputs[e.name] for e in module_units[u.module]]
+                parts.append(Part("module", u.module, positions[u.module],
+                                  f"module {d.modules[u.module][0]}", values, values,
+                                  shape=(len(values),)))
+            elif u.array:
                 group_of[u.name] = u.array
                 if u.index != (0,) * len(u.index):
                     continue
@@ -329,10 +320,10 @@ class Vehicle:
                 if len(shape) == 2:
                     values = [values[r * shape[1]:(r + 1) * shape[1]] for r in range(shape[0])]
                 parts.append(Part("array", u.array, positions[u.array],
-                                  unit_label(u), values, values, u.threshold, shape))
+                                  f"threshold {u.threshold:g}", values, values, u.threshold, shape))
             else:
                 value = self.unit_outputs[u.name]
-                parts.append(Part("unit", u.name, positions[u.name], unit_label(u),
+                parts.append(Part("unit", u.name, positions[u.name], f"threshold {u.threshold:g}",
                                   value, value, u.threshold))
         for a in d.actuators:
             value = self.motor_speeds[a.name]
@@ -342,11 +333,14 @@ class Vehicle:
             if s.camera:
                 group_of.update((name, s.name) for name in s.pixels())
         indices = {u.name: u.index for u in d.units if u.array}
+        indices.update((u.name, (k,)) for units in module_units.values() for k, u in enumerate(units))
         indices.update((element_name(s.name, (r, c)), (r, c)) for s in d.sensors if s.camera
                        for r in range(s.camera.rows) for c in range(s.camera.columns))
         wires = []
         for target in [*d.units, *d.actuators]:
             for j, c in enumerate(target.inputs):
+                if getattr(target, "module", None) and group_of.get(c.source) == target.module:
+                    continue   # inside a module: not drawn
                 strength = self.connection_strength(target.name, j)
                 active = strength > ACTIVE_STRENGTH
                 wires.append(Wire(group_of.get(c.source, c.source),
@@ -387,7 +381,10 @@ class Vehicle:
         """Diagram positions of units and arrays: their own, or spread across the middle."""
         groups: dict[str, tuple[float, float] | None] = {}
         for u in self.definition.units:
-            groups.setdefault(u.array or u.name, u.position)
+            if u.module:
+                groups.setdefault(u.module, self.definition.modules[u.module][1])
+            else:
+                groups.setdefault(u.array or u.name, u.position)
         n = len(groups)
         return {name: position if position is not None else (-0.6 + 1.2 * (i + 0.5) / n, 0.0)
                 for i, (name, position) in enumerate(groups.items())}

@@ -14,7 +14,7 @@ from braitenberg.yamlfile import Parser, read_yaml
 
 # Sensor types are stimulus names, checked against the world by the scenario loader.
 ACTUATOR_TYPES = ("motor",)
-UNIT_TYPES = ("threshold", "random")
+UNIT_TYPES = ("threshold",)
 CONNECTION_TYPES = ("excitatory", "inhibitory")
 LEARNING_TYPES = ("mnemotrix",)
 # Sensor response types: required fields, and optional fields with their defaults.
@@ -28,7 +28,8 @@ FACES = ("front", "back", "left", "right", "top")   # of a vehicle's box, as cam
 GRAY = 5.0            # a face's brightness, for any stimulus, unless the appearance says otherwise
 NAME_PATTERN = re.compile(r"[a-z][a-z0-9_]*\Z")
 # An input's `from`: a name, or a camera or array with indices, e.g. retina[0, 3] or lump[i-1].
-FROM_PATTERN = re.compile(r"([a-z][a-z0-9_]*)\s*(?:\[([^\]]*)\])?\Z")
+# A name, or module.unit for a module's output (specs/modules.md), with optional indices.
+FROM_PATTERN = re.compile(r"([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)\s*(?:\[([^\]]*)\])?\Z")
 INDEX_EXPRESSION = re.compile(r"([ij])\s*(?:([+-])\s*(\d+))?\Z")
 INDEX_RANGE = re.compile(r"(\d+)\s*:\s*(\d+)\Z")
 
@@ -155,7 +156,7 @@ class UnitDef:
     delay: float = 0.05     # seconds from activation to output
     array: str | None = None             # the array this unit is an element of (Vehicle 8)
     index: tuple[int, ...] | None = None  # its index in that array
-    rate: float = 0.0       # a random unit: how often it fires, per second, while its inputs let it
+    module: str | None = None            # the module this unit comes from (specs/modules.md)
 
 
 ENERGY_SENSOR = "energy"   # a sensor type the vehicle reads from itself, not from the world
@@ -184,6 +185,8 @@ class VehicleDefinition:
     # Brightness of each face for other cameras, by stimulus and face; GRAY where not given.
     appearance: dict[str, dict[str, float]] = field(default_factory=dict)
     arrays: dict[str, tuple[int, ...]] = field(default_factory=dict)  # array name -> shape
+    # Included modules: name -> (the module's own name, where the diagram draws it).
+    modules: dict[str, tuple[str, tuple[float, float]]] = field(default_factory=dict)
 
     def faces(self, stimulus: str) -> tuple[float, ...]:
         """The brightness of each face, in the order of FACES, for `stimulus`."""
@@ -199,7 +202,7 @@ def load_definition(path: str | Path) -> VehicleDefinition:
 class _DefinitionParser(Parser):
     def definition(self, data) -> VehicleDefinition:
         data = self.mapping(data, "", {"general", "sensors", "actuators"},
-                            {"units", "energy", "appearance"})
+                            {"units", "energy", "appearance", "modules"})
         general = self.general(data["general"])
         names: dict[str, str] = {}  # name -> key where it was defined
         sensors = [self.sensor(body, key, names, general)
@@ -208,6 +211,12 @@ class _DefinitionParser(Parser):
         actuators = [self.actuator(body, key, names) for key, body in actuator_items]
         unit_items = self.items(data.get("units"), "units", "unit")
         units = [self.unit(body, key, names) for key, body in unit_items]
+        # Modules' units join the vehicle's, renamed and wired (specs/modules.md).
+        self.module_outputs: dict[str, set[str]] = {}   # module name -> its outputs, renamed
+        self.module_units: dict[str, set[str]] = {}     # module name -> all its units, renamed
+        module_items = self.modules(data.get("modules"), names)
+        unit_items = unit_items + [(key, None) for key, _ in module_items]
+        units = units + [u for _, u in module_items]
         if not actuators:
             raise self.error("actuators", "a vehicle needs at least one actuator")
         # Names that take indices: cameras (rows, columns) and arrays of units.
@@ -228,7 +237,7 @@ class _DefinitionParser(Parser):
                                      "an energy sensor needs an energy section")
         appearance = self.appearance(data["appearance"]) if "appearance" in data else {}
         return VehicleDefinition(self.path, general, sensors, actuators, units, energy,
-                                 appearance, arrays)
+                                 appearance, arrays, self.included)
 
     def appearance(self, data) -> dict[str, dict[str, float]]:
         if not isinstance(data, dict):
@@ -277,6 +286,8 @@ class _DefinitionParser(Parser):
                 raise self.error(fkey, f"'{c.source}' must be a name, or a name with indices "
                                        "such as retina[0, 3]")
             base, indices = m.group(1), m.group(2)
+            if "." in base:
+                self.check_module_source(base, part, fkey)
             kind = self.kinds.get(base)
             if kind == "actuator":
                 raise self.error(fkey, f"'{c.source}' is an actuator; inputs must be sensors or units")
@@ -312,6 +323,54 @@ class _DefinitionParser(Parser):
             label = c.source if indices is not None else ""
             resolved += [replace(c, source=source, label=label) for source in sources]
         return resolved
+
+    # --- modules (specs/modules.md) ---
+
+    def modules(self, value, names: dict[str, str]) -> list[tuple[str, UnitDef]]:
+        """The units of every module the vehicle includes, renamed, placed and wired."""
+        result = []
+        self.included = {}
+        for key, body in self.items(value, "modules", "module"):
+            body = self.mapping(body, key, {"name", "file", "inputs"}, {"position"})
+            name = self.name(body, key, names)
+            path = self.relative_path(body["file"], f"{key}.file")
+            module = _ModuleParser(path).module(read_yaml(path))
+            offset = (self.body_position(body["position"], f"{key}.position")
+                      if "position" in body else (0.0, 0.0))
+            given = self.mapping(body["inputs"], f"{key}.inputs", set(module.inputs))
+            sources = {}
+            for input_name, value in given.items():
+                ikey = f"{key}.inputs.{input_name}"
+                listed = value if isinstance(value, list) else [value]
+                sources[input_name] = [self.string(v, ikey) for v in listed]
+            self.included[name] = (module.name, offset)
+            self.module_units[name] = {f"{name}.{u.name}" for u in module.units}
+            self.module_outputs[name] = {f"{name}.{o}" for o in module.outputs}
+            for k, u in enumerate(module.units):
+                ukey = f"{key}.units[{k}]"
+                renamed = f"{name}.{u.name}"
+                inputs = []
+                for c in u.inputs:
+                    m = FROM_PATTERN.match(c.source)
+                    base, indices = m.group(1), m.group(2)
+                    if base in module.inputs:
+                        inputs += [replace(c, source=source) for source in sources[base]]
+                    else:
+                        inputs.append(replace(c, source=f"{name}.{c.source}"))
+                result.append((ukey, replace(u, name=renamed, inputs=inputs, position=offset,
+                                             array=renamed if u.array else None, module=name)))
+        return result
+
+    def check_module_source(self, base: str, part: str, key: str) -> None:
+        """A module's unit may be named from outside the module only if it is an output."""
+        module = base.split(".")[0]
+        if module not in self.module_units:
+            raise self.error(key, f"'{base}': '{module}' is not a module of this vehicle")
+        if base not in self.module_units[module]:
+            raise self.error(key, f"'{base}': module '{module}' has no unit '{base.split('.')[1]}'")
+        if base not in self.module_outputs[module] and part.split(".")[0] != module:
+            raise self.error(key, f"'{base}' is not an output of module '{module}' "
+                                  f"(its outputs are {', '.join(sorted(self.module_outputs[module]))})")
 
     def index(self, token: str, size: int, env: dict | None, key: str, base: str) -> list[int]:
         """The indices one index of `from` stands for: none when an expression falls outside."""
@@ -508,7 +567,7 @@ class _DefinitionParser(Parser):
     def unit(self, data, key: str, names) -> UnitDef:
         """A unit as written; an array keeps its shape in `index` until it is expanded."""
         data = self.mapping(data, key, {"name", "type", "threshold", "inputs"},
-                            {"position", "delay", "array", "rate"})
+                            {"position", "delay", "array"})
         unit = UnitDef(self.name(data, key, names),
                        self.kind(data["type"], f"{key}.type", UNIT_TYPES),
                        self.number(data["threshold"], f"{key}.threshold"),
@@ -516,12 +575,6 @@ class _DefinitionParser(Parser):
                        self.body_position(data["position"], f"{key}.position")
                        if "position" in data else None,
                        self.number(data.get("delay", 0.05), f"{key}.delay", positive=True))
-        if unit.type == "random":
-            if "rate" not in data:
-                raise self.error(f"{key}.rate", "a random unit needs a rate")
-            unit.rate = self.number(data["rate"], f"{key}.rate", positive=True)
-        elif "rate" in data:
-            raise self.error(f"{key}.rate", "only a random unit has a rate")
         if "array" in data:
             unit.array = unit.name
             unit.index = self.shape(data["array"], f"{key}.array")
@@ -533,3 +586,59 @@ class _DefinitionParser(Parser):
                                           for n in dims):
             raise self.error(key, "must be a positive integer, or [rows, columns] of positive integers")
         return tuple(dims)
+
+
+@dataclass
+class ModuleDef:
+    """A module file: units with inputs of their own, which a vehicle wires (specs/modules.md)."""
+
+    path: Path
+    name: str
+    description: str
+    inputs: dict[str, str]     # name -> what it does
+    outputs: list[str]
+    units: list[UnitDef]       # as written; arrays not yet expanded
+
+
+class _ModuleParser(_DefinitionParser):
+    def module(self, data) -> ModuleDef:
+        data = self.mapping(data, "", {"module", "inputs", "outputs", "units"})
+        header = self.mapping(data["module"], "module", {"name"}, {"description"})
+        inputs = data["inputs"]
+        if not isinstance(inputs, dict):
+            raise self.error("inputs", "must be a mapping from input names to what they do")
+        names: dict[str, str] = {}
+        for name in inputs:
+            key = f"inputs.{name}"
+            if not isinstance(name, str) or not NAME_PATTERN.match(name):
+                raise self.error(key, f"'{name}' must be lowercase letters, digits and _, "
+                                      "starting with a letter")
+            names[name] = key
+        unit_items = self.items(data["units"], "units", "unit")
+        units = [self.unit(body, key, names) for key, body in unit_items]
+        for (key, _), u in zip(unit_items, units):
+            if u.position is not None:
+                raise self.error(f"{key}.position", "a module's units have no position: the "
+                                 "diagram draws the module as one part, where the vehicle puts it")
+        unit_names = {u.name for u in units}
+        outputs = data["outputs"]
+        if not isinstance(outputs, list) or not outputs:
+            raise self.error("outputs", "must be a list of at least one of the module's units")
+        for i, o in enumerate(outputs):
+            if o not in unit_names:
+                raise self.error(f"outputs[{i}]", f"'{o}' is not a unit of this module")
+        for (key, _), u in zip(unit_items, units):
+            for j, c in enumerate(u.inputs):
+                fkey = f"{key}.inputs[{j}].input.from"
+                m = FROM_PATTERN.match(c.source)
+                if not m or "." in m.group(1):
+                    raise self.error(fkey, f"'{c.source}' must be a unit or an input of this module")
+                base, indices = m.group(1), m.group(2)
+                if base in inputs:
+                    if indices is not None:
+                        raise self.error(fkey, f"'{base}' is an input of the module; it cannot be indexed")
+                elif base not in unit_names:
+                    raise self.error(fkey, f"'{c.source}' is not a unit or an input of this module")
+        return ModuleDef(self.path, self.string(header["name"], "module.name"),
+                         self.string(header.get("description", ""), "module.description"),
+                         {k: str(v) for k, v in inputs.items()}, list(outputs), units)
