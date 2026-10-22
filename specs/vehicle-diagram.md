@@ -10,7 +10,7 @@ The simulator window shows, next to the arena, a separate panel with a live sche
 - The panel shows, from top to bottom:
   1. A title with the vehicle's label from the scenario, e.g. `Aggression #1`, and below it the Braitenberg type and name from its definition, e.g. `Vehicle 2b: Aggression`.
   2. The diagram: a top-down view of the body with its front pointing up. The diagram does not rotate with the vehicle, so it stays easy to read.
-  3. Live readouts, one compact line per part: its name and label (a sensor's stimulus, or `threshold` and the value for a unit), a level bar and its value. Then one line per learning connection, e.g. `sees_red->danger  M  0.42`, with a strength bar from 0 to 1 and a tick at 0.7.
+  3. Live readouts, one compact line per part: its name and label (a sensor's stimulus, `threshold` and the value for a unit, or `random` and its rate for a random unit, e.g. `random 0.3/s`), a level bar and its value. Then one line per learning connection, e.g. `sees_red->danger  M  0.42`, with a strength bar from 0 to 1 and a tick at 0.7.
   4. Vehicle values, on two lines: `body` (its width × length × height, e.g. `4×4×2`), `noise_std`, and the current forward speed and turn rate.
 - The diagram takes the space left above the readouts, up to a maximum size, so that a vehicle with many units (such as Vehicle 5) still fits; the readouts start right below the diagram.
 

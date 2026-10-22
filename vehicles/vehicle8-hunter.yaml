@@ -4,7 +4,8 @@ general:
   description: >-
     Stands still and watches. Object detectors find the lumps in the image, lateral inhibition
     keeps one point of each, and movement detectors watch those points. It turns toward what
-    moves, lunges when it is ahead, and does not look while it moves.
+    moves, lunges when it is ahead, and does not look while it moves. When it has seen nothing
+    move for a while, it wanders: a short turn now and then, to a random side.
   size: 4
   noise_std: 0
 
@@ -180,6 +181,8 @@ units:
         - input:
             from: moves_ahead
             type: inhibitory
+        - input:
+            from: wander_left
   - unit:
       name: forward
       type: threshold
@@ -204,6 +207,8 @@ units:
         - input:
             from: moves_ahead
             type: inhibitory
+        - input:
+            from: wander_right
   # On from when the hunter starts moving until it has stopped.
   - unit:
       name: acting
@@ -224,3 +229,77 @@ units:
             from: turn_right
         - input:
             from: forward
+        - input:
+            from: wander_left       # so that it is blind from the start of a wandering turn
+        - input:
+            from: wander_right
+  # Searching: a memory of movement seen, forgotten at random after about 2 s.
+  - unit:
+      name: forget
+      type: random
+      rate: 0.5
+      delay: 0.1
+      threshold: 0
+      position: [-0.85, -0.55]
+      inputs: []
+  - unit:
+      name: alert
+      type: threshold
+      threshold: 1
+      position: [-0.82, -0.88]
+      inputs:
+        - input:
+            from: moves_left
+        - input:
+            from: moves_ahead
+        - input:
+            from: moves_right
+        - input:
+            from: alert             # holds itself on
+        - input:
+            from: forget
+            type: inhibitory
+  # On when nothing has moved for 1.5 s.
+  - unit:
+      name: search
+      type: threshold
+      threshold: 0
+      delay: 1.5
+      position: [0, -0.88]
+      inputs:
+        - input:
+            from: alert
+            type: inhibitory
+  # Now and then, a short turn to one side, while still and searching.
+  - unit:
+      name: wander_left
+      type: random
+      rate: 0.3
+      delay: 0.4
+      threshold: 1
+      position: [-0.4, -0.95]
+      inputs:
+        - input:
+            from: search
+        - input:
+            from: alert
+            type: inhibitory
+        - input:
+            from: acting
+            type: inhibitory
+  - unit:
+      name: wander_right
+      type: random
+      rate: 0.3
+      delay: 0.4
+      threshold: 1
+      position: [0.4, -0.95]
+      inputs:
+        - input:
+            from: search
+        - input:
+            from: alert
+            type: inhibitory
+        - input:
+            from: acting
+            type: inhibitory

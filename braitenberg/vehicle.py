@@ -61,6 +61,11 @@ class Diagram:
     body: tuple[float, float] = (1.0, 1.0)
 
 
+def unit_label(u) -> str:
+    """How the readouts describe a unit."""
+    return f"random {u.rate:g}/s" if u.type == "random" else f"threshold {u.threshold:g}"
+
+
 def clamp01(x: float) -> float:
     return min(max(x, 0.0), 1.0)
 
@@ -109,6 +114,12 @@ class Vehicle:
         steps = np.array([self.unit_steps[u.name] for u in units], dtype=int)
         self.steps = steps
         self.thresholds = np.array([u.threshold for u in units])
+        # Random units: the chance that each one fires in a step, while its inputs let it, and
+        # the step until which its last firing lasts (its delay).
+        self.random_units = np.array([k for k, u in enumerate(units) if u.type == "random"], dtype=int)
+        self.fire_chance = np.array([-math.expm1(-units[k].rate * self.dt) for k in self.random_units])
+        self.firing_until = np.full(len(self.random_units), -1)
+        self.own_rng = np.random.default_rng(0)   # for random units when think is given none
         # Activations on their way to becoming outputs: a unit's output is its activation
         # `steps` steps ago (zero before that).
         self.activations = np.zeros((int(steps.max(initial=0)) + 1, len(units)))
@@ -160,10 +171,11 @@ class Vehicle:
 
     # --- signals ---
 
-    def think(self, readings: dict) -> None:
+    def think(self, readings: dict, rng: np.random.Generator | None = None) -> None:
         """Update units and motors from this step's sensor readings (see 'Signal flow').
 
-        A camera's reading is a matrix with one value per pixel.
+        A camera's reading is a matrix with one value per pixel. `rng` decides when random
+        units fire; a vehicle without random units does not use it.
         """
         d = self.definition
         readings = dict(readings)
@@ -193,7 +205,14 @@ class Vehicle:
         inputs = recent[self.input_group, self.input_signal]
         contributions = np.where(self.input_active, self.input_sign * inputs, 0.0)
         sums = np.bincount(self.input_unit, contributions, minlength=n_units)
-        self.activations[self.t % len(self.activations)] = sums >= self.thresholds
+        fires = sums >= self.thresholds
+        if len(self.random_units):
+            rng = rng if rng is not None else self.own_rng
+            k = self.random_units
+            starts = (rng.random(len(k)) < self.fire_chance) & (self.t >= self.firing_until) & fires[k]
+            self.firing_until = np.where(starts, self.t + self.steps[k], self.firing_until)
+            fires[k] &= self.t < self.firing_until
+        self.activations[self.t % len(self.activations)] = fires
         # Learning: a connection whose source is on learns when the unit's other inputs
         # fire it, and forgets when they do not (see 'Learning connections').
         learned = {}
@@ -257,7 +276,7 @@ class Vehicle:
     def step(self, readings: dict[str, float], dt: float, rng: np.random.Generator,
              charge_reading: float = 0.0) -> None:
         """One step. `charge_reading` is the energy's charge_from stimulus at the body center."""
-        self.think(readings)
+        self.think(readings, rng)
         self.move(dt, rng)
         self.update_energy(charge_reading, dt, abs(self.speed) * dt)
 
@@ -310,10 +329,10 @@ class Vehicle:
                 if len(shape) == 2:
                     values = [values[r * shape[1]:(r + 1) * shape[1]] for r in range(shape[0])]
                 parts.append(Part("array", u.array, positions[u.array],
-                                  f"threshold {u.threshold:g}", values, values, u.threshold, shape))
+                                  unit_label(u), values, values, u.threshold, shape))
             else:
                 value = self.unit_outputs[u.name]
-                parts.append(Part("unit", u.name, positions[u.name], f"threshold {u.threshold:g}",
+                parts.append(Part("unit", u.name, positions[u.name], unit_label(u),
                                   value, value, u.threshold))
         for a in d.actuators:
             value = self.motor_speeds[a.name]

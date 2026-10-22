@@ -20,7 +20,7 @@ HUNTER = REPO / "vehicles" / "vehicle8-hunter.yaml"
 PREY = REPO / "vehicles" / "vehicle8-prey.yaml"
 STILL_LAMPS = REPO / "worlds" / "still-lamps.yaml"
 HUNTER_SCENARIO = REPO / "scenarios" / "vehicle8-hunter.yaml"
-COMMANDS = ("turn_left", "turn_right", "forward")
+MOVES = ("moves_left", "moves_ahead", "moves_right")   # movement seen, by region
 
 
 def hunter_scenario(seed=0, hunter=None, prey=None):
@@ -97,8 +97,8 @@ def written_out(write):
                                 lambda m: "_" + "_".join(g for g in m.groups() if g), name)
     source = lambda name: name if name.startswith("retina") else rename(name)
     data = read(HUNTER)
-    data["units"] = [{"unit": {"name": rename(u.name), "type": "threshold", "threshold": u.threshold,
-                               "delay": u.delay,
+    data["units"] = [{"unit": {"name": rename(u.name), "type": u.type, "threshold": u.threshold,
+                               "delay": u.delay, **({"rate": u.rate} if u.type == "random" else {}),
                                "inputs": [{"input": {"from": source(c.source),
                                                      "type": "excitatory" if c.sign > 0
                                                      else "inhibitory"}} for c in u.inputs]}}
@@ -298,15 +298,23 @@ def test_nothing_fires_in_a_still_world(write):
 
 # 8. Still world
 @pytest.mark.parametrize("seed", range(5))
-def test_hunter_does_not_move_when_nothing_moves(seed):
+def test_hunter_wanders_when_nothing_moves(seed):
     prey = copy.deepcopy(load_definition(PREY))
+    prey.general.noise_std = 0
     for a in prey.actuators:
         a.base_speed = 0
     sim = Simulation(hunter_scenario(seed, prey=prey))
     hunter = sim.vehicles[0]
-    start = (hunter.x, hunter.y, hunter.heading)
-    sim.run(round(60 / sim.dt))
-    assert (hunter.x, hunter.y, hunter.heading) == start
+    path, headings, seen = 0.0, set(), 0
+    while sim.time < 60:
+        x, y = hunter.x, hunter.y
+        sim.step()
+        path += math.hypot(hunter.x - x, hunter.y - y)
+        headings.add(round(math.degrees(hunter.heading) / 10))
+        seen += any(hunter.unit_outputs[k] for k in MOVES)
+    assert seen == 0                      # it never mistakes its own movement for the world's
+    assert 5 < path < 30                  # slowly: less than half a unit per second
+    assert len(headings) > 6              # in changing directions
 
 
 # 9. Hunts
@@ -322,20 +330,29 @@ def test_hunts(seed):
 
 
 # 10. Holding still to look
-def out_of_view_commands(hunter_definition, seed):
-    """Seconds of commands, in 60 s, while the prey is behind the hunter or out of range.
+def prey_out_of_view(sim, hunter, prey):
+    """Whether the prey is out of range, or wholly behind the hunter's camera."""
+    arena = sim.world.arena
+    if math.hypot(*arena.delta(prey.x - hunter.x, prey.y - hunter.y)) > 30:
+        return True
+    _, cx, cy = hunter.cameras()[0]
+    ahead = math.cos(hunter.heading), math.sin(hunter.heading)
+    corners = [prey.body_to_world(bx, by) for bx in (-1, 1) for by in (-1, 1)]
+    return all(dx * ahead[0] + dy * ahead[1] < 0
+               for dx, dy in (arena.delta(x - cx, y - cy) for x, y in corners))
 
-    Behind counts only beyond 5 units, where the two boxes cannot touch.
-    """
+
+def out_of_view_reactions(hunter_definition, seed):
+    """Seconds, in 60 s, in which the hunter sees movement while its prey has been out of view
+    for more than 0.3 s, the time a signal takes from the retina to `moves_left` and the like."""
     sim = Simulation(hunter_scenario(seed, hunter_definition))
     hunter, prey = sim.vehicles
-    total = 0.0
+    total, out_since = 0.0, None
     while sim.time < 60:
         sim.step()
-        dx, dy = sim.world.arena.delta(prey.x - hunter.x, prey.y - hunter.y)
-        bearing = abs((math.atan2(dy, dx) - hunter.heading + math.pi) % (2 * math.pi) - math.pi)
-        if any(hunter.unit_outputs[k] for k in COMMANDS) and (
-                bearing > math.pi / 2 and math.hypot(dx, dy) > 5 or math.hypot(dx, dy) > 30):
+        out = prey_out_of_view(sim, hunter, prey)
+        out_since = (out_since if out_since is not None else sim.time) if out else None
+        if any(hunter.unit_outputs[k] for k in MOVES) and out and sim.time - out_since > 0.3:
             total += sim.dt
     return total
 
@@ -346,8 +363,8 @@ def test_holding_still_to_look():
     for u in seeing.units:
         if u.array == "front":
             u.inputs = [c for c in u.inputs if c.source != "acting"]
-    assert sum(out_of_view_commands(hunter, seed) for seed in range(5)) == 0
-    assert sum(out_of_view_commands(seeing, seed) for seed in range(5)) >= 4
+    assert sum(out_of_view_reactions(hunter, seed) for seed in range(5)) == 0
+    assert sum(out_of_view_reactions(seeing, seed) for seed in range(5)) >= 4
 
 
 # 11. Diagram

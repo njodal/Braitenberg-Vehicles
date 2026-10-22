@@ -14,7 +14,7 @@ from braitenberg.yamlfile import Parser, read_yaml
 
 # Sensor types are stimulus names, checked against the world by the scenario loader.
 ACTUATOR_TYPES = ("motor",)
-UNIT_TYPES = ("threshold",)
+UNIT_TYPES = ("threshold", "random")
 CONNECTION_TYPES = ("excitatory", "inhibitory")
 LEARNING_TYPES = ("mnemotrix",)
 # Sensor response types: required fields, and optional fields with their defaults.
@@ -155,6 +155,7 @@ class UnitDef:
     delay: float = 0.05     # seconds from activation to output
     array: str | None = None             # the array this unit is an element of (Vehicle 8)
     index: tuple[int, ...] | None = None  # its index in that array
+    rate: float = 0.0       # a random unit: how often it fires, per second, while its inputs let it
 
 
 ENERGY_SENSOR = "energy"   # a sensor type the vehicle reads from itself, not from the world
@@ -507,7 +508,7 @@ class _DefinitionParser(Parser):
     def unit(self, data, key: str, names) -> UnitDef:
         """A unit as written; an array keeps its shape in `index` until it is expanded."""
         data = self.mapping(data, key, {"name", "type", "threshold", "inputs"},
-                            {"position", "delay", "array"})
+                            {"position", "delay", "array", "rate"})
         unit = UnitDef(self.name(data, key, names),
                        self.kind(data["type"], f"{key}.type", UNIT_TYPES),
                        self.number(data["threshold"], f"{key}.threshold"),
@@ -515,6 +516,12 @@ class _DefinitionParser(Parser):
                        self.body_position(data["position"], f"{key}.position")
                        if "position" in data else None,
                        self.number(data.get("delay", 0.05), f"{key}.delay", positive=True))
+        if unit.type == "random":
+            if "rate" not in data:
+                raise self.error(f"{key}.rate", "a random unit needs a rate")
+            unit.rate = self.number(data["rate"], f"{key}.rate", positive=True)
+        elif "rate" in data:
+            raise self.error(f"{key}.rate", "only a random unit has a rate")
         if "array" in data:
             unit.array = unit.name
             unit.index = self.shape(data["array"], f"{key}.array")
