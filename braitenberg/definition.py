@@ -24,6 +24,8 @@ RESPONSE_FIELDS = {
     "step": ({"at"}, {"height": 1.0}),
 }
 ACTIVE_STRENGTH = 0.7  # a connection is active when its strength is above this
+FACES = ("front", "back", "left", "right", "top")   # of a vehicle's box, as cameras see it
+GRAY = 5.0            # a face's brightness, for any stimulus, unless the appearance says otherwise
 NAME_PATTERN = re.compile(r"[a-z][a-z0-9_]*\Z")
 # An input's `from`: a name, or a camera or array with indices, e.g. retina[0, 3] or lump[i-1].
 FROM_PATTERN = re.compile(r"([a-z][a-z0-9_]*)\s*(?:\[([^\]]*)\])?\Z")
@@ -70,6 +72,8 @@ class General:
     description: str = ""
     noise_std: float = 0.0
     height: float = 0.0     # as cameras see it; the loader defaults it to size / 2
+    length: float = 0.0     # back to front; the loader defaults it to size
+    width: float = 0.0      # side to side; the loader defaults it to size
 
 
 @dataclass
@@ -176,8 +180,14 @@ class VehicleDefinition:
     actuators: list[ActuatorDef]
     units: list[UnitDef] = field(default_factory=list)   # arrays expanded into their elements
     energy: Energy | None = None
-    appearance: dict[str, float] = field(default_factory=dict)  # brightness for other cameras
+    # Brightness of each face for other cameras, by stimulus and face; GRAY where not given.
+    appearance: dict[str, dict[str, float]] = field(default_factory=dict)
     arrays: dict[str, tuple[int, ...]] = field(default_factory=dict)  # array name -> shape
+
+    def faces(self, stimulus: str) -> tuple[float, ...]:
+        """The brightness of each face, in the order of FACES, for `stimulus`."""
+        colors = self.appearance.get(stimulus, {})
+        return tuple(colors.get(face, GRAY) for face in FACES)
 
 
 def load_definition(path: str | Path) -> VehicleDefinition:
@@ -219,14 +229,22 @@ class _DefinitionParser(Parser):
         return VehicleDefinition(self.path, general, sensors, actuators, units, energy,
                                  appearance, arrays)
 
-    def appearance(self, data) -> dict[str, float]:
+    def appearance(self, data) -> dict[str, dict[str, float]]:
         if not isinstance(data, dict):
             raise self.error("appearance", "must be a mapping")
         result = {}
         for name, value in data.items():
-            result[str(name)] = self.number(value, f"appearance.{name}")
-            if result[str(name)] < 0:
-                raise self.error(f"appearance.{name}", "must not be negative")
+            key = f"appearance.{name}"
+            # A number colors every face; a mapping colors the faces it names.
+            faces = value if isinstance(value, dict) else dict.fromkeys(FACES, value)
+            result[str(name)] = {}
+            for face, brightness in faces.items():
+                if face not in FACES:
+                    raise self.error(f"{key}.{face}", f"is not a face: use one of {', '.join(FACES)}")
+                face_key = key if faces is not value else f"{key}.{face}"
+                result[str(name)][face] = self.number(brightness, face_key)
+                if result[str(name)][face] < 0:
+                    raise self.error(face_key, "must not be negative")
         return result
 
     # --- arrays of units and indexed inputs (specs/vehicle-08.md, specs/camera.md) ---
@@ -341,7 +359,7 @@ class _DefinitionParser(Parser):
 
     def general(self, data) -> General:
         data = self.mapping(data, "general", {"type", "name", "size"},
-                            {"description", "noise_std", "height"})
+                            {"description", "noise_std", "height", "length", "width"})
         g = General(
             type=self.string(str(data["type"]) if isinstance(data["type"], int) else data["type"],
                              "general.type"),
@@ -354,6 +372,9 @@ class _DefinitionParser(Parser):
             raise self.error("general.noise_std", "must not be negative")
         g.height = (self.number(data["height"], "general.height", positive=True)
                     if "height" in data else g.size / 2)
+        for key in ("length", "width"):
+            setattr(g, key, self.number(data[key], f"general.{key}", positive=True)
+                    if key in data else g.size)
         return g
 
     def name(self, data, key: str, names: dict[str, str]) -> str:

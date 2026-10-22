@@ -28,4 +28,4 @@ def test_fear_turns_away_and_aggression_hits(seed):
         sim.step()
         closest = min(closest, distance(aggression))
     assert distance(fear) > fear_start
-    assert closest < aggression.half_size
+    assert closest < aggression.half_length

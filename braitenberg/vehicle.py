@@ -56,6 +56,9 @@ class Diagram:
     parts: list[Part]
     wires: list[Wire]
     params: dict[str, str]
+    # The body's half width and half length, the longer one 1: body coordinates are scaled by
+    # these to draw the body with its proportions.
+    body: tuple[float, float] = (1.0, 1.0)
 
 
 def clamp01(x: float) -> float:
@@ -70,7 +73,8 @@ class Vehicle:
         self.x = x
         self.y = y
         self.heading = heading  # radians, 0 = +x, counterclockwise; body +y points this way
-        self.half_size = definition.general.size / 2
+        self.half_width = definition.general.width / 2     # the body is a rectangle
+        self.half_length = definition.general.length / 2
         self.sensor_readings = {s.name: 0.0 for s in definition.sensors}  # stimulus at the sensor
         # Output after response: one per sensor, or one per pixel of a camera.
         self.sensor_values = {name: 0.0 for s in definition.sensors for name in self.outputs_of(s)}
@@ -141,8 +145,9 @@ class Vehicle:
         """A point in body coordinates (+x right, +y forward) to arena coordinates."""
         c, s = math.cos(self.heading), math.sin(self.heading)
         # forward = (c, s), right = (s, -c)
-        return (self.x + self.half_size * (by * c + bx * s),
-                self.y + self.half_size * (by * s - bx * c))
+        bx, by = bx * self.half_width, by * self.half_length
+        return (self.x + by * c + bx * s,
+                self.y + by * s - bx * c)
 
     def sensor_points(self) -> list[tuple[str, str, float, float]]:
         """(sensor name, stimulus, x, y) for every sensor that reads the field of a stimulus."""
@@ -239,7 +244,7 @@ class Vehicle:
     def move(self, dt: float, rng: np.random.Generator) -> None:
         actuators = self.definition.actuators
         speeds = [self.motor_speeds[a.name] for a in actuators]
-        xs = [a.position[0] * self.half_size for a in actuators]
+        xs = [a.position[0] * self.half_width for a in actuators]
         self.speed = sum(speeds) / len(speeds)
         sxx = sum(x * x for x in xs)
         self.turn_rate = sum(s * x for s, x in zip(speeds, xs)) / sxx if sxx > 0 else 0.0
@@ -268,6 +273,7 @@ class Vehicle:
 
     def diagram(self) -> Diagram:
         d = self.definition
+        g = d.general
         levels: dict[str, float] = {}   # by signal name
         for s in d.sensors:
             for name in self.outputs_of(s):
@@ -334,9 +340,10 @@ class Vehicle:
             subtitle=f"Vehicle {d.general.type}: {d.general.name}",
             parts=parts,
             wires=wires,
-            params={"size": f"{d.general.size:g}", "noise_std": f"{d.general.noise_std:g}",
+            params={"body": f"{g.width:g}×{g.length:g}×{g.height:g}", "noise_std": f"{g.noise_std:g}",
                     "speed": f"{self.speed:.2f}", "turn rate": f"{self.turn_rate:.2f}",
                     **({"energy": f"{self.energy:.0f}/{d.energy.max:g}"} if d.energy else {})},
+            body=(g.width / max(g.width, g.length), g.length / max(g.width, g.length)),
         )
 
     def signal_references(self) -> dict[str, float]:

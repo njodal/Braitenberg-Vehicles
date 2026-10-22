@@ -32,6 +32,7 @@ MIN_WINDOW_HEIGHT = 600   # so the panel fits even for a long, narrow arena
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
 SOURCE_RADIUS = 7
+MIN_VEHICLE = 6           # pixels: the smallest half length a vehicle is drawn with
 GRAB_RADIUS = 14
 FPS = 60
 
@@ -41,7 +42,7 @@ HEAT_STOPS = np.array([
 ], dtype=float)
 
 BACKGROUND = (8, 12, 40)
-VEHICLE_FILL = (245, 245, 245)
+VEHICLE_FILL = (160, 160, 160)   # gray, as cameras see a vehicle by default
 VEHICLE_OUTLINE = (20, 20, 20)
 SOURCE_FILL = (255, 255, 255)
 # Sources of a stimulus named after a color are drawn in that color.
@@ -267,24 +268,21 @@ class Renderer:
 
     def draw_vehicles(self, surface: pygame.Surface) -> None:
         for v in self.sim.vehicles:
-            cx, cy = self.to_screen(v.x, v.y)
-            length = max(v.half_size * self.scale, 8)
-            # Screen y points down, so the screen angle is the negated heading.
-            a = -v.heading
-            points = [
-                (cx + length * math.cos(a), cy + length * math.sin(a)),
-                (cx + length * 0.6 * math.cos(a + 2.5), cy + length * 0.6 * math.sin(a + 2.5)),
-                (cx + length * 0.6 * math.cos(a - 2.5), cy + length * 0.6 * math.sin(a - 2.5)),
-            ]
+            # The body's rectangle to scale, enlarged so that a small vehicle is still visible.
+            grow = max(1.0, MIN_VEHICLE / (max(v.half_width, v.half_length) * self.scale))
+            corner = lambda bx, by: self.to_screen(*v.body_to_world(bx * grow, by * grow))
+            points = [corner(-1, 1), corner(1, 1), corner(1, -1), corner(-1, -1)]
             # A vehicle that cameras see as a color is drawn in that color.
             fill = next((STIMULUS_COLORS[name] for name in v.definition.appearance
                          if name in STIMULUS_COLORS), VEHICLE_FILL)
             pygame.draw.polygon(surface, fill, points)
             pygame.draw.polygon(surface, VEHICLE_OUTLINE, points, 1)
+            # The front: a line from the center to the middle of the front side.
+            pygame.draw.line(surface, VEHICLE_OUTLINE, corner(0, 0), corner(0, 1), 2)
         if self.sim.vehicles:
             v = self.sim.vehicles[self.selected]
-            pygame.draw.circle(surface, SELECTED_RING, self.to_screen(v.x, v.y),
-                               max(v.half_size * self.scale, 8) + 5, 2)
+            reach = max(math.hypot(v.half_width, v.half_length) * self.scale, MIN_VEHICLE)
+            pygame.draw.circle(surface, SELECTED_RING, self.to_screen(v.x, v.y), reach + 5, 2)
 
     def draw_views(self, surface: pygame.Surface) -> None:
         """The edges of each camera's field of view, for the selected vehicle."""
@@ -345,11 +343,13 @@ class Renderer:
     def draw_diagram(self, surface: pygame.Surface, diagram: Diagram,
                      center: tuple[int, int], radius: float) -> None:
         def at(position):  # body coordinates (+y forward) to screen
-            return center[0] + position[0] * radius, center[1] - position[1] * radius
+            return (center[0] + position[0] * radius * diagram.body[0],
+                    center[1] - position[1] * radius * diagram.body[1])
 
-        body = pygame.Rect(0, 0, 2 * radius, 2 * radius)  # the body spans [-1, 1] on both axes
+        bw, bl = diagram.body   # the body spans [-1, 1] on both axes, drawn with its proportions
+        body = pygame.Rect(0, 0, 2 * radius * bw, 2 * radius * bl)
         body.center = center
-        pygame.draw.rect(surface, BODY_OUTLINE, body, 2, border_radius=int(radius * 0.3))
+        pygame.draw.rect(surface, BODY_OUTLINE, body, 2, border_radius=int(radius * min(bw, bl) * 0.3))
 
         parts = {p.name: p for p in diagram.parts}
         for w in bundles(diagram.wires):

@@ -35,7 +35,8 @@ class Simulation:
 
     def step(self) -> None:
         # Cameras see every vehicle where it was at the start of the step.
-        bodies = [(v.x, v.y, v.half_size, v.definition.general.height, v.definition.appearance)
+        bodies = [(v.x, v.y, v.half_width, v.half_length, v.heading, v.definition.general.height,
+                   v.definition)
                   for v in self.vehicles] if self.has_cameras else []
         things = {}   # stimulus -> things of the world
         for k, v in enumerate(self.vehicles):
@@ -46,16 +47,16 @@ class Simulation:
             for sensor, x, y in v.cameras():
                 if sensor.type not in things:
                     things[sensor.type] = self.world.things(sensor.type, self.time)
-                seen = np.array(things[sensor.type]
-                                + [(bx, by, r, h, look.get(sensor.type, 0.0))
-                                   for i, (bx, by, r, h, look) in enumerate(bodies) if i != k])
+                boxes = np.array([(*body[:6], *body[6].faces(sensor.type))
+                                  for i, body in enumerate(bodies) if i != k])
                 key = id(sensor)
                 if key not in self.sight_lines:
                     self.sight_lines[key] = sight_lines(sensor)
                 readings[sensor.name] = camera_image(*self.sight_lines[key], x, y,
                                                      sensor.camera.height, v.heading,
-                                                     seen.reshape(-1, 5), self.world.arena.delta,
-                                                     sensor.camera.range)
+                                                     np.array(things[sensor.type]),
+                                                     self.world.arena.delta, sensor.camera.range,
+                                                     boxes)
             energy = v.definition.energy
             charge = (float(self.world.stimulus_at(energy.charge_from, v.x, v.y, self.time))
                       if energy and energy.charge_from else 0.0)

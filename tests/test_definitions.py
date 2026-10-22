@@ -98,6 +98,8 @@ ACTUATOR0 = ("actuators", 0, "actuator")
 @pytest.mark.parametrize("change, key", [
     (mutate("general", "size", delete=True), "general.size"),
     (mutate("general", "size", value="big"), "general.size"),
+    (mutate("general", "width", value=0), "general.width"),
+    (mutate("general", "length", value=-2), "general.length"),
     (mutate("general", "colour", value="red"), "general.colour"),
     (mutate(*SENSOR0, "range", value=3), "sensors[0].sensor.range"),
     (mutate("sensors", 0, value={"actuator": {}}), "sensors[0]"),
@@ -331,8 +333,28 @@ def test_faster_right_wheel_turns_left():
     v = Vehicle(load_definition(VEHICLE2B), 50, 50, 0)
     v.motor_speeds = {"left_motor": 1.0, "right_motor": 3.0}
     v.move(0.05, np.random.default_rng(0))
-    a = 0.5 * v.half_size
+    a = 0.5 * v.half_width
     assert v.speed == 2.0
+    assert v.turn_rate == pytest.approx((3.0 - 1.0) / (2 * a))
+
+
+def test_body_shape(write):
+    d = one_sensor_vehicle()
+    square = load_definition(write(d))
+    assert square.general.length == square.general.width == square.general.size
+    d["general"].update(width=6, length=2)
+    v = Vehicle(load_definition(write(d)), 50, 50, math.pi / 2)   # facing +y
+    assert v.body_to_world(1, 1) == pytest.approx((53, 51))
+    assert v.body_to_world(-1, -1) == pytest.approx((47, 49))
+
+
+def test_turning_uses_the_width(write):
+    d = read(VEHICLE2B)
+    d["general"].update(width=6, length=2)
+    v = Vehicle(load_definition(write(d)), 50, 50, 0)
+    v.motor_speeds = {"left_motor": 1.0, "right_motor": 3.0}
+    v.move(0.05, np.random.default_rng(0))
+    a = 0.5 * 3      # the motors sit at x = ±0.5
     assert v.turn_rate == pytest.approx((3.0 - 1.0) / (2 * a))
 
 

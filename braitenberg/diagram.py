@@ -97,12 +97,13 @@ def definition_svg(definition: VehicleDefinition) -> str:
     width = 2 * radius + 2 * MARGIN
     height = TITLE_HEIGHT + 2 * radius + 2 * MARGIN + LEGEND_HEIGHT * legend_rows
     cx, cy = width / 2, TITLE_HEIGHT + MARGIN + radius
+    bw, bl = diagram.body   # the body's proportions
     parts = {p.name: p for p in diagram.parts}
     sensors = {s.name: s for s in definition.sensors}
     actuators = {a.name: a for a in definition.actuators}
 
     def at(position):
-        return cx + position[0] * radius, cy - position[1] * radius
+        return cx + position[0] * radius * bw, cy - position[1] * radius * bl
 
     out = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
@@ -117,8 +118,9 @@ def definition_svg(definition: VehicleDefinition) -> str:
         f'<text x="{width / 2}" y="32" text-anchor="middle" font-size="20" font-weight="bold" '
         f'fill="{INK}">Vehicle {escape(definition.general.type)}: '
         f'{escape(definition.general.name)}</text>',
-        f'<rect x="{cx - radius}" y="{cy - radius}" width="{2 * radius}" height="{2 * radius}" '
-        f'rx="{radius * 0.3}" fill="#f9fafb" stroke="{DIM}" stroke-width="2"/>',
+        f'<rect x="{cx - radius * bw:g}" y="{cy - radius * bl:g}" width="{2 * radius * bw:g}" '
+        f'height="{2 * radius * bl:g}" rx="{radius * min(bw, bl) * 0.3:g}" fill="#f9fafb" '
+        f'stroke="{DIM}" stroke-width="2"/>',
     ]
 
     pairs: dict[frozenset, int] = {}   # bundles between the same two parts are drawn side by side

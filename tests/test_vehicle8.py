@@ -323,7 +323,10 @@ def test_hunts(seed):
 
 # 10. Holding still to look
 def out_of_view_commands(hunter_definition, seed):
-    """Seconds of commands, in 60 s, while the prey is behind the hunter or out of range."""
+    """Seconds of commands, in 60 s, while the prey is behind the hunter or out of range.
+
+    Behind counts only beyond 5 units, where the two boxes cannot touch.
+    """
     sim = Simulation(hunter_scenario(seed, hunter_definition))
     hunter, prey = sim.vehicles
     total = 0.0
@@ -332,7 +335,7 @@ def out_of_view_commands(hunter_definition, seed):
         dx, dy = sim.world.arena.delta(prey.x - hunter.x, prey.y - hunter.y)
         bearing = abs((math.atan2(dy, dx) - hunter.heading + math.pi) % (2 * math.pi) - math.pi)
         if any(hunter.unit_outputs[k] for k in COMMANDS) and (
-                bearing > math.pi / 2 or math.hypot(dx, dy) > 30):
+                bearing > math.pi / 2 and math.hypot(dx, dy) > 5 or math.hypot(dx, dy) > 30):
             total += sim.dt
     return total
 

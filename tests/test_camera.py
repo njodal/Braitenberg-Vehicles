@@ -7,6 +7,7 @@ import time
 import numpy as np
 import pytest
 
+from braitenberg.camera import camera_image
 from braitenberg.definition import load_definition
 from braitenberg.diagram import definition_svg
 from braitenberg.scenario import quick_scenario
@@ -80,8 +81,8 @@ def seen(image, threshold=0.0):
     return sorted(set(rows.tolist())), sorted(set(columns.tolist()))
 
 
-def prey(appearance=None, speed=0.0, size=4, height=None):
-    d = {"general": {"type": "8", "name": "Other", "size": size},
+def prey(appearance=None, speed=0.0, size=4, height=None, **body):
+    d = {"general": {"type": "8", "name": "Other", "size": size, **body},
          "sensors": [],
          "actuators": [{"actuator": {"name": "motor", "type": "motor", "position": [0, -0.5],
                                      "base_speed": speed, "inputs": []}}]}
@@ -110,7 +111,7 @@ def test_loading(write):
     assert (cam.rows, cam.columns, cam.vertical_field_of_view) == (2, 3, 10)
     assert (cam.direction, cam.tilt, cam.range, cam.samples) == (0, 0, math.inf, 3)
     assert cam.height == v.general.height == 1.5    # the vehicle's height: size / 2
-    assert v.appearance == {"red": 5}
+    assert v.faces("red") == (5, 5, 5, 5, 5)
     assert [c.source for c in v.units[0].inputs] == ["retina[1, 0]", "retina[1, 1]"]
 
 
@@ -216,8 +217,65 @@ def test_sees_other_vehicles(write):
     x, y = ahead(10)
     image = see(write, others=[(prey({"light": 6}, height=10), (x, y, 0))])
     assert image.max() == 6
-    dark = see(write, [(*ahead(20), 4, 3, 10, "light")], others=[(prey(), (x, y, 0))])
-    assert dark[2:4, 5:7].max() == 0                       # dark, but hiding the lamp behind
+    gray = see(write, others=[(prey(height=10), (x, y, 0))])
+    assert gray.max() == 5                                 # gray by default
+    dark = see(write, [(*ahead(20), 4, 3, 10, "light")], others=[(prey({"light": 0}), (x, y, 0))])
+    assert dark[2:4, 5:7].max() == 0                       # black, but hiding the lamp behind
+
+
+def test_faces(write):
+    colors = {"light": {"front": 10, "back": 2}}
+    x, y = ahead(10)
+    tall = prey(colors, height=10)
+    coming = see(write, others=[(tall, (x, y, 270))])     # its front toward the camera
+    going = see(write, others=[(tall, (x, y, 90))])
+    side = see(write, others=[(tall, (x, y, 0))])
+    assert (coming.max(), going.max(), side.max()) == (10, 2, 5)
+    red = see(write, others=[(tall, (x, y, 270))], stimulus="red")
+    assert red.max() == 5                                   # gray for a stimulus not named
+
+
+def test_which_face():
+    # A 4 x 4 box 2 units tall, centered at x = 10 and heading +x, faces colored
+    # front 1, back 2, left 3, right 4, top 6; one line of sight from the origin.
+    box = [(10, 0, 2, 2, 0, 2, 1, 2, 3, 4, 6)]
+
+    def sees(azimuth, elevation, height=1, x=0.0, y=0.0):
+        a, e = (np.full((1, 1, 1), math.radians(v)) for v in (azimuth, elevation))
+        return camera_image(a, e, x, y, height, 0, np.zeros((0, 5)),
+                            lambda dx, dy: (dx, dy), boxes=np.array(box))[0, 0]
+
+    assert sees(0, 0) == 2                    # level, toward its back
+    assert sees(0, -30, height=4, x=6) == 6   # down onto its top
+    assert sees(180, 0, x=20) == 1            # from ahead of it, toward its front
+    assert sees(-90, 0, y=10, x=10) == 3      # from its left
+    assert sees(90, 0, y=-10, x=10) == 4      # from its right
+    assert sees(0, 0, x=10) == 1              # from inside: the face it would leave by
+    assert sees(0, 60, x=10) == 6             # from inside, looking up: the top
+
+
+def test_sees_vehicles_as_boxes(write):
+    x, y = ahead(20)
+    long = prey({"light": 6}, width=2, length=8)
+    side, turned, front = (see(write, others=[(long, (x, y, heading))]).sum()
+                           for heading in (0, 45, 90))
+    assert side > turned > front > 0
+
+
+def test_box_corners():
+    # One level line of sight along +x, from a camera at the origin 1 unit up.
+    azimuth, elevation = np.zeros((1, 1, 1)), np.zeros((1, 1, 1))
+
+    def sees(things=(), boxes=()):
+        boxes = [(*b[:6], *[b[6]] * 5) for b in boxes]      # every face the same brightness
+        return camera_image(azimuth, elevation, 0, 0, 1, 0, np.array(things),
+                            lambda dx, dy: (dx, dy), boxes=np.array(boxes))[0, 0]
+
+    # A 4 x 4 box centered 2.5 units to the side of the line: turned 45°, a corner reaches it.
+    assert sees(boxes=[(10, 2.5, 2, 2, math.radians(45), 2, 7)]) == 7
+    assert sees(boxes=[(10, 2.5, 2, 2, 0, 2, 7)]) == 0
+    assert sees(things=[(10, 2.5, 2, 2, 7)]) == 0          # the cylinder of radius size / 2
+    assert sees(boxes=[(10, 1.5, 2, 2, 0, 2, 7)]) == 7     # a side reaches it
 
 
 def test_never_sees_itself(write):
@@ -349,6 +407,9 @@ DEFINITION_ERRORS = [
     (appearance(["red"]), "appearance"),
     (appearance({"red": -1}), "appearance.red"),
     (appearance({"red": "bright"}), "appearance.red"),
+    (appearance({"red": {"bottom": 3}}), "appearance.red.bottom"),
+    (appearance({"red": {"front": -3}}), "appearance.red.front"),
+    (appearance({"red": {"top": "dim"}}), "appearance.red.top"),
     (camera_change(zoom=2), "camera.zoom"),
     (remove(["sensors", 0, "sensor", "camera", "columns"]), "camera.columns"),
     (remove(["sensors", 0, "sensor", "camera", "rows"]), "camera.rows"),

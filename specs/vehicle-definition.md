@@ -54,9 +54,13 @@ Each item in `sensors`, `actuators` and `units` is wrapped in a key naming its k
 | `type` | yes | Which of Braitenberg's vehicles this corresponds to, as a string: `"1"`, `"2a"`, `"2b"`, `"3a"`, `"5"`, … Informational: it is shown in the simulator, but the behavior comes only from the rest of the file. |
 | `name` | yes | Human-readable name, e.g. `Aggression`. |
 | `description` | no | Free text. |
-| `size` | yes | Body length and width in arena units. The body is a square; body coordinates `[-1, 1]` map to `[-size/2, size/2]`. |
+| `size` | yes | Body length and width in arena units, unless `length` or `width` say otherwise. |
+| `length` | no | The body's length from back to front, in arena units. Positive. Default `size`. |
+| `width` | no | The body's width from side to side, in arena units. Positive. Default `size`. |
 | `noise_std` | no | Heading perturbation strength, as in [vehicle-01.md](vehicle-01.md). Default 0. |
 | `height` | no | The body's height, as cameras see it ([camera.md](camera.md)). Positive. Default `size / 2`. |
+
+The body is a rectangle `width` across and `length` long, centered on the vehicle and turned with its heading; by default it is a square `size` on each side. Body coordinates `[-1, 1]` map to `[-width/2, width/2]` from left to right and to `[-length/2, length/2]` from back to front, so a part at `[1, 1]` sits at the front right corner however long or wide the body is. Cameras see the body as a box of that footprint and `height` ([camera.md](camera.md), *Vehicles as things*).
 
 ### 2. Sensors
 
@@ -255,7 +259,7 @@ So a signal from a sensor through units A and B to a motor reaches the motor `de
 
 ## Movement
 
-The body moves like a wheeled vehicle. With motor speeds `s_i` at body positions `x_i` (converted to arena units):
+The body moves like a wheeled vehicle. With motor speeds `s_i` at body positions `x_i` (converted to arena units, `x_i * width / 2`):
 
 - forward speed: `v = mean(s_i)`
 - turn rate: `ω = Σ s_i x_i / Σ x_i²`, or `0` when every motor sits on the center line (`Σ x_i² = 0`)
@@ -279,6 +283,7 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - a `learning` section has an unknown `type`, is missing `learn`, has an unknown key, or has a `learn` or `forget` that is negative or not a number;
 - a learning connection comes from a sensor, goes into an actuator, or connects a unit to itself;
 - a `position` is outside `[-1, 1]`;
+- `general.length` or `general.width` is not a positive number;
 - a unit's `delay` is not positive;
 - a `field_of_view` is not greater than 0 and at most 360, or is given for an `energy` sensor;
 - an `energy` value is missing, of the wrong type or out of range (e.g. `initial` above `max`), or a sensor has type `energy` and there is no `energy` section;
@@ -391,6 +396,7 @@ actuators:
 9. **Energy:** with no light, a vehicle's energy drops by `consumption` times the distance it travels plus `basal` per second; without `basal` it does not change while the vehicle stands still, and with it it drops by `basal` per second. Near a `charge_from` source it rises by `charge_gain` times the reading at the body center, per second, minus what movement uses. It never goes below 0 or above `max`. An `energy` sensor reads the current energy.
 10. **Field of view:** a sensor with a `field_of_view` reads a source straight ahead exactly as a sensor without one does, reads nothing from a source behind it or outside the cone, and a sensor without a `field_of_view` reads sources in every direction.
 11. **Headless:** loading and running a definition never imports pygame.
+12. **Body shape:** a definition without `length` and `width` loads with both equal to `size`, and moves and places its parts exactly as before. With `width` 6 and `length` 2, a sensor at `[1, 1]` sits 3 units to the right of the center and 1 unit ahead of it, and two motors at `x = ±1` turn the vehicle at `(s_right - s_left) / 6`.
 
 Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (criteria 6 to 12).
 

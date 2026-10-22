@@ -12,7 +12,7 @@ Braitenberg's Vehicle 8 ("Space, things and movements") needs this. Its eyes are
 
 The arena stays flat for movement: vehicles still drive on a plane. What this spec adds is height for **seeing**, so that an image has an up and a down. It adds three things:
 
-- **Things in the world:** a stimulus source may have a `radius` and a `height`, which make it a visible upright cylinder. Vehicles are things too, and may have an `appearance`.
+- **Things in the world:** a stimulus source may have a `radius` and a `height`, which make it a visible upright cylinder. Vehicles are things too, boxes of their body's width, length and height, and may have an `appearance`.
 - **Cameras:** a sensor with a `camera` section, whose output is a matrix of pixels, `rows` by `columns`.
 - **Pixel inputs:** units and motors connect to one pixel or to a block of pixels, as in `from: retina[2, 3]` or `from: retina[:, 0:6]`.
 
@@ -49,16 +49,29 @@ Things are only seen. They do not block movement: a vehicle drives through a lam
 
 ### Vehicles as things
 
-Every vehicle is a thing: an upright cylinder centered on the vehicle, with radius `size / 2` and the vehicle's `height`, that moves with it. Its `height` is a new optional key of `general` ([vehicle-definition.md](vehicle-definition.md), *1. General*), positive, default `size / 2`.
+Every vehicle is a thing: a **box** standing on the ground, from elevation 0 up to the vehicle's `height`, whose footprint is the body's rectangle, `width` across and `length` from back to front, centered on the vehicle ([vehicle-definition.md](vehicle-definition.md), *1. General*). It moves and turns with the vehicle: its front always faces the heading. Its `height` is a new optional key of `general`, positive, default `size / 2`.
 
-A definition may give the vehicle an **appearance**, its brightness for each stimulus, in a new top-level section:
+So the shape of a vehicle in an image depends on where it is seen from: a long, narrow vehicle seen from the side looks wide, and seen from the front or the back looks narrow. From a corner a camera sees two of its sides, and from above it sees its top.
+
+#### Appearance: the color of each face
+
+A box has five faces: `front` (the side facing the heading), `back`, `left`, `right` and `top`. Each face has a brightness for each stimulus, which is its color: a face bright for `red` and dark for `light` looks red to a red camera and black to a light camera. Each face is evenly lit, with no shading, so two faces of the same brightness side by side show no edge between them: a camera sees edges only where brightness changes.
+
+By default every face is **gray**: brightness `5` for every stimulus, half the intensity of a typical lamp (`10`). A vehicle without an `appearance` is gray all over, seen against the dark ground and sky.
+
+A definition may change the colors in a new top-level section, `appearance`. Each key is a stimulus, and its value is either a brightness for every face, or a mapping from faces to brightness, in which the faces not named stay gray:
 
 ```yaml
 appearance:
-  red: 5               # other vehicles' red cameras see this vehicle with brightness 5
+  light:               # in light, a white front and a black back; left, right and top stay gray
+    front: 10
+    back: 0
+  red: 8               # bright red on every face
 ```
 
-A stimulus not named in `appearance` gives brightness `0`, so a vehicle without an `appearance` is dark: cameras do not see it as bright, but it hides what is behind it. Each key must be a stimulus of the world the vehicle runs in (a world may define a stimulus with an empty `sources` list just for this). Brightness is not negative.
+Each key must be a stimulus of the world the vehicle runs in (a world may define a stimulus with an empty `sources` list just for this), and each face one of the five. Brightness is not negative. A vehicle that should look black in a stimulus says so with `0`; a black vehicle is not seen, but it hides what is behind it.
+
+Faces make a vehicle's heading visible: a camera that sees a white front and a black back can tell whether a vehicle is coming or going, which an outline alone does not tell.
 
 An appearance is only seen by cameras. It adds nothing to any field, so other vehicles' ordinary sensors do not sense it.
 
@@ -122,9 +135,9 @@ A pixel's **reading** is the average brightness of its lines of sight. The pixel
 
 `reading = (sum over the pixel's lines of sight of the brightness they see) / samples^2`
 
-A line of sight meets a thing where it enters the thing's cylinder: through its side, or, looking down from above it, through its top. The first thing met is the one with the nearest entry point. Concretely, for a line of sight with azimuth `a` and elevation `e` from a camera at height `hc`:
+A line of sight meets a thing where it enters it: through one of its sides, or, looking down from above it, through its top. A thing's **footprint** is the area it covers on the ground: a circle of its `radius` for a source, the body's rectangle for a vehicle. The first thing met is the one with the nearest entry point. Concretely, for a line of sight with azimuth `a` and elevation `e` from a camera at height `hc`:
 
-1. Along the ground, it heads in direction `a`. It enters the circle of a thing's footprint at ground distance `s`; there it is at elevation `z = hc + s * tan(e)`. If `0 <= z <= ` the thing's height, it meets the side there.
+1. Along the ground, it heads in direction `a`. It enters a thing's footprint at ground distance `s`; there it is at elevation `z = hc + s * tan(e)`. If `0 <= z <= ` the thing's height, it meets the side there.
 2. Otherwise, if it is above the thing there and going down, it meets the top where `z` drops to the thing's height, if that happens over the footprint.
 3. It meets the ground at ground distance `hc / tan(-e)` if `e < 0`.
 4. It sees the nearest of these, or the sky.
@@ -135,7 +148,7 @@ So:
 - A thing standing on the ground appears with its base **closer to the horizon** the farther away it is. Together with its apparent size, this is what lets a vehicle judge distance by sight.
 - A short thing in front of a tall one hides only the lower part of the tall one.
 - A camera above a short thing, looking down, sees its top.
-- A camera **inside** a thing (within its footprint and below its height) sees that thing in every direction, and nothing else.
+- A camera **inside** a thing (within its footprint and below its height) sees that thing in every direction, and nothing else. Inside a vehicle's box, it sees in each direction the face it would leave through.
 
 With `edges: wrap`, each thing is seen once, where it is the shortest way around ([worlds.md](worlds.md)), as for distance. Things farther than `range` (ground distance to the nearest point of the footprint) are not seen and hide nothing; the ground beyond `range` is still seen, as dark.
 
@@ -173,7 +186,7 @@ In addition to the cases in [worlds.md](worlds.md) and [vehicle-definition.md](v
 
 - a source's `radius` or `height` is not a positive number, or it has a `height` without a `radius`;
 - a vehicle's `general.height` is not a positive number;
-- `appearance` is not a mapping, has a brightness that is negative or not a number, or (checked by the scenario) names a stimulus the world does not define;
+- `appearance` is not a mapping; one of its values is neither a number nor a mapping of faces; names a face other than `front`, `back`, `left`, `right` and `top`; has a brightness that is negative or not a number; or (checked by the scenario) names a stimulus the world does not define;
 - a `camera` section has an unknown key; is missing `columns`, `rows` or `vertical_field_of_view`; has `columns`, `rows` or `samples` that is not a positive integer; has `vertical_field_of_view` outside `(0, 180]`, `direction` outside `[-180, 180]`, or `abs(tilt) + vertical_field_of_view / 2` above 90; or has `height` or `range` not positive;
 - a camera sensor has no `field_of_view`, or an `energy` sensor has a `camera` section;
 - an input names a camera without a row and a column; indexes a sensor that is not a camera, or a unit; has an index or range outside the camera's rows or columns, or an empty range (`i >= j`); or is not of the form `name` or `name[r, c]`.
@@ -182,7 +195,7 @@ In addition to the cases in [worlds.md](worlds.md) and [vehicle-definition.md](v
 
 [vehicle-diagram.md](vehicle-diagram.md) is updated to match:
 
-- **Arena:** things are drawn to scale, as discs of their radius seen from above (sources without a radius as now). A vehicle with an appearance is drawn in the color of its stimulus when that stimulus is named after a color, such as `red`. The `V` key shows or hides the selected vehicle's camera views: for each camera, the two edges of its horizontal field of view, out to its `range` or to the edge of the arena.
+- **Arena:** things are drawn to scale as seen from above: sources as discs of their radius (sources without a radius as now), and vehicles as rectangles of their footprint, turned with their heading, with a mark at the front. A vehicle is drawn gray, or, when its appearance names a stimulus named after a color, such as `red`, in that color. The `V` key shows or hides the selected vehicle's camera views: for each camera, the two edges of its horizontal field of view, out to its `range` or to the edge of the arena.
 - **Diagram:** a camera is drawn at its position as a small grid of `R × C` cells, top row at the top and leftmost column on the left, each lit by its pixel's level. A wire from a pixel starts at that pixel's cell.
 - **Readouts:** one block per camera, with its name and stimulus, and the image as a grid of `R × C` cells shaded by level, instead of one bar. The panel shrinks the cells to fit large cameras.
 - **Levels:** each pixel's level is computed like a sensor's ([vehicle-diagram.md](vehicle-diagram.md), *Levels*), from that pixel's own targets.
@@ -192,7 +205,7 @@ In addition to the cases in [worlds.md](worlds.md) and [vehicle-definition.md](v
 ## Related specs
 
 - [worlds.md](worlds.md): the optional `radius` and `height` of a source, and their validation.
-- [vehicle-definition.md](vehicle-definition.md): the `camera` section of a sensor, `general.height`, the `appearance` section, pixel inputs, and their validation.
+- [vehicle-definition.md](vehicle-definition.md): the `camera` section of a sensor, the body's `length`, `width` and `height`, the `appearance` section, pixel inputs, and their validation.
 - [sensors.md](sensors.md): cameras as a third kind of sensor, next to world and internal sensors.
 - [scenarios.md](scenarios.md): a camera's `type` and an `appearance`'s keys are checked against the world.
 - [vehicle-diagram.md](vehicle-diagram.md): things in the arena, camera views, and cameras in the diagram, readouts and SVG.
@@ -208,7 +221,7 @@ Unless stated otherwise the criteria use a camera at the body center with `field
 5. **Size, not dimming:** a thing large enough to fill a whole pixel at ground distance 40 reads its full brightness in a pixel it fills, both at 40 and at 10, and covers fewer columns at 40 than at 10.
 6. **Hiding:** a nearer thing hides a farther one in the directions they share, and the farther one is still seen where it sticks out: a short thing in front of a tall one hides the tall one's lower rows only. A camera with `height` 3 and `tilt` -45 above a thing 2 units tall sees its top. The ground hides nothing standing on it, and reads 0. A thing farther than `range` is not seen and hides nothing. A camera inside a thing reads that thing's brightness in every pixel.
 7. **Brightness:** a camera sees only its own stimulus: a `light` camera reads 0 for a `red` lamp, which still hides a white lamp behind it. Coincident `light` and `red` sources of the same size are one thing, bright for both. A lamp switched off by its schedule reads 0 and still hides what is behind it.
-8. **Vehicles:** a camera sees another vehicle as a cylinder of radius `size / 2` and its `height`, with its `appearance` brightness, and a vehicle without `appearance` as dark but hiding. It never sees its own vehicle. An ordinary sensor's reading does not change when a vehicle with an `appearance` comes close. Two vehicles that see each other read the same values whichever comes first in the scenario.
+8. **Vehicles:** a camera sees another vehicle as a box of its `width`, `length` and `height`, and a vehicle without `appearance` as gray, brightness 5. A vehicle with `appearance` `light: 0` is not seen and hides what is behind it. With `light: {front: 10, back: 2}`, a light camera reads 10 from a vehicle coming toward it, 2 from one going away, and 5 from its sides and, looking down from above, its top; a `red` camera reads 5 from every face. A vehicle with `width` 2 and `length` 8 at ground distance 20 covers a wider part of the image seen from the side than turned 45°, and turned 45° than seen from the front. A line of sight that passes a corner of a vehicle's footprint meets it, though it would miss a cylinder of radius `size / 2`, and the same line misses the vehicle turned 45° away from that corner. It never sees its own vehicle. An ordinary sensor's reading does not change when a vehicle with an `appearance` comes close. Two vehicles that see each other read the same values whichever comes first in the scenario.
 9. **Wrap:** with `edges: wrap`, a thing just past the left edge is seen by a camera near the right edge looking left, at the shortest distance.
 10. **Response:** a camera with a `step` response outputs `height` exactly in the pixels whose reading reaches `at`.
 11. **Pixel inputs:** `retina[2, 3]` connects that pixel only; `retina[:, 0:6]` is the same as the 36 inputs `retina[0, 0]` to `retina[5, 5]` with its type and strength; a unit summing `retina[:, 0:6]` with a threshold fires for a thing on the left and not for one on the right.
@@ -221,7 +234,7 @@ Unless stated otherwise the criteria use a camera at the body center with `field
 
 - **Movement in three dimensions:** vehicles stay on the ground, and things stand on it. Things that hang or fly, slopes and hills.
 - **Several stimuli in one camera.** A camera sees one stimulus; a vehicle that sees `light` and `red` has one camera for each, which may share a position.
-- **Shapes other than upright cylinders:** vehicles seen as boxes, walls, spheres, or things with patterns on them, and a ground or sky with brightness. Braitenberg's Vehicle 9 ("Shapes") will need more.
+- **Shapes other than upright cylinders and boxes:** sources seen as boxes, vehicles made of several boxes, walls, spheres, shading, faces with patterns on them, and a ground or sky with brightness. Braitenberg's Vehicle 9 ("Shapes") may need more.
 - **Things that block movement**, and collisions between vehicles.
 - **Optics:** perspective projection onto a flat image plane (pixels are equal angles, not equal widths on a screen), blur, dimming with distance, glare, shading, noise in the pixels, and pixels that overlap.
 - **Arrays of units:** writing one detector per pixel in a single item, such as "a movement detector between every two neighboring pixels". [vehicle-08.md](vehicle-08.md) adds them.

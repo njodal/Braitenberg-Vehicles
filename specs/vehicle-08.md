@@ -202,7 +202,7 @@ The turns turned out to need little help: at 86° per second a point crosses a c
 
 `acting` silences every `front`. It takes the same inputs as the turns and has the same delay, so it switches on at the moment the motors do, and goes off just after they stop. With `front` silent, `slow` empties too, so no trace of the image during the move is left. When `front` wakes up, every object's point appears at once, which is not movement, and only what moves after that is seen.
 
-Measured over seeds 0 to 4, in 60 s each: without `acting`, the hunter gives commands for 8.5 s while its prey is behind it or out of range, reacting to its own movement; with `acting`, never. Being blind has a price, though: a hunter without `acting` keeps moving, and so finds its prey sooner (all 15 seeds from 0 to 14, against 14 of 15). The hunter here is the one that looks before it moves.
+Measured over seeds 0 to 4, in 60 s each: without `acting`, the hunter gives commands for 18.9 s while its prey is behind it or out of range, reacting to its own movement; with `acting`, never. Being blind has a price, though: a hunter without `acting` keeps moving, and so finds its prey sooner (all 15 seeds from 0 to 14, against 14 of 15). The hunter here is the one that looks before it moves.
 
 So the hunter moves in bursts: watch, turn or lunge, stop, watch again.
 
@@ -215,7 +215,7 @@ So the hunter moves in bursts: watch, turn or lunge, stop, watch again.
 - **The prey is far:** beyond the camera's range of 30 the hunter does not see it at all. A prey that wanders off while the hunter waits is lost.
 - **The prey is behind:** a camera of 180° sees nothing behind the hunter. A prey that goes around it is lost until it comes back into view.
 
-The values were tuned on seeds 0 to 14: within 120 s the hunter comes within 8 units of its prey in 14 of the 15 (in 13 of them within 40 s). In the one that fails, the prey wanders out of range before the hunter reaches it. The first design (turns of 0.3 s delay and lunges at 3) reached the prey in only 10 of the 15: it swung past the prey on every turn, and fell behind a prey that never stops.
+The values were tuned on seeds 0 to 14: within 120 s the hunter comes within 8 units of its prey in 14 of the 15 (in 12 of them within 40 s). In the one that fails, the prey wanders out of range before the hunter reaches it. The first design (turns of 0.3 s delay and lunges at 3) reached the prey in only 10 of the 15: it swung past the prey on every turn, and fell behind a prey that never stops.
 
 ## Definitions, world and scenario
 
@@ -252,7 +252,7 @@ Criteria 3 to 7 test the circuits on a **watcher**: the hunter's definition with
 7. **A thing crossing:** a prey crossing the watcher's view from left to right, 12 units ahead at speed 3, makes `right` fire in column after column from left to right, and `left` never. From right to left, the opposite. A prey with radius 0.2 crossing the same way fires no object detector and no movement detector. A lamp switched on by a schedule in view fires no movement detector. In a world where nothing moves, no movement detector ever fires.
 8. **Still world:** the hunter in the default scenario with a prey whose motors have `base_speed` 0 does not move: after 60 s its position and heading are those it started with.
 9. **Hunts:** in the default scenario, for each of seeds 0 to 4, within 120 s the hunter comes within 8 units of the prey (center to center) at least once.
-10. **Holding still to look:** in the default scenario, over seeds 0 to 4, in 60 s each, the hunter gives no command while its prey is behind it (more than 90° from its heading) or out of range (more than 30 units away). With the inhibitory input from `acting` removed from `front`, it does, for at least 4 s in all.
+10. **Holding still to look:** in the default scenario, over seeds 0 to 4, in 60 s each, the hunter gives no command while its prey is behind it (more than 90° from its heading, and more than 5 units away, so that their bodies do not touch: a corner of a prey alongside can still be in view) or out of range (more than 30 units away). With the inhibitory input from `acting` removed from `front`, it does, for at least 4 s in all.
 11. **Diagram:** the diagram of the hunter reports each array as one part with one value and level per element, and draws it as a strip or grid. The SVG draws one arrow for the wires between two parts with the same sign, labeled with the inputs as written (such as `lump[i-1]`). Building it never imports pygame, and the renderer draws the hunter's window without errors.
 12. **Headless and fast:** the default scenario runs 60 simulated seconds headless in under 15 seconds. (It takes about 1.5 s.)
 

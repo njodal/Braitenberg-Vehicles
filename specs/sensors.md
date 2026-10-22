@@ -37,7 +37,7 @@ A world sensor may have a `field_of_view`, in degrees: it then only detects sour
 
 ### Cameras
 
-A world sensor with a `camera` section sees its stimulus as an image: a matrix of pixels, rows by columns, each reporting the brightness of the things it sees (sources with a `radius` and a `height`, and vehicles with an `appearance`), with nearer things hiding farther ones. Its output is one value per pixel, and inputs take a pixel or a block of them, as in `from: retina[:, 0:6]`. See [camera.md](camera.md). **Status:** implemented; used by the Vehicle 8 hunter (`retina`, [vehicle-08.md](vehicle-08.md)).
+A world sensor with a `camera` section sees its stimulus as an image: a matrix of pixels, rows by columns, each reporting the brightness of the things it sees (sources with a `radius` and a `height`, and vehicles, boxes whose faces are gray unless their `appearance` says otherwise), with nearer things hiding farther ones. Its output is one value per pixel, and inputs take a pixel or a block of them, as in `from: retina[:, 0:6]`. See [camera.md](camera.md). **Status:** implemented; used by the Vehicle 8 hunter (`retina`, [vehicle-08.md](vehicle-08.md)).
 
 ## Internal (proprioceptive) sensors
 
