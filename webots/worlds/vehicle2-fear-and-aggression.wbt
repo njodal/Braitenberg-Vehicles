@@ -1,0 +1,64 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/gctronic/e-puck/protos/E-puck.proto"
+
+WorldInfo {
+  info [
+    "Vehicles 2a (fear) and 2b (aggression) on e-pucks, facing one lamp (specs/webots.md)."
+  ]
+  title "Fear and aggression"
+  basicTimeStep 32
+}
+Viewpoint {
+  orientation -0.38 0.38 0.84 1.75
+  position 0.1 -2.4 2.2
+}
+# No other lights: light sensors count every light in the world.
+Background {
+  skyColor [
+    0.2 0.2 0.25
+  ]
+  luminosity 1.5
+}
+RectangleArena {
+  floorSize 2 2
+  wallHeight 0.06
+}
+PointLight {
+  attenuation 1 0 1
+  intensity 3
+  location 0.3 0 0.05
+  castShadows FALSE
+}
+Solid {
+  translation 0.3 0 0.05
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.95 0.6
+        emissiveColor 1 0.95 0.6
+      }
+      geometry Sphere {
+        radius 0.02
+      }
+    }
+  ]
+  name "lamp"
+}
+E-puck {
+  translation -0.3 0.12 0
+  name "fear"
+  controller "braitenberg"
+  controllerArgs [
+    "vehicles/vehicle2a-fear.yaml"
+  ]
+}
+E-puck {
+  translation -0.3 -0.12 0
+  name "aggression"
+  controller "braitenberg"
+  controllerArgs [
+    "vehicles/vehicle2b-aggression.yaml"
+  ]
+}
