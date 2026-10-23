@@ -109,6 +109,9 @@ def written_out(write):
     source = lambda name: name if name.startswith("retina") else rename(name)
     data = read(HUNTER)
     del data["modules"]
+    for a in data["actuators"]:
+        for i in a["actuator"]["inputs"]:
+            i["input"]["from"] = rename(i["input"]["from"])
     data["units"] = [{"unit": {"name": rename(u.name), "type": u.type, "threshold": u.threshold,
                                "delay": u.delay,
                                "inputs": [{"input": {"from": source(c.source),
@@ -343,11 +346,16 @@ def test_hunts(seed):
 
 # 10. Holding still to look
 def prey_out_of_view(sim, hunter, prey):
-    """Whether the prey is out of range, or wholly behind the hunter's camera."""
+    """Whether the prey is out of range (its nearest point more than 30 units from the camera,
+    as the camera measures range), or wholly behind the hunter's camera."""
     arena = sim.world.arena
-    if math.hypot(*arena.delta(prey.x - hunter.x, prey.y - hunter.y)) > 30:
-        return True
     _, cx, cy = hunter.cameras()[0]
+    dx, dy = arena.delta(prey.x - cx, prey.y - cy)
+    fx, fy = math.cos(prey.heading), math.sin(prey.heading)
+    across, along = dx * fy - dy * fx, dx * fx + dy * fy
+    gap = math.hypot(max(abs(across) - prey.half_width, 0), max(abs(along) - prey.half_length, 0))
+    if gap > 30:
+        return True
     ahead = math.cos(hunter.heading), math.sin(hunter.heading)
     corners = [prey.body_to_world(bx, by) for bx in (-1, 1) for by in (-1, 1)]
     return all(dx * ahead[0] + dy * ahead[1] < 0

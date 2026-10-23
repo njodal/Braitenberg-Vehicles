@@ -1,0 +1,93 @@
+module:
+  name: Boredom
+  description: >-
+    Fires when nothing has been seen for about 3 s and the vehicle is idle.
+
+inputs:
+  seen: something seen, such as movement; it keeps the module from firing for about 3 s
+  busy: the vehicle is busy, such as moving; while it lasts, the module does not fire
+
+outputs: [bored]
+
+units:
+  # A ladder of delays. A unit with threshold 0, inhibited by seen, fires on its own unless seen
+  # came during its delay; its output, a delay later, says: nothing seen between twice its
+  # delay and its delay ago. With delays that double, the six cover the last 3.2 s, without gaps.
+  - unit:
+      name: quiet_1
+      type: threshold
+      threshold: 0
+      delay: 0.05
+      inputs:
+        - input:
+            from: seen
+            type: inhibitory
+  - unit:
+      name: quiet_2
+      type: threshold
+      threshold: 0
+      delay: 0.1
+      inputs:
+        - input:
+            from: seen
+            type: inhibitory
+  - unit:
+      name: quiet_3
+      type: threshold
+      threshold: 0
+      delay: 0.2
+      inputs:
+        - input:
+            from: seen
+            type: inhibitory
+  - unit:
+      name: quiet_4
+      type: threshold
+      threshold: 0
+      delay: 0.4
+      inputs:
+        - input:
+            from: seen
+            type: inhibitory
+  - unit:
+      name: quiet_5
+      type: threshold
+      threshold: 0
+      delay: 0.8
+      inputs:
+        - input:
+            from: seen
+            type: inhibitory
+  - unit:
+      name: quiet_6
+      type: threshold
+      threshold: 0
+      delay: 1.6
+      inputs:
+        - input:
+            from: seen
+            type: inhibitory
+  # Bored: nothing seen for 3.2 s, nor now, and nothing to do.
+  - unit:
+      name: bored
+      type: threshold
+      threshold: 6
+      inputs:
+        - input:
+            from: quiet_1
+        - input:
+            from: quiet_2
+        - input:
+            from: quiet_3
+        - input:
+            from: quiet_4
+        - input:
+            from: quiet_5
+        - input:
+            from: quiet_6
+        - input:
+            from: seen
+            type: inhibitory
+        - input:
+            from: busy
+            type: inhibitory

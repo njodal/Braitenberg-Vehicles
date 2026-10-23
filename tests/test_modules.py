@@ -7,18 +7,21 @@ from pathlib import Path
 import pytest
 
 from braitenberg.definition import load_definition
+from braitenberg.diagram import definition_svg
 from braitenberg.vehicle import Vehicle
 from braitenberg.yamlfile import ConfigError
 from conftest import read, run_python
 
 WANDER = Path(__file__).parent.parent / "modules" / "wander.yaml"
+PURSUE = Path(__file__).parent.parent / "modules" / "pursue.yaml"
+BOREDOM = Path(__file__).parent.parent / "modules" / "boredom.yaml"
 
 
 def vehicle(modules=None, units=(), actuator_inputs=("wander.left",)):
     """A vehicle with one sensor 'eye' that includes the wander module."""
     if modules is None:
         modules = [{"module": {"name": "wander", "file": str(WANDER), "position": [0, -0.5],
-                               "inputs": {"enable": "eye", "hold": []}}}]
+                               "inputs": {"enable": "eye"}}}]
     return {
         "general": {"type": "9", "name": "Test", "size": 4},
         "sensors": [{"sensor": {"name": "eye", "type": "light", "position": [0, 0.8]}}],
@@ -47,15 +50,17 @@ def starts(series):
 def test_loading(write):
     d = vehicle(units=[{"name": "busy", "type": "threshold", "threshold": 1,
                         "inputs": [{"input": {"from": "eye"}}]}])
-    d["modules"][0]["module"]["inputs"]["hold"] = ["busy", "eye"]
+    d["modules"][0]["module"]["inputs"]["enable"] = ["busy", "eye"]
     v = load_definition(write(d))
     units = {u.name: u for u in v.units}
     assert all(u.type == "threshold" for u in v.units)
     assert [(c.source, c.sign) for c in units["wander.left"].inputs] == [("wander.go_left", 1)]
     assert [(c.source, c.sign) for c in units["wander.tick"].inputs] == [
-        ("wander.both", 1), ("wander.was", -1), ("eye", 1), ("busy", -1), ("eye", -1)]
+        ("wander.both", 1), ("wander.was", -1), ("busy", 1), ("eye", 1)]
     assert all(units[f"wander.{n}"].module == "wander" for n in ("left", "tick"))
-    assert v.modules == {"wander": ("Wander", (0, -0.5))}
+    use = v.modules["wander"]
+    assert (use.title, use.position) == ("Wander", (0, -0.5))
+    assert (use.inputs, use.outputs) == (["enable"], ["left", "right"])
 
 
 # 2. Same as by hand: tests/test_vehicle8.py, test_arrays_are_a_shorthand, writes the hunter's
@@ -90,38 +95,122 @@ def test_not_enabled_it_never_fires(write):
     assert not any(any(s) for s in outputs(v, 10_000, eye=0.0).values())
 
 
-def test_held_it_never_fires(write):
-    d = vehicle(units=[{"name": "busy", "type": "threshold", "threshold": 0, "inputs": []}])
-    d["modules"][0]["module"]["inputs"]["hold"] = "busy"
+def test_with_no_sources_it_never_fires(write):
+    d = vehicle()
+    d["modules"][0]["module"]["inputs"]["enable"] = []
     v = Vehicle(load_definition(write(d)), 50, 50, 0, dt=0.01)
     assert not any(any(s) for s in outputs(v, 10_000, eye=1.0).values())
 
 
-# 4. Two copies
+# 4. The boredom module
+def bored_vehicle(write):
+    d = {"general": {"type": "9", "name": "Test", "size": 4},
+         "sensors": [{"sensor": {"name": n, "type": "light", "position": [0, 0.8]}}
+                     for n in ("eye", "moving")],
+         "actuators": [{"actuator": {"name": "motor", "type": "motor", "position": [0, -0.8],
+                                     "inputs": [{"input": {"from": "boredom.bored"}}]}}],
+         "modules": [{"module": {"name": "boredom", "file": str(BOREDOM),
+                                 "inputs": {"seen": "eye", "busy": "moving"}}}]}
+    return Vehicle(load_definition(write(d)), 50, 50, 0, dt=0.01)
+
+
+@pytest.mark.parametrize("length", [0.05, 0.3, 1.0, 3.0])
+def test_bored_after_nothing_seen_for_a_while(write, length):
+    v = bored_vehicle(write)
+    seen_from, seen_to = 5.0, 5.0 + length
+    bored = []
+    for step in range(round((seen_to + 5) / 0.01)):
+        t = step * 0.01
+        v.think({"eye": 1.0 if seen_from <= t < seen_to else 0.0, "moving": 0.0})
+        bored.append((t, v.unit_outputs["boredom.bored"]))
+    assert bored[round(4.9 / 0.01)][1] == 1                  # bored before anything was seen
+    # Off within a delay of seeing something, and on again 3.2 s after the last of it.
+    assert not any(b for t, b in bored if seen_from + 0.06 <= t < seen_to)
+    after = [t for t, b in bored if t >= seen_to and b]
+    assert after and 3.2 <= after[0] - seen_to <= 3.3
+
+
+def test_busy_stops_boredom(write):
+    v = bored_vehicle(write)
+    out = []
+    for step in range(800):
+        moving = 1.0 if 400 <= step < 600 else 0.0
+        v.think({"eye": 0.0, "moving": moving})
+        out.append(v.unit_outputs["boredom.bored"])
+    assert out[399] == 1 and not any(out[410:600]) and out[700] == 1
+
+
+# 5. The pursue module
+def pursuer(write):
+    sensors = ["on_left", "ahead", "on_right", "close"]
+    d = {"general": {"type": "9", "name": "Test", "size": 4},
+         "sensors": [{"sensor": {"name": n, "type": "light", "position": [0, 0.8]}} for n in sensors],
+         "actuators": [{"actuator": {"name": "motor", "type": "motor", "position": [0, -0.8],
+                                     "inputs": [{"input": {"from": f"pursue.{o}"}}
+                                                for o in ("turn_left", "turn_right", "forward")]}}],
+         "modules": [{"module": {"name": "pursue", "file": str(PURSUE),
+                                 "inputs": dict(zip(["left", "ahead", "right", "near"], sensors))}}]}
+    return Vehicle(load_definition(write(d)), 50, 50, 0, dt=0.01)
+
+
+def commands(v, steps=100, **readings):
+    """Which of pursue's outputs come on within `steps` steps of steady readings."""
+    seen = set()
+    for _ in range(steps):
+        v.think({n: readings.get(n, 0.0) for n in ("on_left", "ahead", "on_right", "close")})
+        seen |= {o for o in ("turn_left", "turn_right", "forward") if v.unit_outputs[f"pursue.{o}"]}
+    return seen
+
+
+@pytest.mark.parametrize("readings, expected", [
+    ({"on_left": 1.0}, {"turn_left"}),
+    ({"on_right": 1.0}, {"turn_right"}),
+    ({"ahead": 1.0}, {"forward"}),
+    ({"ahead": 1.0, "on_left": 1.0}, {"forward"}),       # ahead wins over a side
+    ({"ahead": 1.0, "close": 1.0}, set()),               # near: no lunge
+    ({}, set()),
+])
+def test_pursue(write, readings, expected):
+    assert commands(pursuer(write), **readings) == expected
+
+
+def test_pursue_turns_are_short_and_lunges_long(write):
+    for name, reading, output in (("turn", "on_left", "turn_left"), ("lunge", "ahead", "forward")):
+        v = pursuer(write)
+        on = []
+        for step in range(100):
+            v.think({n: 1.0 if (n == reading and step == 0) else 0.0
+                     for n in ("on_left", "ahead", "on_right", "close")})
+            on.append(v.unit_outputs[f"pursue.{output}"])
+        lasts = sum(on) * 0.01
+        assert lasts == pytest.approx(0.1 if name == "turn" else 0.3, abs=0.02)
+
+
+# 6. Two copies
 def test_two_copies(write):
-    modules = [{"module": {"name": name, "file": str(WANDER), "inputs": {"enable": "eye", "hold": hold}}}
-               for name, hold in (("a", []), ("b", "a.left"))]
+    modules = [{"module": {"name": name, "file": str(WANDER), "inputs": {"enable": enable}}}
+               for name, enable in (("a", "eye"), ("b", "a.left"))]
     v = load_definition(write(vehicle(modules, actuator_inputs=("a.left", "b.right"))))
     units = {u.name: u for u in v.units}
     assert {"a.left", "a.right", "b.left", "b.right"} <= set(units)
     assert [c.source for c in units["a.tick"].inputs] == ["a.both", "a.was", "eye"]
-    assert [c.source for c in units["b.tick"].inputs] == ["b.both", "b.was", "eye", "a.left"]
+    assert [c.source for c in units["b.tick"].inputs] == ["b.both", "b.was", "a.left"]
 
 
-# 5. Private units
+# 7. Private units
 def test_only_outputs_can_be_named(write, tmp_path):
     module = read(WANDER)
     module["units"].append({"unit": {"name": "inner", "type": "threshold", "threshold": 1,
                                      "inputs": [{"input": {"from": "left"}}]}})
     path = write(module, "inner.yaml")
     d = vehicle([{"module": {"name": "wander", "file": str(path),
-                             "inputs": {"enable": "eye", "hold": []}}}],
+                             "inputs": {"enable": "eye"}}}],
                 actuator_inputs=("wander.inner",))
     with pytest.raises(ConfigError, match="'wander.inner' is not an output of module 'wander'"):
         load_definition(write(d))
 
 
-# 6. Validation
+# 8. Validation
 def module_change(change):
     def apply(module):
         change(module)
@@ -159,7 +248,7 @@ MODULE_ERRORS = [
 def test_module_file_validation(write, change, key):
     path = write(change(read(WANDER)), "module.yaml")
     d = vehicle([{"module": {"name": "wander", "file": str(path),
-                             "inputs": {"enable": "eye", "hold": []}}}])
+                             "inputs": {"enable": "eye"}}}])
     with pytest.raises(ConfigError, match=re.escape(f"module.yaml: {key}")):
         load_definition(write(d))
 
@@ -180,9 +269,9 @@ DEFINITION_ERRORS = [
     (including(file=None), "modules[0].module.file", None),
     (including(file="missing.yaml"), "missing.yaml", None),
     (including(colour="red"), "modules[0].module.colour", None),
-    (including(inputs={"enable": "eye"}), "modules[0].module.inputs.hold", None),
-    (including(inputs={"enable": "eye", "hold": [], "extra": "eye"}), "modules[0].module.inputs.extra", None),
-    (including(inputs={"enable": "nose", "hold": []}), ".input.from", "'nose'"),
+    (including(inputs={}), "modules[0].module.inputs.enable", None),
+    (including(inputs={"enable": "eye", "hold": "eye"}), "modules[0].module.inputs.hold", None),
+    (including(inputs={"enable": "nose"}), ".input.from", "'nose'"),
     (including(position=[1.2, 0]), "modules[0].module.position", "outside the body"),
     (lambda d: d, "inputs[0].input.from", "'other' is not a module"),
 ]
@@ -199,23 +288,34 @@ def test_including_validation(write, change, key, detail):
         assert detail in str(error.value)
 
 
-# 7. Diagram
-def test_diagram_draws_a_module_as_one_part(write):
-    v = Vehicle(load_definition(write(vehicle())), 50, 50, 0, dt=0.01)
+# 9. Diagram
+def test_diagram_draws_a_module_as_a_box(write):
+    d = vehicle(units=[{"name": "busy", "type": "threshold", "threshold": 1,
+                        "inputs": [{"input": {"from": "eye"}}]}])
+    d["modules"][0]["module"]["inputs"]["enable"] = ["busy", "eye"]
+    v = Vehicle(load_definition(write(d)), 50, 50, 0, dt=0.01)
     v.think({"eye": 1.0})
-    d = v.diagram()
-    parts = {p.name: p for p in d.parts}
-    assert parts["wander"].kind == "module" and parts["wander"].shape == (11,)
-    assert parts["wander"].position == (0, -0.5) and parts["wander"].label == "module Wander"
+    diagram = v.diagram()
+    parts = {p.name: p for p in diagram.parts}
+    box = parts["wander"]
+    assert (box.kind, box.position, box.label) == ("module", (0, -0.5), "module Wander")
+    assert (box.inputs, box.outputs) == (["enable"], ["left", "right"])
+    assert len(box.level) == 2 and all(0 <= level <= 1 for level in box.level)
     assert not any(name.startswith("wander.") for name in parts)
-    # Only the wires that cross its edge: from eye in, and from left out to the motor.
-    crossing = sorted((w.source, w.target) for w in d.wires if "wander" in (w.source, w.target))
-    assert crossing == [("eye", "wander"), ("wander", "motor")]
-    out = next(w for w in d.wires if w.source == "wander")
-    assert out.source_index == (9,)       # left is the module's tenth unit
+    # Only the wires that cross its edge, each at its port.
+    crossing = sorted((w.source, w.source_port or "", w.target, w.target_port or "")
+                      for w in diagram.wires if "wander" in (w.source, w.target))
+    assert crossing == [("busy", "", "wander", "enable"), ("eye", "", "wander", "enable"),
+                        ("wander", "left", "motor", "")]
 
 
-# 8. Headless
+def test_svg_draws_a_module_as_a_box(write):
+    svg = definition_svg(load_definition(write(vehicle())))
+    assert all(f">{port}<" in svg for port in ("enable", "left", "right"))
+    assert ">module Wander<" in svg
+
+
+# 10. Headless
 def test_modules_never_import_pygame():
     result = run_python(f"""
 import sys

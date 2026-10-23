@@ -17,7 +17,7 @@ from dataclasses import replace
 import numpy as np
 import pygame
 
-from braitenberg.diagram import bundles
+from braitenberg.diagram import bundles, module_box, port_offset, wire_ends
 from braitenberg.sim import Simulation
 from braitenberg.vehicle import Diagram
 from braitenberg.scenario import Scenario
@@ -32,6 +32,8 @@ MIN_WINDOW_HEIGHT = 600   # so the panel fits even for a long, narrow arena
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
 SOURCE_RADIUS = 7
+PANEL_PORT_GAP = 44      # pixels between two ports of a module's box, in the panel
+PANEL_BOX_HEIGHT = 30
 MIN_VEHICLE = 6           # pixels: the smallest half length a vehicle is drawn with
 GRAB_RADIUS = 14
 FPS = 60
@@ -352,8 +354,12 @@ class Renderer:
         pygame.draw.rect(surface, BODY_OUTLINE, body, 2, border_radius=int(radius * min(bw, bl) * 0.3))
 
         parts = {p.name: p for p in diagram.parts}
+        # Modules' boxes go under the wires, so that a wire is seen leaving each of its ports.
+        for p in diagram.parts:
+            if p.kind == "module":
+                self.draw_module(surface, p, at(p.position))
         for w in bundles(diagram.wires):
-            a, b = at(parts[w.source].position), at(parts[w.target].position)
+            a, b = wire_ends(w, parts, at, PANEL_PORT_GAP, PANEL_BOX_HEIGHT)
             if w.learning:  # wider as it grows stronger, dashed until it is active
                 color = lerp_color(LEARN_DIM, LEARN_ON, w.level) if w.active else LEARN_DIM
                 width = 1 + round(4 * w.strength)
@@ -377,8 +383,10 @@ class Renderer:
         for p in diagram.parts:
             x, y = at(p.position)
             fill = (tuple(int(c) for c in heat_colors(np.array(p.level)))
-                    if p.shape is None else None)
-            if p.kind == "sensor":
+                    if p.shape is None and p.kind != "module" else None)
+            if p.kind == "module":
+                pass   # drawn under the wires
+            elif p.kind == "sensor":
                 # A round sensor with two short antennae pointing forward.
                 for dx in (-9, 9):
                     pygame.draw.line(surface, BODY_OUTLINE, (x, y), (x + dx, y - 22), 2)
@@ -401,9 +409,27 @@ class Renderer:
                     surface.blit(value, (x - value.get_width() / 2, y - value.get_height() / 2))
             label = self.small_font.render(p.name, True, PANEL_DIM)
             below = (UNIT_RADIUS + 4 if p.kind == "unit"
+                     else PANEL_BOX_HEIGHT / 2 + 3 if p.kind == "module"
                      else self.cells_height(p.level, GRID_WIDTH * radius) / 2 + 3
                      if p.shape is not None else 15)
             surface.blit(label, (x - label.get_width() / 2, y + below))
+
+    def draw_module(self, surface: pygame.Surface, p, at) -> None:
+        """A box with its inputs on top and its outputs below; each output lit by its level."""
+        w, h = module_box(p, PANEL_PORT_GAP, PANEL_BOX_HEIGHT)
+        box = pygame.Rect(0, 0, w, h)
+        box.center = at
+        pygame.draw.rect(surface, PANEL_BG, box, border_radius=5)
+        pygame.draw.rect(surface, BODY_OUTLINE, box, 2, border_radius=5)
+        levels = dict(zip(p.outputs, p.level))
+        for port in p.inputs + p.outputs:
+            dx, dy = port_offset(p, port, PANEL_PORT_GAP, PANEL_BOX_HEIGHT)
+            x, y = at[0] + dx, at[1] + dy
+            fill = tuple(int(c) for c in heat_colors(np.array(levels.get(port, 0.0))))
+            pygame.draw.circle(surface, fill, (x, y), 4)
+            pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 4, 1)
+            name = self.small_font.render(port, True, PANEL_DIM)
+            surface.blit(name, (x + 6, y + 2 if dy < 0 else y - name.get_height() - 1))
 
     @staticmethod
     def rows_of(levels) -> list[list[float]]:
@@ -437,6 +463,14 @@ class Renderer:
             surface.blit(name, (x0, y + 2))
             surface.blit(self.small_font.render(p.label, True, PANEL_DIM),
                          (x0 + name.get_width() + 6, y + 4))
+            if p.kind == "module":
+                # Its outputs, as cells, and how many are on.
+                self.draw_cells(surface, p.level, (bar_x, y + 4), min(bar_width, 12 * len(p.level)))
+                lit = sum(1 for level in p.level if level > 0)
+                value = self.font.render(f"{lit}/{len(p.level)}", True, TEXT)
+                surface.blit(value, (x0 + width - value.get_width(), y + 2))
+                y += ROW
+                continue
             if p.shape is not None:
                 # The image, or the array's elements, instead of a bar; and how many are on.
                 rows = self.rows_of(p.level)

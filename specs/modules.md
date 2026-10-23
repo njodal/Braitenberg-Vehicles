@@ -6,7 +6,7 @@ A **module** is a piece of nervous system in a file of its own, which any vehicl
 
 Braitenberg builds every vehicle from the same few parts, and many of his circuits are useful in more than one vehicle. Until now each vehicle has to write its circuits out in full, so a behavior designed for one vehicle, such as the Vehicle 8 hunter's wandering, is copied by hand into another. A module is written once and included wherever it is needed.
 
-The first module is `modules/wander.yaml`: while its input `enable` carries a signal, and its input `hold` does not, it fires its output `left` or `right` now and then, for a short while, at moments and to sides that follow no simple rhythm. A vehicle that turns with those outputs wanders slowly in a direction that keeps changing. It is made of threshold units only, like every module (see *The wander module*). The Vehicle 8 hunter turns it on when it has seen nothing move for a while ([vehicle-08.md](vehicle-08.md), *Searching*).
+For example, the module [wander](../modules/wander.yaml) defines the ensemble of units that makes the vehicle move slowly and sideways in an almost random way. It is made of threshold units only, and the vehicle turns it on through its only input, `enable` (see *The wander module*). The first vehicle to use it is [vehicle 8](vehicle-08.md), which turns it on when it has seen nothing move for a while (*Searching*). The same vehicle uses two more modules: [boredom](../modules/boredom.yaml), which tells it when it has seen nothing for a while (see *The boredom module*), and [pursue](../modules/pursue.yaml), which turns toward what moves and lunges at it (see *The pursue module*).
 
 ## Module files
 
@@ -18,8 +18,7 @@ module:
   description: Now and then, a short pulse on left or right, while enabled.
 
 inputs:
-  enable: while it carries a signal, the module may fire
-  hold: while it carries a signal, the module waits
+  enable: while it carries a signal, the module fires now and then; without it, never
 
 outputs: [left, right]
 
@@ -28,7 +27,6 @@ units:
       name: tick
       type: threshold
       threshold: 2
-      position: [0, 0]
       inputs:
         - input:
             from: both            # one of the module's units
@@ -37,15 +35,11 @@ units:
             type: inhibitory
         - input:
             from: enable          # one of its inputs
-        - input:
-            from: hold
-            type: inhibitory
   - unit:
       name: left
       type: threshold
       threshold: 1
       delay: 0.4
-      position: [-0.4, -0.08]
       inputs:
         - input:
             from: go_left
@@ -71,12 +65,20 @@ A vehicle definition includes modules in an optional top-level section, `modules
 ```yaml
 modules:
   - module:
-      name: wander                    # how the vehicle names this copy
-      file: ../modules/wander.yaml    # relative to the definition file
-      position: [0, -0.95]
+      name: pursue                    # how the vehicle names this copy
+      file: ../modules/pursue.yaml    # relative to the definition file
+      position: [0.12, -0.68]
       inputs:
-        enable: search                # one source
-        hold: [alert, acting]         # several, or [] for none
+        left: [moves_left, wander.left]     # several sources: any of them
+        ahead: moves_ahead                  # one source
+        right: [moves_right, wander.right]
+        near: near
+  - module:
+      name: wander
+      file: ../modules/wander.yaml
+      position: [-0.66, -0.66]
+      inputs:
+        enable: boredom.bored         # another module's output
 ```
 
 | Key | Required | Meaning |
@@ -84,7 +86,7 @@ modules:
 | `name` | yes | The name of this copy of the module, unique among the vehicle's sensors, actuators, units and modules. |
 | `file` | yes | The module file, relative to the definition. |
 | `position` | no | Where the diagram draws the module, in body coordinates. Default `[0, 0]`. |
-| `inputs` | yes | For every input of the module, where it comes from: a `from` as in any input (`search`, `retina[:, 0:6]`, another module's output) or a list of them, possibly empty. Every input of the module must be given, and no other. |
+| `inputs` | yes | For every input of the module, where it comes from: a `from` as in any input (`moves_ahead`, `retina[:, 0:6]`, another module's output) or a list of them, possibly empty. Every input of the module must be given, and no other. |
 
 A vehicle may include the same module file more than once, under different names; each copy has its own units.
 
@@ -93,29 +95,57 @@ A vehicle may include the same module file more than once, under different names
 Including a module is the same as writing its units into the vehicle's `units`, renamed, and wired:
 
 - Each unit `u` of the module becomes a unit named `name.u` of the vehicle, such as `wander.left`. Its inputs from the module's own units come from their renamed copies.
-- An input of a unit from the module's input `x` becomes one input per source that the vehicle gives `x`, each with the type and strength written in the module. An input with no sources gives no inputs: a unit whose `hold` is `[]` is never held back.
+- An input of a unit from the module's input `x` becomes one input per source that the vehicle gives `x`, each with the type and strength written in the module. An input with no sources gives no inputs: a wander module whose `enable` is `[]` never fires.
 - Outside the module, the vehicle's units and actuators connect to its outputs as `name.output`, such as `from: wander.left`. Only outputs can be named; the module's other units are private to it.
 
 So a module adds no new kind of part to the simulation: a vehicle with a module behaves exactly as the same vehicle with the module's units written out by hand.
 
 ### In the diagram
 
-The diagram draws a module as one part, at its `position`: a strip of cells, one per unit in the order of the module file, each lit by its unit's output, labeled with the module's name in the vehicle and, below it, `module` and the module's own name (`wander`, `module Wander`). Wires inside the module are not drawn; a wire into or out of it starts or ends at the strip, and one out of it starts at its output's cell. The readouts show one line for it, with its cells, as for an array ([vehicle-diagram.md](vehicle-diagram.md)).
+The diagram draws a module as one part, at its `position`: a box, with its inputs on top and its outputs below, in the order of the module file, each a small circle with its name beside it. It is labeled below with the module's name in the vehicle and `module` and the module's own name (`wander`, `module Wander`). Its units and the wires between them are not drawn: from outside, a module is what goes in and what comes out. A wire into the module ends at the input it comes through, and a wire out of it starts at its output. The box is drawn under the wires, so that a wire is seen leaving its output even when it goes up. In the panel, each output is lit by its level, and the readouts show one line for the module, with its outputs as cells ([vehicle-diagram.md](vehicle-diagram.md)).
+
+![Diagram of the Vehicle 8 hunter, drawn by python -m braitenberg.diagram: below the movement detectors, on the left, the boredom module above the wander module; in the middle, the pursue module, with its inputs left, ahead, right and near on top and its outputs turn_left, turn_right and forward below, wired to the motors](images/vehicle8-hunter.svg)
+
+*The Vehicle 8 hunter, which includes three modules ([vehicle-08.md](vehicle-08.md)). On the left, `boredom` takes the movement detectors through `seen` and `acting` through `busy`, and its output `bored` enables `wander`, below it. In the middle, `pursue` takes `moves_left`, `moves_ahead`, `moves_right` and `near` through its inputs, and its outputs drive the motors. `wander`'s outputs go to `acting` and into `pursue`'s inputs `left` and `right`, so that a wandering turn is a turn of `pursue`. The units inside the modules are not drawn.*
 
 ### Turning a module on and off
 
-A module is switched on and off by its inputs, like any unit. The convention for modules that are behaviors is an input `enable`, that lets the module act while it carries a signal, and an input `hold`, that stops it while it carries one. Any unit of the vehicle can drive them: a threshold unit that fires when nothing has been seen for a while, a sensor, or another module's output.
+A module is switched on and off by its inputs, like any unit. The convention for a module that is a behavior is one input, `enable`: the module acts while it carries a signal, and stays quiet without it. Any unit of the vehicle can drive it: a threshold unit that fires when nothing has been seen for a while, a sensor, or another module's output. Several sources given to `enable` add up, so any one of them turns the module on.
+
+When the module should stop for other reasons too, the vehicle says so with a unit of its own, or another module, and gives it to `enable`. The Vehicle 8 hunter wanders only while it has seen nothing move for a while and is still: the module `boredom` decides that, and its output `bored` enables `wander`. So a module knows only when to act, and the vehicle decides why.
 
 ## The wander module
 
 `modules/wander.yaml` makes a vehicle wander with nothing but threshold units: there is no chance in it, but its pulses come at moments, and to sides, that follow no simple rhythm.
 
 - **Clocks:** a unit with threshold 0 and an inhibitory input from itself fires on its own, silences itself, and fires again: it is on for its delay and off for about twice that. `fast` (delay 0.45 s) and `slow` (0.7 s) are two such clocks. `ring` and `side` (0.95 s each) are a ring of two, `ring` silenced by `side` and `side` driven by `ring`, so that `side` is on and off for about as long.
-- **When:** `both` fires while `fast` and `slow` are on together. Their periods have no small common multiple, so this happens at irregular moments, every 2.3 s on average and never less than 1 s apart. `tick` fires for a moment as `both` comes on (`was`, a copy of `both` one delay late, stops it), while `enable` is on and `hold` is off.
+- **When:** `both` fires while `fast` and `slow` are on together. Their periods have no small common multiple, so this happens at irregular moments, every 2.3 s on average and never less than 1 s apart. `tick` fires for a moment as `both` comes on (`was`, a copy of `both` one delay late, stops it), while `enable` is on.
 - **Which side:** `go_left` fires with `tick` while `side` is on, `go_right` while it is off. `side` keeps its own rhythm, so the sides follow no short pattern, and come about as often.
 - **How long:** `left` and `right` stretch the moment into a pulse of about 0.4 s, their delay.
 
 Seen from outside, it behaves like a coin tossed now and then: about 130 pulses in 300 s, close to half to each side, with no repeating pattern of a few turns. But the same start always gives the same pulses: a vehicle that uses it behaves the same in every run, whatever the seed.
+
+## The boredom module
+
+`modules/boredom.yaml` tells a vehicle that nothing has happened for a while. It is made of seven threshold units:
+
+- **Inputs:** `seen`, something seen, such as movement; and `busy`, the vehicle is busy, such as moving.
+- **Output:** `bored`, which fires 3.2 s after `seen` last carried a signal, however long it lasted, while `busy` is off.
+- **A ladder of delays:** a unit with threshold 0 and an inhibitory input from `seen` fires on its own unless something was seen during its delay, and its output comes a delay later: it says that nothing was seen between twice its delay and its delay ago. `quiet_1` to `quiet_6` have delays of 0.05, 0.1, 0.2, 0.4, 0.8 and 1.6 s, doubling, so that their spans meet without gaps and together cover the last 3.2 s.
+- **Bored:** `bored` needs all six, and is held back by `seen` and `busy` directly, so that it stops at once when something is seen or the vehicle moves.
+
+A single unit with a long delay would not do: its output tells what happened a delay ago, so for a whole delay after something is seen it still says that nothing was. A memory that holds itself on would not do either: a unit that clears it would itself be a delay late, and wipe out the memory of something seen only briefly. The ladder has neither problem: the shortest rungs notice at once, and the longest remember.
+
+## The pursue module
+
+`modules/pursue.yaml` turns a vehicle toward something on one side and lunges at something ahead. It is the Vehicle 8 hunter's chase ([vehicle-08.md](vehicle-08.md), *Units*), made into a module.
+
+- **Inputs:** `left`, `ahead` and `right`, where there is something to go for, and `near`, that what is ahead is already close.
+- **Outputs:** `turn_left`, `turn_right` and `forward`, which the vehicle wires to its motors: a turn to the left drives the right motor, and `forward` drives both.
+- **Turns** (`turn_left`, `turn_right`, delay 0.1 s) fire on their side unless something is also ahead. They are short, so as not to swing past what is only a little to one side.
+- **Lunges** (`forward`, delay 0.3 s) fire on `ahead`, unless `near`. They are longer, to gain on what never stops.
+
+Each command lasts about twice its delay longer than the signal that called for it, as for any unit. What the inputs mean is up to the vehicle: the hunter gives `left` both the movement it sees on the left and the left pulses of `wander`, so that its wandering turns are made by `pursue` too.
 
 ## Loading and validation
 
@@ -127,14 +157,16 @@ Loading fails, naming the file and the key, when:
 
 ## Acceptance criteria
 
-1. **Loading:** a definition that includes `modules/wander.yaml` loads with its units renamed, such as `wander.left` and `wander.tick`, all threshold units; `wander.tick` has inputs from `wander.both` and `wander.was` and from the sources the definition gives `enable` (excitatory) and `hold` (inhibitory).
-2. **Same as by hand:** the Vehicle 8 hunter, which includes the module, and the same hunter with the module's units written out by hand produce the same trajectory for the same seed.
-3. **On and off:** a vehicle whose `enable` comes from a sensor wanders while the sensor reads 1: in 300 s, `left` and `right` together come on 100 to 160 times, each side 40% to 60% of them, never less than 1 s apart, each for about 0.4 s, and in no repeating pattern of up to 8 turns. While the sensor reads 0 they never fire. With a signal on `hold`, it does not fire. With `hold` given as `[]`, it fires as if `hold` were always off.
-4. **Two copies:** a vehicle that includes the module twice, as `a` and `b`, has units `a.left`, `a.right`, `b.left` and `b.right`, wired to their own inputs.
-5. **Private units:** naming a module's unit that is not an output, from outside the module, is an error.
-6. **Validation:** each failure case under *Loading and validation* raises an error naming the file and the key.
-7. **Diagram:** the diagram of a vehicle with the wander module has one part `wander`, of kind `module`, with 11 cells, at the module's position, and no part for its units. Its wires are only those that cross its edge, and a wire from `wander.left` starts at its cell.
-8. **Headless:** loading a definition with modules never imports pygame.
+1. **Loading:** a definition that includes `modules/wander.yaml` loads with its units renamed, such as `wander.left` and `wander.tick`, all threshold units; `wander.tick` has inputs from `wander.both` and `wander.was` and from each source the definition gives `enable`.
+2. **Same as by hand:** the Vehicle 8 hunter, which includes both modules, and the same hunter with the modules' units written out by hand produce the same trajectory for the same seed.
+3. **On and off:** a vehicle whose `enable` comes from a sensor wanders while the sensor reads 1: in 300 s, `left` and `right` together come on 100 to 160 times, each side 40% to 60% of them, never less than 1 s apart, each for about 0.4 s, and in no repeating pattern of up to 8 turns. While the sensor reads 0 they never fire, and with `enable` given as `[]` they never fire.
+4. **Boredom:** with `seen` on for 0.05, 0.3, 1 or 3 s and then off, `bored` fires again 3.2 to 3.3 s after `seen` went off, and not before. It stops when `seen` or `busy` comes on, and stays off while `busy` is on.
+5. **Pursue:** with steady inputs, `pursue` fires `turn_left` for `left`, `turn_right` for `right`, and `forward` for `ahead`, also when `left` is on too; nothing for `ahead` with `near`, nor with no input. A one-step signal on `left` gives a turn of 0.1 s, and one on `ahead` a lunge of 0.3 s.
+6. **Two copies:** a vehicle that includes the module twice, as `a` and `b`, has units `a.left`, `a.right`, `b.left` and `b.right`, wired to their own inputs.
+7. **Private units:** naming a module's unit that is not an output, from outside the module, is an error.
+8. **Validation:** each failure case under *Loading and validation* raises an error naming the file and the key.
+9. **Diagram:** the diagram of a vehicle with the wander module has one part `wander`, of kind `module`, at the module's position, with input `enable` and outputs `left` and `right`, and no part for its units. Its wires are only those that cross its edge: each one into it names the input it comes through, and each one out of it the output it comes from. The SVG draws the box with the names of its inputs and outputs.
+10. **Headless:** loading a definition with modules never imports pygame.
 
 ## Out of scope
 

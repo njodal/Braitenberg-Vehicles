@@ -1,13 +1,12 @@
 module:
   name: Wander
   description: >-
-    Now and then, a short pulse on left or on right, while it is enabled and not held. When and
+    Now and then, a short pulse on left or on right, while it is enabled. When and
     to which side follow no simple rhythm: they come from clocks that run at different speeds.
     A vehicle that turns with the pulses wanders slowly in a direction that keeps changing.
 
 inputs:
-  enable: while it carries a signal, the module may fire
-  hold: while it carries a signal, the module waits, such as while the vehicle is already moving
+  enable: while it carries a signal, the module fires now and then; without it, never
 
 outputs: [left, right]
 
@@ -66,7 +65,7 @@ units:
       inputs:
         - input:
             from: both
-  # The moment both come on, if enabled and not held.
+  # The moment both come on, if enabled.
   - unit:
       name: tick
       type: threshold
@@ -79,9 +78,6 @@ units:
             type: inhibitory
         - input:
             from: enable
-        - input:
-            from: hold
-            type: inhibitory
   # Which side: whatever side says at that moment.
   - unit:
       name: go_left

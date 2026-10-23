@@ -1,0 +1,50 @@
+module:
+  name: Pursue
+  description: >-
+    Turns toward what is on one side, and lunges at what is ahead: short turns to the side
+    where something is, a longer lunge when it is straight ahead, and no lunge once it is near.
+
+inputs:
+  left: something to turn toward on the left, such as movement seen there
+  ahead: something to lunge at straight ahead
+  right: something to turn toward on the right
+  near: what is ahead is already close
+
+outputs: [turn_left, turn_right, forward]
+
+units:
+  # Short turns, so as not to swing past what is only a little to one side.
+  - unit:
+      name: turn_left
+      type: threshold
+      threshold: 1
+      delay: 0.1
+      inputs:
+        - input:
+            from: left
+        - input:
+            from: ahead
+            type: inhibitory
+  - unit:
+      name: turn_right
+      type: threshold
+      threshold: 1
+      delay: 0.1
+      inputs:
+        - input:
+            from: right
+        - input:
+            from: ahead
+            type: inhibitory
+  # A longer lunge, to gain on what never stops.
+  - unit:
+      name: forward
+      type: threshold
+      threshold: 1
+      delay: 0.3
+      inputs:
+        - input:
+            from: ahead
+        - input:
+            from: near
+            type: inhibitory

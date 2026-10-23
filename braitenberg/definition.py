@@ -55,6 +55,7 @@ class Connection:
     strength: float = 1.0   # from 0 to 1; the connection is active above ACTIVE_STRENGTH
     learning: Learning | None = None   # for a learning connection, strength is where it starts
     label: str = ""         # `from` as written, e.g. lump[i-1]; empty when it is just the source
+    port: str = ""          # into a module's unit: the module input it comes through
 
     @property
     def active(self) -> bool:
@@ -185,8 +186,7 @@ class VehicleDefinition:
     # Brightness of each face for other cameras, by stimulus and face; GRAY where not given.
     appearance: dict[str, dict[str, float]] = field(default_factory=dict)
     arrays: dict[str, tuple[int, ...]] = field(default_factory=dict)  # array name -> shape
-    # Included modules: name -> (the module's own name, where the diagram draws it).
-    modules: dict[str, tuple[str, tuple[float, float]]] = field(default_factory=dict)
+    modules: dict[str, ModuleUse] = field(default_factory=dict)   # included modules, by name
 
     def faces(self, stimulus: str) -> tuple[float, ...]:
         """The brightness of each face, in the order of FACES, for `stimulus`."""
@@ -343,7 +343,7 @@ class _DefinitionParser(Parser):
                 ikey = f"{key}.inputs.{input_name}"
                 listed = value if isinstance(value, list) else [value]
                 sources[input_name] = [self.string(v, ikey) for v in listed]
-            self.included[name] = (module.name, offset)
+            self.included[name] = ModuleUse(module.name, offset, list(module.inputs), module.outputs)
             self.module_units[name] = {f"{name}.{u.name}" for u in module.units}
             self.module_outputs[name] = {f"{name}.{o}" for o in module.outputs}
             for k, u in enumerate(module.units):
@@ -354,7 +354,7 @@ class _DefinitionParser(Parser):
                     m = FROM_PATTERN.match(c.source)
                     base, indices = m.group(1), m.group(2)
                     if base in module.inputs:
-                        inputs += [replace(c, source=source) for source in sources[base]]
+                        inputs += [replace(c, source=source, port=base) for source in sources[base]]
                     else:
                         inputs.append(replace(c, source=f"{name}.{c.source}"))
                 result.append((ukey, replace(u, name=renamed, inputs=inputs, position=offset,
@@ -586,6 +586,16 @@ class _DefinitionParser(Parser):
                                           for n in dims):
             raise self.error(key, "must be a positive integer, or [rows, columns] of positive integers")
         return tuple(dims)
+
+
+@dataclass
+class ModuleUse:
+    """A module as a vehicle includes it: what the diagram needs to draw it as one box."""
+
+    title: str                       # the module's own name, e.g. Wander
+    position: tuple[float, float]    # where the diagram draws it
+    inputs: list[str]                # its inputs, drawn on top, in order
+    outputs: list[str]               # its outputs, drawn below, in order
 
 
 @dataclass

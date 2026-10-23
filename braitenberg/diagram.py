@@ -27,7 +27,7 @@ INACTIVE = "#9ca3af"
 LEARNING = "#7c3aed"    # Mnemotrix wires (Vehicle 7), whatever their sign
 INK = "#1f2937"
 DIM = "#6b7280"
-PART_SIZE = {"sensor": 14, "motor": 17, "unit": 17}   # radius used to stop wires at the edge
+PART_SIZE = {"sensor": 14, "motor": 17, "unit": 17, "module": 20}   # where wires stop, from the center
 UNIT_RADIUS = 16
 
 
@@ -44,6 +44,51 @@ def grid_size(shape, radius: float = RADIUS) -> tuple[float, float]:
     rows, columns = shape if len(shape) == 2 else (1, shape[0])
     cell = min(MAX_CELL, GRID_WIDTH * radius / columns)
     return columns * cell, rows * cell
+
+
+PORT_GAP = 60           # pixels between two inputs, or two outputs, of a module's box
+BOX_HEIGHT = 36
+
+
+def module_box(part, gap: float = PORT_GAP, height: float = BOX_HEIGHT) -> tuple[float, float]:
+    """Width and height, in pixels, of the box that draws a module."""
+    return max(len(part.inputs), len(part.outputs), 2) * gap, height
+
+
+def port_offset(part, port: str, gap: float = PORT_GAP, height: float = BOX_HEIGHT):
+    """Where a module's input (on top of its box) or output (below it) is, from its center."""
+    w, h = module_box(part, gap, height)
+    inputs = port in part.inputs
+    ports = part.inputs if inputs else part.outputs
+    x = -w / 2 + w * (ports.index(port) + 0.5) / len(ports)
+    return x, -h / 2 if inputs else h / 2
+
+
+def wire_ends(w, parts, at, gap: float = PORT_GAP, height: float = BOX_HEIGHT):
+    """The points a wire is drawn between: the parts' centers, or the module ports it uses."""
+    ends = []
+    for name, port in ((w.source, w.source_port), (w.target, w.target_port)):
+        x, y = at(parts[name].position)
+        if port:
+            dx, dy = port_offset(parts[name], port, gap, height)
+            x, y = x + dx, y + dy
+        ends.append((x, y))
+    return ends
+
+
+def module_svg(p, x: float, y: float) -> list[str]:
+    """A module: a box, with its inputs on top and its outputs below, each a small circle."""
+    w, h = module_box(p)
+    out = [f'<rect x="{x - w / 2:.1f}" y="{y - h / 2:.1f}" width="{w:.1f}" height="{h:.1f}" '
+           f'rx="6" fill="#f3f4f6" stroke="{INK}" stroke-width="2"/>']
+    for port in p.inputs + p.outputs:
+        dx, dy = port_offset(p, port)
+        inside = 13 if dy < 0 else -7     # the port's name, just inside the box
+        out.append(f'<circle cx="{x + dx:.1f}" cy="{y + dy:.1f}" r="4" fill="white" '
+                   f'stroke="{INK}" stroke-width="1.5"/>')
+        out.append(f'<text x="{x + dx + 7:.1f}" y="{y + dy + inside:.1f}" font-size="10" '
+                   f'fill="{INK}">{escape(port)}</text>')
+    return out
 
 
 def edge(part, ux: float, uy: float, radius: float = RADIUS) -> float:
@@ -63,7 +108,7 @@ def bundles(wires) -> list:
     """
     groups, labels = {}, {}
     for w in wires:
-        key = (w.source, w.target, w.sign, w.learning, w.active)
+        key = (w.source, w.target, w.source_port, w.target_port, w.sign, w.learning, w.active)
         if key in groups:
             first = groups[key]
             first.level = max(first.level, w.level)
@@ -123,6 +168,11 @@ def definition_svg(definition: VehicleDefinition) -> str:
         f'stroke="{DIM}" stroke-width="2"/>',
     ]
 
+    # A module's box goes under the wires, so that a wire is seen leaving each of its ports.
+    for p in diagram.parts:
+        if p.kind == "module":
+            out += module_svg(p, *at(p.position))
+
     pairs: dict[frozenset, int] = {}   # bundles between the same two parts are drawn side by side
     for w in diagram.wires:
         pairs[frozenset((w.source, w.target))] = pairs.get(frozenset((w.source, w.target)), 0) + 1
@@ -134,7 +184,7 @@ def definition_svg(definition: VehicleDefinition) -> str:
         # A learning wire is drawn wider the stronger it starts.
         stroke = f"{1.5 + 2.5 * w.strength:.1f}" if w.learning else "2"
         source, target = parts[w.source], parts[w.target]
-        x1, y1 = at(source.position)
+        (x1, y1), (x2, y2) = wire_ends(w, parts, at)
         if w.source == w.target:  # a unit feeding back into itself: a loop above it
             r = PART_SIZE[target.kind]
             out.append(f'<path d="M{x1 + r * 0.7:.1f},{y1 - r * 0.7:.1f} '
@@ -143,15 +193,15 @@ def definition_svg(definition: VehicleDefinition) -> str:
                        f'{dash} marker-end="url(#arrow-{kind})"/>')
             label_x, label_y = x1 + 3.4 * r, y1 - 2.6 * r
         else:
-            x2, y2 = at(target.position)
             length = math.hypot(x2 - x1, y2 - y1) or 1
             ux, uy = (x2 - x1) / length, (y2 - y1) / length
             pair = frozenset((w.source, w.target))
             k = drawn[pair] = drawn.get(pair, -1) + 1
             shift = (k - (pairs[pair] - 1) / 2) * 6
             x1, y1, x2, y2 = x1 - uy * shift, y1 + ux * shift, x2 - uy * shift, y2 + ux * shift
-            start = edge(source, ux, uy, radius)
-            end = edge(target, ux, uy, radius) + 2
+            # A wire to or from a module's port ends at the port, not at the part's outline.
+            start = 4 if w.source_port else edge(source, ux, uy, radius)
+            end = 6 if w.target_port else edge(target, ux, uy, radius) + 2
             out.append(f'<line x1="{x1 + ux * start:.1f}" y1="{y1 + uy * start:.1f}" '
                        f'x2="{x2 - ux * end:.1f}" y2="{y2 - uy * end:.1f}" stroke="{color}" '
                        f'stroke-width="{stroke}"{dash} marker-end="url(#arrow-{kind})"/>')
@@ -185,6 +235,8 @@ def definition_svg(definition: VehicleDefinition) -> str:
             a = actuators[p.name]
             caption = [p.name] + ([f"gain {a.gain:g} \u00b7 base {a.base_speed:g}"]
                                   if (a.gain, a.base_speed) != (1, 0) else [])
+        elif p.kind == "module":
+            caption = [p.name, p.label]   # its box is drawn under the wires, above
         elif p.shape is not None:
             # A camera or an array of units: a grid of cells, one per pixel or element.
             w, h = grid_size(p.shape, radius)
@@ -197,9 +249,7 @@ def definition_svg(definition: VehicleDefinition) -> str:
             out.append(f'<rect x="{x - w / 2:.1f}" y="{y - h / 2:.1f}" width="{w:.1f}" '
                        f'height="{h:.1f}" fill="none" stroke="{INK}" stroke-width="1.5"/>')
             size = "×".join(str(n) for n in p.shape)
-            if p.kind == "module":
-                caption = [p.name, p.label]
-            elif p.kind == "camera":
+            if p.kind == "camera":
                 s = sensors[p.name]
                 caption = [p.name, f"{sensor_caption(s)}, {size} px, "
                                    f"{s.field_of_view:g}°×{s.camera.vertical_field_of_view:g}°"]
@@ -213,6 +263,7 @@ def definition_svg(definition: VehicleDefinition) -> str:
                        f'font-weight="bold" fill="{INK}">{p.threshold:g}</text>')
             caption = [p.name]
         below = (UNIT_RADIUS + 15 if p.kind == "unit"
+                 else module_box(p)[1] / 2 + 16 if p.kind == "module"
                  else grid_size(p.shape, radius)[1] / 2 + 14 if p.shape is not None else 28)
         for i, text in enumerate(caption):
             out.append(f'<text x="{x}" y="{y + below + 13 * i}" text-anchor="middle" '

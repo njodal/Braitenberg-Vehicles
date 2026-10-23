@@ -31,6 +31,8 @@ class Part:
     level: float | list  # activity in [0, 1]
     threshold: float | None = None  # units and arrays only
     shape: tuple[int, ...] | None = None  # cameras and arrays only
+    inputs: list[str] | None = None   # a module's inputs, drawn on top of its box
+    outputs: list[str] | None = None  # a module's outputs, drawn below it; value and level are theirs
 
 
 @dataclass
@@ -45,6 +47,8 @@ class Wire:
     source_index: tuple[int, ...] | None = None  # the pixel or element, from a camera or an array
     target_index: tuple[int, ...] | None = None  # the element, into an array
     label: str = ""   # the input's `from` as written, when it has indices, e.g. lump[i-1]
+    source_port: str | None = None   # the module output it comes from
+    target_port: str | None = None   # the module input it goes to
 
 
 @dataclass
@@ -302,14 +306,14 @@ class Vehicle:
         module_units = {name: [u for u in d.units if u.module == name] for name in d.modules}
         for u in d.units:
             if u.module:
-                # A module is one part: a strip of cells, one per unit, lit by its output.
+                # A module is one part: a box with its inputs and outputs, lit by its outputs.
                 group_of[u.name] = u.module
                 if u is not module_units[u.module][0]:
                     continue
-                values = [self.unit_outputs[e.name] for e in module_units[u.module]]
-                parts.append(Part("module", u.module, positions[u.module],
-                                  f"module {d.modules[u.module][0]}", values, values,
-                                  shape=(len(values),)))
+                use = d.modules[u.module]
+                values = [self.unit_outputs[f"{u.module}.{o}"] for o in use.outputs]
+                parts.append(Part("module", u.module, positions[u.module], f"module {use.title}",
+                                  values, values, inputs=use.inputs, outputs=use.outputs))
             elif u.array:
                 group_of[u.name] = u.array
                 if u.index != (0,) * len(u.index):
@@ -332,8 +336,8 @@ class Vehicle:
         for s in d.sensors:
             if s.camera:
                 group_of.update((name, s.name) for name in s.pixels())
-        indices = {u.name: u.index for u in d.units if u.array}
-        indices.update((u.name, (k,)) for units in module_units.values() for k, u in enumerate(units))
+        indices = {u.name: u.index for u in d.units if u.array and not u.module}
+        module_of = {u.name: u.module for u in d.units if u.module}
         indices.update((element_name(s.name, (r, c)), (r, c)) for s in d.sensors if s.camera
                        for r in range(s.camera.rows) for c in range(s.camera.columns))
         wires = []
@@ -347,7 +351,10 @@ class Vehicle:
                                   group_of.get(target.name, target.name), c.sign,
                                   levels[c.source] if active else 0.0, active, strength,
                                   c.learning.type if c.learning else None,
-                                  indices.get(c.source), indices.get(target.name), c.label))
+                                  indices.get(c.source), indices.get(target.name), c.label,
+                                  source_port=c.source.split(".", 1)[1] if c.source in module_of
+                                  else None,
+                                  target_port=c.port or None))
         return Diagram(
             title=self.label,
             subtitle=f"Vehicle {d.general.type}: {d.general.name}",
@@ -382,7 +389,7 @@ class Vehicle:
         groups: dict[str, tuple[float, float] | None] = {}
         for u in self.definition.units:
             if u.module:
-                groups.setdefault(u.module, self.definition.modules[u.module][1])
+                groups.setdefault(u.module, self.definition.modules[u.module].position)
             else:
                 groups.setdefault(u.array or u.name, u.position)
         n = len(groups)
