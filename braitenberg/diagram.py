@@ -47,7 +47,7 @@ def grid_size(shape, radius: float = RADIUS) -> tuple[float, float]:
 
 
 PORT_GAP = 60           # pixels between two inputs, or two outputs, of a module's box
-BOX_HEIGHT = 36
+BOX_HEIGHT = 64          # room for the ports' names, and the module's name in the middle
 
 
 def module_box(part, gap: float = PORT_GAP, height: float = BOX_HEIGHT) -> tuple[float, float]:
@@ -87,8 +87,18 @@ def module_svg(p, x: float, y: float) -> list[str]:
         out.append(f'<circle cx="{x + dx:.1f}" cy="{y + dy:.1f}" r="4" fill="white" '
                    f'stroke="{INK}" stroke-width="1.5"/>')
         out.append(f'<text x="{x + dx + 7:.1f}" y="{y + dy + inside:.1f}" font-size="10" '
-                   f'fill="{INK}">{escape(port)}</text>')
+                   f'fill="{DIM}">{escape(port)}</text>')
     return out
+
+
+def module_name_svg(p, x: float, y: float) -> list[str]:
+    """A module's name in the middle of its box, and what module it is below that. Drawn over
+    the wires, with an edge the color of the box so that a wire crossing it does not hide it."""
+    halo = 'paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round"'
+    return [f'<text x="{x:.1f}" y="{y + 1:.1f}" text-anchor="middle" font-size="13" '
+            f'font-weight="bold" fill="{INK}" {halo}>{escape(p.name)}</text>',
+            f'<text x="{x:.1f}" y="{y + 13:.1f}" text-anchor="middle" font-size="10" '
+            f'fill="{DIM}" {halo}>{escape(p.label)}</text>']
 
 
 def edge(part, ux: float, uy: float, radius: float = RADIUS) -> float:
@@ -236,7 +246,8 @@ def definition_svg(definition: VehicleDefinition) -> str:
             caption = [p.name] + ([f"gain {a.gain:g} \u00b7 base {a.base_speed:g}"]
                                   if (a.gain, a.base_speed) != (1, 0) else [])
         elif p.kind == "module":
-            caption = [p.name, p.label]   # its box is drawn under the wires, above
+            out += module_name_svg(p, x, y)   # its box is drawn under the wires, above
+            caption = []
         elif p.shape is not None:
             # A camera or an array of units: a grid of cells, one per pixel or element.
             w, h = grid_size(p.shape, radius)

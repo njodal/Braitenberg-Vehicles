@@ -32,8 +32,8 @@ MIN_WINDOW_HEIGHT = 600   # so the panel fits even for a long, narrow arena
 HEATMAP_CELL = 4          # pixels per heat map sample
 TRAIL_LENGTH = 800        # recent positions kept per vehicle
 SOURCE_RADIUS = 7
-PANEL_PORT_GAP = 44      # pixels between two ports of a module's box, in the panel
-PANEL_BOX_HEIGHT = 30
+PANEL_PORT_GAP = 22      # pixels between two ports of a module's box, in the panel
+PANEL_BOX_HEIGHT = 18
 MIN_VEHICLE = 6           # pixels: the smallest half length a vehicle is drawn with
 GRAB_RADIUS = 14
 FPS = 60
@@ -385,7 +385,10 @@ class Renderer:
             fill = (tuple(int(c) for c in heat_colors(np.array(p.level)))
                     if p.shape is None and p.kind != "module" else None)
             if p.kind == "module":
-                pass   # drawn under the wires
+                # Its box is drawn under the wires; its name goes over them, in the middle. Its
+                # ports are too small here to be named.
+                name = self.small_font.render(p.name, True, TEXT, PANEL_BG)
+                surface.blit(name, (x - name.get_width() / 2, y - name.get_height() / 2))
             elif p.kind == "sensor":
                 # A round sensor with two short antennae pointing forward.
                 for dx in (-9, 9):
@@ -407,9 +410,10 @@ class Renderer:
                     color = VEHICLE_OUTLINE if p.level > 0.5 else TEXT
                     value = self.small_font.render(f"{p.threshold:g}", True, color)
                     surface.blit(value, (x - value.get_width() / 2, y - value.get_height() / 2))
+            if p.kind == "module":
+                continue   # its name is inside its box
             label = self.small_font.render(p.name, True, PANEL_DIM)
             below = (UNIT_RADIUS + 4 if p.kind == "unit"
-                     else PANEL_BOX_HEIGHT / 2 + 3 if p.kind == "module"
                      else self.cells_height(p.level, GRID_WIDTH * radius) / 2 + 3
                      if p.shape is not None else 15)
             surface.blit(label, (x - label.get_width() / 2, y + below))
@@ -426,10 +430,8 @@ class Renderer:
             dx, dy = port_offset(p, port, PANEL_PORT_GAP, PANEL_BOX_HEIGHT)
             x, y = at[0] + dx, at[1] + dy
             fill = tuple(int(c) for c in heat_colors(np.array(levels.get(port, 0.0))))
-            pygame.draw.circle(surface, fill, (x, y), 4)
-            pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 4, 1)
-            name = self.small_font.render(port, True, PANEL_DIM)
-            surface.blit(name, (x + 6, y + 2 if dy < 0 else y - name.get_height() - 1))
+            pygame.draw.circle(surface, fill, (x, y), 3)
+            pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 3, 1)
 
     @staticmethod
     def rows_of(levels) -> list[list[float]]:
