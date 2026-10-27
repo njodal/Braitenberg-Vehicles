@@ -1,12 +1,7 @@
 general:
   type: "8"
   name: Hunter
-  description: >-
-    Stands still and watches. Object detectors find the lumps in the image, lateral inhibition
-    keeps one point of each, and movement detectors watch those points. It turns toward what
-    moves and lunges when it is ahead (the module pursue), and does not look while it moves.
-    When it has seen nothing move for a while, it wanders: a short turn now and then, to one
-    side or the other (the module wander).
+  description: Watches a field of lamps and sees only what moves; turns toward it and lunges when it is ahead, without looking while it moves. When nothing moves for a while, it wanders.
   size: 4
   noise_std: 0
 

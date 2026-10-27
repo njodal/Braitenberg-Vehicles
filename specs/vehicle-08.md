@@ -149,9 +149,16 @@ The chapter suggests more combinations; they are not used by the hunter, but are
 
 The hunter is a predator that waits and watches, as a frog or a cat does. It stands still in a field of lamps, with its eye looking ahead. Somewhere in the field wanders its prey, which shines exactly as brightly as the lamps: in a single image the hunter cannot tell the prey from a lamp. What gives the prey away is that it moves.
 
-As long as nothing moves, the hunter watches, and now and then it takes a slow step to one side or the other, then stops and watches again: a prey that is out of sight may come into view from somewhere else. When the prey moves in view, the hunter turns toward it, stops, and looks again. When the prey is straight ahead, it lunges forward, stops, and looks again. It goes on like this, in short bursts, until it is close to the prey. If the prey stops, it vanishes among the lamps, and the hunter waits for it to move again, then goes back to wandering.
+When the prey moves in view, the hunter turns toward it or lunges at it, in short bursts, stopping to look after each, until it is close. While nothing moves, it wanders a little now and then, in case the prey comes into view elsewhere.
 
-Its brain is the chapter's circuits in a row. Object detectors find the lumps in the image, and ignore little things and things far away. Lateral inhibition reduces each lump to one point. Movement detectors watch those points, and fire only for the ones that change column. Which part of the image the movement is in decides whether to turn left, turn right or lunge, through the module `pursue` ([modules.md](modules.md)). One more unit blinds the hunter while it moves, since its own movement would make the lamps seem to move too. A few more, and the module `wander`, make it wander when it has seen nothing move for a while.
+Its brain is the chapter's circuits in a row:
+
+* **Object detectors** find the lumps in the image, and ignore little things and things far away.
+* **Lateral inhibition** reduces each lump to one point.
+* **Movement detectors** watch those points, and fire only for the ones that change column.
+* **Pursuit:** which part of the image the movement is in decides whether to turn left, turn right or lunge (the module `pursue`, [modules.md](modules.md)).
+* **Blindness while moving:** one unit stops the hunter from looking while it moves, since its own movement would make the lamps seem to move too.
+* **Wandering:** a few more units, and the module `wander`, make it wander when it has seen nothing move for a while.
 
 ![The hunter turns toward the prey, stops, looks, and lunges, in bursts, until it reaches it](images/vehicle8-hunter.gif)
 
