@@ -71,6 +71,7 @@ The body is a rectangle `width` across and `length` long, centered on the vehicl
 | `position` | yes | `[x, y]` in body coordinates. |
 | `response` | no | How the sensor's output depends on its reading (see *Responses*). Default: `linear`. |
 | `field_of_view` | no | The angle, in degrees, of the cone in front of the vehicle in which the sensor detects sources (see *Field of view*). Default 360: it detects sources in every direction. |
+| `direction` | no | Where the sensor's field of view points, in degrees from the vehicle's heading, positive to the left (see *Field of view*). From -180 to 180. Default 0: straight ahead. Needs a `field_of_view`. |
 | `camera` | no | Makes the sensor a camera, whose output is a matrix of pixels instead of one value ([camera.md](camera.md)). A camera needs a `field_of_view`. |
 
 A sensor **reads** the value of its stimulus at the sensor's position in the arena (or, for an `energy` sensor, the vehicle's own energy; see *5. Energy*), and its **output**, the signal its connections carry, is that reading passed through its response. Sensors at different places on the body read different values; that is what lets Vehicles 2 and up steer.
@@ -88,6 +89,19 @@ By default a sensor detects sources all around it. A sensor with a `field_of_vie
 ```
 
 A vehicle that has passed a source then no longer senses it behind it. `field_of_view` must be greater than 0 and at most 360. An `energy` sensor has none, since it does not look at the world.
+
+A sensor's `direction` turns its field of view away from straight ahead: it then detects the sources within `F / 2` degrees of the heading plus `direction`, counterclockwise, so positive to the left. A ring of sensors pointing in different directions, like the e-puck's infrared sensors ([sensors.md](sensors.md), *Infrared sensors*), tells the vehicle on which side something is. **Status:** implemented; used by the Vehicle 5 rover.
+
+```yaml
+- sensor:
+    name: ir_right
+    type: proximity
+    position: [0.9, 0]
+    direction: -90         # looks to the right
+    field_of_view: 60
+```
+
+A camera points with its own `camera.direction` ([camera.md](camera.md)) and cannot have a `direction`.
 
 #### Responses
 
@@ -286,6 +300,7 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - `general.length` or `general.width` is not a positive number;
 - a unit's `delay` is not positive;
 - a `field_of_view` is not greater than 0 and at most 360, or is given for an `energy` sensor;
+- a `direction` is not from -180 to 180, or is given without a `field_of_view`, or for a camera;
 - an `energy` value is missing, of the wrong type or out of range (e.g. `initial` above `max`), or a sensor has type `energy` and there is no `energy` section;
 - a `response` has an unknown `type`, is missing a required field for its type, has a field that its type does not use, or has a `width` that is not positive;
 - a sensor, actuator or unit `type` is unknown;
@@ -397,6 +412,7 @@ actuators:
 10. **Field of view:** a sensor with a `field_of_view` reads a source straight ahead exactly as a sensor without one does, reads nothing from a source behind it or outside the cone, and a sensor without a `field_of_view` reads sources in every direction.
 11. **Headless:** loading and running a definition never imports pygame.
 12. **Body shape:** a definition without `length` and `width` loads with both equal to `size`, and moves and places its parts exactly as before. With `width` 6 and `length` 2, a sensor at `[1, 1]` sits 3 units to the right of the center and 1 unit ahead of it, and two motors at `x = ±1` turn the vehicle at `(s_right - s_left) / 6`.
+13. **Direction:** a sensor with `direction` 90 and `field_of_view` 60 reads a source 90° to the left of the heading as a sensor without them reads it, and reads nothing from a source straight ahead; with `direction` -90, the same to the right. A sensor without `direction` reads exactly as before.
 
 Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (criteria 6 to 12).
 

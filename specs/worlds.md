@@ -2,7 +2,7 @@
 
 ## Summary
 
-A **world** is the environment a simulation runs in: the arena and the stimuli in it. Worlds are described in YAML files, so environments are changed by editing or picking a file, not by editing code.
+A **world** is the environment a simulation runs in: the arena, the stimuli in it, and the obstacles that vehicles cannot drive through. Worlds are described in YAML files, so environments are changed by editing or picking a file, not by editing code.
 
 World files live in the `worlds/` folder, e.g. `worlds/hot-spot.yaml`. A world does not place vehicles or hold simulation settings; a scenario does both ([scenarios.md](scenarios.md)).
 
@@ -32,6 +32,7 @@ stimuli:
 | `name`, `description` | `name` required | Human-readable. |
 | `arena` | yes | `width`, `height` (positive numbers) and `edges` (`wrap` or `bounce`, default `wrap`). Origin at the bottom-left corner, y pointing up. |
 | `stimuli` | yes | A map from stimulus name (e.g. `temperature`, `light`, `oxygen`) to its definition. A world may have several stimuli; a sensor's `type` names the stimulus it reads ([vehicle-definition.md](vehicle-definition.md)). |
+| `obstacles` | no | Boxes that vehicles cannot drive through (see *Obstacles*). Default: none. |
 
 ### Stimuli and sources
 
@@ -77,6 +78,65 @@ At simulated time `t`, let `c = t mod period`. With `on_at < off_at` the source 
 
 A source that is off contributes nothing to its stimulus; nothing else about it changes. The renderer draws active sources filled and inactive ones as hollow rings (in that color when the stimulus is named after one, such as `red` or `green`, and on top of other sources at the same place, so a red lamp that is also hot shows red), lists which scheduled stimuli are on, and its heat map follows them as they switch.
 
+### Obstacles
+
+**Status:** implemented; used by the Vehicle 5 rover ([vehicle-05-rover.md](vehicle-05-rover.md)) in `worlds/room.yaml`.
+
+An obstacle is a box standing on the ground that vehicles cannot drive through: a block, or, long and thin, a wall.
+
+```yaml
+obstacles:
+  - box:
+      position: [30, 60]   # the center
+      length: 20           # along its heading
+      width: 1             # across it
+      heading: 90          # degrees, counterclockwise from +x: a wall running up and down
+      height: 2
+  - box:
+      position: [70, 40]
+      length: 6
+      width: 6             # a square block, heading 0
+
+stimuli:
+  proximity:               # what infrared sensors read: high near an obstacle or another vehicle
+    sources: []
+    surfaces:
+      intensity: 10
+      falloff: 2
+```
+
+Each item is wrapped in `- box:`, like the items of a vehicle definition.
+
+| Key | Required | Meaning |
+|---|---|---|
+| `position` | yes | `[x, y]` of the box's center, inside the arena. |
+| `length` | yes | Its size along its heading. Positive. |
+| `width` | yes | Its size across its heading. Positive. |
+| `heading` | no | Degrees, counterclockwise from `+x`, as for vehicles. Default 0: `length` along `x` and `width` along `y`. |
+| `height` | no | As cameras see it. Positive. Default 2. |
+| `appearance` | no | Its color for cameras, as for a vehicle ([camera.md](camera.md), *Appearance*). Default gray. |
+
+#### Blocking
+
+Vehicles cannot enter obstacles. For this a vehicle is a disc around its center, whose diameter is the larger of its body's `width` and `length`, so no part of its body enters an obstacle whatever its heading.
+
+After a vehicle moves, and after the arena's edge rule (see *Edges*), any obstacle its disc overlaps pushes it back out, the shortest way, until the disc just touches the obstacle's surface. So a vehicle that drives straight into a wall stops against it, and one that meets it at an angle slides along it. Its heading and its motors are unchanged: a vehicle does not feel a collision, unless it senses the obstacle (see *The proximity field*). Vehicles do not block each other (see *Out of scope*).
+
+An obstacle blocks only vehicles. Sources may lie inside or under one, and their fields pass through it, since fields are not light rays. Cameras see obstacles as boxes, which hide what is behind them ([camera.md](camera.md)).
+
+#### The proximity field
+
+A stimulus may have a `surfaces` section, with an `intensity` and a `falloff`. Then every obstacle, and every vehicle, adds to that stimulus's field `intensity / (1 + (d / falloff)^2)`, where `d` is the distance from the point to its nearest surface (0 on or inside it). So the field is `intensity` against a surface and half of it at `falloff` from it, however big the obstacle or vehicle is, and it follows a wall along its whole length, which a point source cannot do.
+
+- **Obstacles** count by their box's footprint.
+- **Vehicles** count by their body: the rectangle `width` across and `length` long, turned with their heading ([vehicle-definition.md](vehicle-definition.md), *1. General*), where it was at the start of the step, so the order of vehicles in a scenario does not matter. A vehicle's sensors never read its own body, which would otherwise fill their reading.
+
+This is what a vehicle's infrared sensors read, as the e-puck's do ([webots.md](webots.md)): an ordinary world sensor whose `type` is that stimulus. An infrared sensor cannot tell an obstacle from a vehicle: both are something close. A sensor with a `field_of_view` takes an obstacle or a vehicle into account when the direction to its nearest point is within its view, as it does for a source ([vehicle-definition.md](vehicle-definition.md), *Field of view*). Sources, obstacles and vehicles of the same stimulus add up.
+
+Since vehicles move, this part of the field is computed by the simulation from the vehicles' places, not by the world alone; the renderer's heat map shows only the sources and obstacles.
+
+A field of view is centered on the vehicle's heading for now; infrared sensors that look to the sides, as the e-puck's do, need a direction of their own, which the spec of the first vehicle that uses them will add to [vehicle-definition.md](vehicle-definition.md).
+
 ### Edges
 
 When a vehicle moves past an edge:
@@ -92,7 +152,9 @@ When a vehicle moves past an edge:
   - an unknown key appears (catches typos such as `falof`, and `vehicles` or `simulation` sections, which belong in scenarios);
   - a source position lies outside the arena;
   - a `schedule` is missing a key, has a non-positive `period`, has `on_at` or `off_at` outside `[0, period]`, or has `on_at` equal to `off_at`.
-  - a source's `radius` or `height` is not a positive number, or it has a `height` without a `radius`.
+  - a source's `radius` or `height` is not a positive number, or it has a `height` without a `radius`;
+  - an obstacle is not wrapped in `- box:`, is missing a required key, has an unknown key, has its `position` outside the arena, or has `length`, `width` or `height` that is not a positive number;
+  - a stimulus's `surfaces` section is missing `intensity` or `falloff`, has an unknown key, or has a `falloff` that is not positive.
 - Defaults are applied by the loader, so the rest of the code sees a complete world.
 - The world model lives in the simulation side (`world.py`) and must not import pygame.
 
@@ -108,10 +170,18 @@ The renderer lets the user move sources during a run. These changes affect only 
 4. **Field values:** for a single source, the field equals `intensity` at the source and `intensity / 2` at distance `falloff`.
 5. **Wrapped distance:** with `edges: wrap`, a point near the left edge is affected by a source near the right edge as if they were close.
 6. **Schedules:** a scheduled source contributes to its stimulus exactly while it is on, as defined in *Schedules*, including a cycle that wraps (`on_at > off_at`); a source without a schedule is always on.
+7. **Obstacles load:** the obstacle example above loads with its boxes and their defaults (`heading` 0, `height` 2, gray), and a world without `obstacles` has none.
+8. **Proximity field:** for one obstacle, the field equals `intensity` on its surface and inside it, and `intensity / 2` at `falloff` from its nearest surface, both beside a long side and beyond an end of a wall. A stimulus without a `surfaces` section is not affected by obstacles or vehicles.
+9. **Vehicles in the field:** a sensor reads `intensity / 2` from another vehicle whose body is `falloff` away, and reads the same whether the other vehicle comes before or after it in the scenario. A vehicle alone in an arena without obstacles reads 0: it never senses its own body. An obstacle and a vehicle at the same distance add the same amount.
+10. **Field of view:** a sensor whose view takes in the nearest point of an obstacle or a vehicle reads its contribution; one whose view does not, reads nothing from it.
+11. **Blocking:** a vehicle driving straight at a wall stops with its disc touching the wall and stays there; one meeting it at 45° slides along it; in neither case does its disc ever overlap the wall, and its heading is not changed by the collision.
+12. **Nothing else changes:** worlds without obstacles behave as before, and every existing test passes unchanged.
 
 ## Out of scope
 
-- Obstacles and walls inside the arena.
+- Obstacles of other shapes than boxes (cylinders, polygons), obstacles that move, and obstacles that reach across a wrapping edge.
+- Collisions between vehicles, and bodies that collide by their exact rectangle rather than a disc.
+- Collisions that cost energy or damage a vehicle.
 - Moving sources, and sources whose intensity changes gradually rather than switching on and off.
 - Fields that are not built from point sources (e.g. gradients, images).
 - Saving a running simulation back to a world file.

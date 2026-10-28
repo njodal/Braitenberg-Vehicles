@@ -3,10 +3,11 @@
 <marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
 <marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
 <marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker>
+<marker id="arrow-learn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
 </defs>
 <rect width="480" height="570" fill="white"/>
 <text x="240.0" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1f2937">Vehicle 5: Driver</text>
-<rect x="70.0" y="120" width="340" height="340" rx="51.0" fill="#f9fafb" stroke="#6b7280" stroke-width="2"/>
+<rect x="70" y="120" width="340" height="340" rx="51" fill="#f9fafb" stroke="#6b7280" stroke-width="2"/>
 <line x1="185.3" y1="150.5" x2="168.5" y2="212.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
 <text x="159.9" y="214.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
 <line x1="294.7" y1="150.5" x2="311.5" y2="212.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
@@ -41,6 +42,6 @@
 <text x="240.0" y="450.0" text-anchor="middle" font-size="10" fill="#6b7280">gain 5 · base 0</text>
 <line x1="70" y1="550.0" x2="100" y2="550.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
 <text x="110" y="554.0" font-size="12" fill="#1f2937">+ excitatory</text>
-<line x1="240" y1="550.0" x2="270" y2="550.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
-<text x="280" y="554.0" font-size="12" fill="#1f2937">− inhibitory</text>
+<line x1="250" y1="550.0" x2="280" y2="550.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="290" y="554.0" font-size="12" fill="#1f2937">− inhibitory</text>
 </svg>

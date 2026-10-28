@@ -1,0 +1,18 @@
+name: Rover
+description: Two rovers explore a walled room with blocks in it, each with four infrared sensors. They turn away from walls, blocks and each other without bumping into anything.
+
+world: ../worlds/room.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle5-rover.yaml
+      position: [15, 15]
+      heading: 45
+  - vehicle:
+      definition: ../vehicles/vehicle5-rover.yaml
+      position: [85, 85]
+      heading: 225
+
+simulation:
+  dt: 0.01
+  seed: 0

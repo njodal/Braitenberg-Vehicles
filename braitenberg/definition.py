@@ -127,7 +127,8 @@ class SensorDef:
     type: str     # the stimulus it reads
     position: tuple[float, float]
     response: Response = field(default_factory=Response)
-    field_of_view: float = 360.0   # degrees, centered on the vehicle's heading
+    field_of_view: float = 360.0   # degrees, centered on `direction`
+    direction: float = 0.0         # degrees from the heading, + to the left, where it looks
     camera: Camera | None = None   # a camera's output is a matrix of pixels, not one value
 
     def pixels(self) -> list[str]:
@@ -239,12 +240,13 @@ class _DefinitionParser(Parser):
         return VehicleDefinition(self.path, general, sensors, actuators, units, energy,
                                  appearance, arrays, self.included)
 
-    def appearance(self, data) -> dict[str, dict[str, float]]:
+    def appearance(self, data, where: str = "appearance") -> dict[str, dict[str, float]]:
+        """Colors of a box's faces, by stimulus: a vehicle's, or an obstacle's (specs/worlds.md)."""
         if not isinstance(data, dict):
-            raise self.error("appearance", "must be a mapping")
+            raise self.error(where, "must be a mapping")
         result = {}
         for name, value in data.items():
-            key = f"appearance.{name}"
+            key = f"{where}.{name}"
             # A number colors every face; a mapping colors the faces it names.
             faces = value if isinstance(value, dict) else dict.fromkeys(FACES, value)
             result[str(name)] = {}
@@ -489,7 +491,7 @@ class _DefinitionParser(Parser):
 
     def sensor(self, data, key: str, names, general: General) -> SensorDef:
         data = self.mapping(data, key, {"name", "type", "position"},
-                            {"response", "field_of_view", "camera"})
+                            {"response", "field_of_view", "camera", "direction"})
         sensor = SensorDef(self.name(data, key, names),
                            self.string(data["type"], f"{key}.type"),
                            self.body_position(data["position"], f"{key}.position"),
@@ -508,6 +510,15 @@ class _DefinitionParser(Parser):
             if "field_of_view" not in data:
                 raise self.error(f"{key}.field_of_view", "a camera needs a field_of_view")
             sensor.camera = self.camera(data["camera"], f"{key}.camera", general)
+        if "direction" in data:
+            dkey = f"{key}.direction"
+            if "camera" in data:
+                raise self.error(dkey, "a camera points with camera.direction")
+            if "field_of_view" not in data:
+                raise self.error(dkey, "a direction needs a field_of_view")
+            sensor.direction = self.number(data["direction"], dkey)
+            if not -180 <= sensor.direction <= 180:
+                raise self.error(dkey, "must be from -180 to 180")
         return sensor
 
     def camera(self, data, key: str, general: General) -> Camera:

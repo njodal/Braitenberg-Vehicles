@@ -12,6 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
+from braitenberg.definition import FACES, GRAY, _DefinitionParser
 from braitenberg.yamlfile import Parser, read_yaml
 
 EDGE_RULES = ("wrap", "bounce")
@@ -77,9 +78,54 @@ class Source:
 
 
 @dataclass
+class Surfaces:
+    """A stimulus whose field also comes from the surfaces of obstacles and vehicles."""
+
+    intensity: float
+    falloff: float
+
+
+@dataclass
 class Stimulus:
     name: str
     sources: list[Source] = field(default_factory=list)
+    surfaces: Surfaces | None = None
+
+
+@dataclass
+class Obstacle:
+    """A box standing on the ground that vehicles cannot drive through (specs/worlds.md)."""
+
+    position: tuple[float, float]
+    length: float          # along its heading
+    width: float           # across it
+    heading: float = 0.0   # radians, counterclockwise from +x
+    height: float = 2.0
+    appearance: dict[str, dict[str, float]] = field(default_factory=dict)
+
+    def faces(self, stimulus: str) -> tuple[float, ...]:
+        """The brightness of each face, in the order of FACES, for `stimulus`."""
+        colors = self.appearance.get(stimulus, {})
+        return tuple(colors.get(face, GRAY) for face in FACES)
+
+    def box(self) -> tuple[float, float, float, float, float]:
+        """(x, y, half width, half length, heading), as for a vehicle's body."""
+        return (*self.position, self.width / 2, self.length / 2, self.heading)
+
+
+def to_surface(dx, dy, half_width, half_length, heading):
+    """From a point to the nearest point of a box: the displacement, and its length.
+
+    (dx, dy) is the point relative to the box's center; the box's length lies along its heading.
+    Works on arrays of points. The distance is 0 on or inside the box.
+    """
+    c, s = np.cos(heading), np.sin(heading)
+    along, across = dx * c + dy * s, dx * s - dy * c        # forward, and to the right
+    near_along = np.clip(along, -half_length, half_length)
+    near_across = np.clip(across, -half_width, half_width)
+    ex, ey = along - near_along, across - near_across        # nearest point to the point
+    gx, gy = -(ex * c + ey * s), -(ex * s - ey * c)          # point to nearest point
+    return gx, gy, np.hypot(ex, ey)
 
 
 @dataclass
@@ -89,17 +135,21 @@ class World:
     stimuli: dict[str, Stimulus]
     description: str = ""
     path: Path | None = None
+    obstacles: list[Obstacle] = field(default_factory=list)
 
     def stimulus_at(self, name: str, x, y, time: float | None = None,
-                    heading: float | None = None, field_of_view: float = 360.0):
+                    heading: float | None = None, field_of_view: float = 360.0, bodies=()):
         """Value of a stimulus at a point, or at arrays of points.
 
         `time` leaves out sources that are off at that time. A `field_of_view` below 360
-        degrees (for a single point, with `heading` in radians) leaves out sources outside
-        that cone around the heading.
+        degrees (for a single point, with `heading` in radians: where the sensor looks) leaves
+        out sources outside that cone. For a stimulus with surfaces, every obstacle adds to
+        the field, and so does every box of `bodies`, (x, y, half width, half length, heading):
+        the other vehicles, for a vehicle's sensor.
         """
+        stimulus = self.stimuli[name]
         total = 0.0
-        for s in self.stimuli[name].sources:
+        for s in stimulus.sources:
             if not s.active(time):
                 continue
             dx, dy = self.arena.delta(np.subtract(x, s.position[0]),
@@ -107,6 +157,24 @@ class World:
             if field_of_view < 360 and not self.in_view(-dx, -dy, heading, field_of_view):
                 continue
             total = total + s.intensity / (1 + (dx * dx + dy * dy) / (s.falloff * s.falloff))
+        if stimulus.surfaces:
+            f = stimulus.surfaces
+            boxes = [o.box() for o in self.obstacles] + list(bodies)
+            if boxes and np.ndim(x) == 0:
+                # One point, such as a sensor: every box at once.
+                bx, by, hw, hl, turn = np.array(boxes, dtype=float).T
+                dx, dy = self.arena.delta(x - bx, y - by)
+                gx, gy, d = to_surface(dx, dy, hw, hl, turn)
+                values = f.intensity / (1 + (d / f.falloff) ** 2)
+                if field_of_view < 360:
+                    off = (np.arctan2(gy, gx) - heading + math.pi) % (2 * math.pi) - math.pi
+                    values = values[(np.degrees(np.abs(off)) <= field_of_view / 2) | (d == 0)]
+                total = total + float(values.sum())
+            else:
+                for bx, by, hw, hl, turn in boxes:
+                    dx, dy = self.arena.delta(np.subtract(x, bx), np.subtract(y, by))
+                    gx, gy, d = to_surface(dx, dy, hw, hl, turn)
+                    total = total + f.intensity / (1 + (d / f.falloff) ** 2)
         if np.ndim(total) == 0 and np.ndim(x) > 0:
             total = np.zeros(np.broadcast(x, y).shape)
         return total
@@ -135,6 +203,43 @@ class World:
                 things[key] = things.get(key, 0.0) + lit
         return [(*key, brightness) for key, brightness in things.items()]
 
+    def block(self, vehicle) -> bool:
+        """Push a vehicle out of the obstacles its disc overlaps. Whether it touched any."""
+        radius = max(vehicle.half_width, vehicle.half_length)
+        if not self.obstacles:
+            return False
+        bx, by, hw, hl, turn = np.array([o.box() for o in self.obstacles]).T
+        dx, dy = self.arena.delta(vehicle.x - bx, vehicle.y - by)
+        if to_surface(dx, dy, hw, hl, turn)[2].min() >= radius:
+            return False            # nothing touched: the usual case
+        touched = False
+        for _ in range(3):          # again, for a vehicle in a corner between two obstacles
+            moved = False
+            for o in self.obstacles:
+                bx, by, hw, hl, turn = o.box()
+                dx, dy = self.arena.delta(vehicle.x - bx, vehicle.y - by)
+                gx, gy, d = to_surface(dx, dy, hw, hl, turn)
+                if d > 0:
+                    if d >= radius:
+                        continue
+                    push = (radius - d) / d          # away from the nearest point
+                    vehicle.x -= gx * push
+                    vehicle.y -= gy * push
+                else:
+                    # Its center is inside the box: out through the nearest side.
+                    c, s = math.cos(turn), math.sin(turn)
+                    along, across = dx * c + dy * s, dx * s - dy * c
+                    if hl - abs(along) < hw - abs(across):
+                        along = math.copysign(hl + radius, along)
+                    else:
+                        across = math.copysign(hw + radius, across)
+                    vehicle.x = bx + along * c + across * s
+                    vehicle.y = by + along * s - across * c
+                moved = touched = True
+            if not moved:
+                break
+        return touched
+
     def active_sources(self, time: float | None) -> tuple:
         """Which sources are on, stimulus by stimulus (to tell when the field changes)."""
         return tuple(s.active(time) for st in self.stimuli.values() for s in st.sources)
@@ -153,7 +258,7 @@ class _WorldParser(Parser):
         return x, y
 
     def world(self, data) -> World:
-        data = self.mapping(data, "", {"name", "arena", "stimuli"}, {"description"})
+        data = self.mapping(data, "", {"name", "arena", "stimuli"}, {"description", "obstacles"})
         arena = self.arena(data["arena"])
         return World(
             name=self.string(data["name"], "name"),
@@ -161,7 +266,21 @@ class _WorldParser(Parser):
             arena=arena,
             stimuli=self.stimuli(data["stimuli"], arena),
             path=self.path,
+            obstacles=[self.obstacle(body, key, arena)
+                       for key, body in self.items(data.get("obstacles"), "obstacles", "box")],
         )
+
+    def obstacle(self, data, key: str, arena: Arena) -> Obstacle:
+        data = self.mapping(data, key, {"position", "length", "width"},
+                            {"heading", "height", "appearance"})
+        return Obstacle(self.point(data["position"], f"{key}.position", arena),
+                        self.number(data["length"], f"{key}.length", positive=True),
+                        self.number(data["width"], f"{key}.width", positive=True),
+                        math.radians(self.number(data.get("heading", 0.0), f"{key}.heading")),
+                        self.number(data.get("height", 2.0), f"{key}.height", positive=True),
+                        _DefinitionParser(self.path).appearance(data["appearance"],
+                                                                f"{key}.appearance")
+                        if "appearance" in data else {})
 
     def schedule(self, data, key: str) -> Schedule:
         # Not 'on'/'off': YAML reads those as booleans.
@@ -190,7 +309,7 @@ class _WorldParser(Parser):
         stimuli = {}
         for name, body in data.items():
             key = f"stimuli.{name}"
-            body = self.mapping(body, key, {"sources"})
+            body = self.mapping(body, key, {"sources"}, {"surfaces"})
             if not isinstance(body["sources"], list):
                 raise self.error(f"{key}.sources", "must be a list")
             sources = []
@@ -210,5 +329,11 @@ class _WorldParser(Parser):
                 elif "height" in s:
                     raise self.error(f"{skey}.height", "a height needs a radius")
                 sources.append(source)
-            stimuli[str(name)] = Stimulus(str(name), sources)
+            surfaces = None
+            if "surfaces" in body:
+                f = self.mapping(body["surfaces"], f"{key}.surfaces", {"intensity", "falloff"})
+                surfaces = Surfaces(self.number(f["intensity"], f"{key}.surfaces.intensity"),
+                                    self.number(f["falloff"], f"{key}.surfaces.falloff",
+                                                positive=True))
+            stimuli[str(name)] = Stimulus(str(name), sources, surfaces)
         return stimuli

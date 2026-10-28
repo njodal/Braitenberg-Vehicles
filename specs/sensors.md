@@ -23,6 +23,7 @@ A world sensor reads the value of its stimulus's field at the sensor's position 
 | `light` | Light from one or more lamps | `one-light`, `two-lights`, `far-lights`, `hot-lamp` | Vehicles 2a, 2b, 3a, 3b, 4a, 4b; Vehicle 5 moth, searcher and forager; Vehicle 7 wary moth (`left_eye`, `right_eye`) | Implemented |
 | `red` | The red lamp of a traffic light, switched by a schedule; a red lamp | `traffic-light`, `hot-lamp` | Vehicle 5 driver; Vehicle 7 wary moth (`red_eye`) | Implemented |
 | `green` | The green lamp of a traffic light, switched by a schedule | `traffic-light` | Vehicle 5 driver (`green_eye`) | Implemented |
+| `proximity` | Nearness of the surfaces of obstacles and other vehicles, by convention the stimulus with a `surfaces` section | `room` | Vehicle 5 rover (`ir_left_front`, `ir_front_left`, `ir_front_right`, `ir_right_front`) | Implemented |
 
 ```yaml
 - sensor:
@@ -34,6 +35,48 @@ A world sensor reads the value of its stimulus's field at the sensor's position 
 ### Field of view
 
 A world sensor may have a `field_of_view`, in degrees: it then only detects sources within half that angle of the vehicle's heading, so it ignores what is behind it ([vehicle-definition.md](vehicle-definition.md), *Field of view*). Without one it detects sources in every direction. **Status:** implemented; used by the Vehicle 5 driver (90°). Every other sensor so far detects in every direction.
+
+A sensor may also have a `direction`, which points its field of view to one side, in degrees from the heading, positive to the left. **Status:** implemented; used by the Vehicle 5 rover's infrared sensors.
+
+### Infrared sensors
+
+An infrared (IR) sensor tells a vehicle that something is close, on one side: an obstacle or another vehicle, without telling which. It is the sense that lets a vehicle avoid what is in its way.
+
+It needs no new kind of sensor. It is a world sensor that reads a stimulus whose field comes from surfaces: in the world, a stimulus with a `surfaces` section, by convention named `proximity` ([worlds.md](worlds.md), *The proximity field*). Its reading is `intensity` against a surface and half of it at `falloff` from it, adding up the obstacles and the other vehicles around; never the vehicle's own body. The world's `falloff` sets how far the sensors reach, a few body lengths at most for an e-puck.
+
+What makes it infrared rather than a light sensor is where it looks: placed at the edge of the body, with a narrow `field_of_view` and a `direction` pointing outward, so it only senses what is on its side.
+
+```yaml
+- sensor:
+    name: ir_front_left
+    type: proximity
+    position: [-0.28, 0.86]   # on the edge of the body, where it looks
+    direction: 18             # 18 degrees to the left of straight ahead
+    field_of_view: 60
+```
+
+**An e-puck ring.** The e-puck has eight infrared sensors around its body ([webots.md](webots.md), *The e-puck*). Here they are with the same directions, in this project's convention (positive to the left), each on the edge of the body where it looks:
+
+| e-puck | Name | `direction` | `position` |
+|---|---|---|---|
+| `ps7` | `ir_front_left` | 18 | `[-0.28, 0.86]` |
+| `ps6` | `ir_left_front` | 49 | `[-0.68, 0.59]` |
+| `ps5` | `ir_left` | 90 | `[-0.9, 0]` |
+| `ps4` | `ir_back_left` | 153 | `[-0.41, -0.8]` |
+| `ps3` | `ir_back_right` | -153 | `[0.41, -0.8]` |
+| `ps2` | `ir_right` | -90 | `[0.9, 0]` |
+| `ps1` | `ir_right_front` | -49 | `[0.68, 0.59]` |
+| `ps0` | `ir_front_right` | -18 | `[0.28, 0.86]` |
+
+![A square vehicle with eight infrared sensors around its edge, each with a 60° cone looking outward; the cones that take in a wall on the right and another vehicle ahead on the left are highlighted](images/infrared-sensors.svg)
+
+*The ring above. A wall on the right is in the cones of `ir_right` and `ir_right_front`, and another vehicle ahead on the left in those of `ir_front_left` and `ir_left_front`: those four read something, the nearer the more. The cones only show where each sensor looks; how much it reads falls off with the distance to the nearest surface ([worlds.md](worlds.md), *The proximity field*).*
+
+A vehicle need not use all eight. Two at the front, `ir_front_left` and `ir_front_right`, are enough for the simplest avoider, Braitenberg's Vehicle 3b wiring: with `base_speed` on the motors, each sensor inhibits the motor on the opposite side, so an obstacle on the left slows the right motor and the vehicle turns right, slowing down as it gets close. A `step` response turns a reading into "something within this distance".
+
+The raw values of the e-puck's sensors, and how they map to these readings, belong to [webots.md](webots.md) when the adapter supports them.
+
+**Status:** implemented; used by the Vehicle 5 rover, which uses the four front sensors of the ring ([vehicle-05-rover.md](vehicle-05-rover.md)).
 
 ### Cameras
 
@@ -82,4 +125,5 @@ This spec adds no rules of its own, so it has no criteria of its own: each rule 
 - World sensor readings, responses and validation: [vehicle-definition.md](vehicle-definition.md) criteria 1, 3 and 8, and [worlds.md](worlds.md) criteria 4 to 6. Two sensors reading different values to steer: [vehicle-02.md](vehicle-02.md) criterion 1.
 - Sensor types checked against the world: [scenarios.md](scenarios.md) criterion 5.
 - `energy` sensors: [vehicle-definition.md](vehicle-definition.md) criterion 9.
-- Field of view: [vehicle-definition.md](vehicle-definition.md) criterion 10.
+- Field of view: [vehicle-definition.md](vehicle-definition.md) criterion 10; `direction`: criterion 13.
+- Infrared sensors: the proximity field in [worlds.md](worlds.md) criteria 8 to 10.

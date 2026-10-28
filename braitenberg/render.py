@@ -46,6 +46,7 @@ HEAT_STOPS = np.array([
 BACKGROUND = (8, 12, 40)
 VEHICLE_FILL = (160, 160, 160)   # gray, as cameras see a vehicle by default
 VEHICLE_OUTLINE = (20, 20, 20)
+OBSTACLE_FILL = (120, 124, 140)
 SOURCE_FILL = (255, 255, 255)
 # Sources of a stimulus named after a color are drawn in that color.
 STIMULUS_COLORS = {"red": (235, 70, 60), "green": (70, 210, 100), "blue": (80, 140, 255),
@@ -213,6 +214,7 @@ class Renderer:
         self.draw_field(surface)
         if self.show_trail:
             self.draw_trails(surface)
+        self.draw_obstacles(surface)
         self.draw_sources(surface)
         self.draw_vehicles(surface)
         if self.show_views:
@@ -234,8 +236,9 @@ class Renderer:
             ys = self.size[1] / self.scale - (np.arange(rows) + 0.5) * h / rows / self.scale
             gx, gy = np.meshgrid(xs, ys, indexing="ij")  # surfarray is indexed [x, y]
             values = self.sim.world.stimulus_at(self.stimulus, gx, gy, self.sim.time)
-            peak = max((s.intensity for s in self.sim.world.stimuli[self.stimulus].sources),
-                       default=0)
+            stimulus = self.sim.world.stimuli[self.stimulus]
+            peak = max([s.intensity for s in stimulus.sources]
+                       + ([stimulus.surfaces.intensity] if stimulus.surfaces else []), default=0)
             normalized = values / peak if peak > 0 else np.zeros_like(values)
             small = pygame.surfarray.make_surface(heat_colors(normalized))
             self.heatmap = pygame.transform.smoothscale(small, self.size)
@@ -253,6 +256,16 @@ class Renderer:
                 fade = k / n
                 color = tuple(int(b + (255 - b) * fade * 0.8) for b in BACKGROUND)
                 pygame.draw.line(surface, color, self.to_screen(x0, y0), self.to_screen(x1, y1), 2)
+
+    def draw_obstacles(self, surface: pygame.Surface) -> None:
+        """Obstacles, to scale: gray boxes seen from above."""
+        for o in self.sim.world.obstacles:
+            x, y, hw, hl, turn = o.box()
+            c, s = math.cos(turn), math.sin(turn)
+            corners = [self.to_screen(x + a * c + b * s, y + a * s - b * c)
+                       for a, b in ((hl, hw), (hl, -hw), (-hl, -hw), (-hl, hw))]
+            pygame.draw.polygon(surface, OBSTACLE_FILL, corners)
+            pygame.draw.polygon(surface, VEHICLE_OUTLINE, corners, 1)
 
     def draw_sources(self, surface: pygame.Surface) -> None:
         # Sources of stimuli named after a color go last, so a red lamp that is also hot shows red.
@@ -366,9 +379,10 @@ class Renderer:
             else:
                 color = lerp_color(WIRE_OFF, WIRE_ON, w.level) if w.active else WIRE_INACTIVE
                 width = 4 if w.active else 1
-            if w.source == w.target:  # a unit feeding back into itself
-                pygame.draw.circle(surface, color, (a[0] + 12, a[1] - 12), 12, min(width, 3))
-                label_at = (a[0] + 26, a[1] - 30)
+            if w.source == w.target:  # a unit feeding back into itself, toward the outside
+                o = -1 if parts[w.target].position[0] < 0 else 1
+                pygame.draw.circle(surface, color, (a[0] + o * 12, a[1] - 12), 12, min(width, 3))
+                label_at = (a[0] + o * 26 - (12 if o < 0 else 0), a[1] - 30)
             else:
                 if w.learning and not w.active:
                     draw_dashed_line(surface, color, a, b, width)

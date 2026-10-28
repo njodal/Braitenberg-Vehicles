@@ -1,0 +1,188 @@
+general:
+  type: "5"
+  name: Rover
+  description: Explores a room with four infrared sensors without bumping into anything. It turns away from what is close, keeps turning the same way until it is clear, and wanders when nothing is near.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  # Four of the e-puck's infrared sensors, the ones that look ahead (specs/sensors.md).
+  - sensor:
+      name: ir_left_front
+      type: proximity
+      position: [-0.68, 0.59]
+      direction: 49
+      field_of_view: 60
+  - sensor:
+      name: ir_front_left
+      type: proximity
+      position: [-0.28, 0.86]
+      direction: 18
+      field_of_view: 60
+  - sensor:
+      name: ir_front_right
+      type: proximity
+      position: [0.28, 0.86]
+      direction: -18
+      field_of_view: 60
+  - sensor:
+      name: ir_right_front
+      type: proximity
+      position: [0.68, 0.59]
+      direction: -49
+      field_of_view: 60
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      base_speed: 3
+      gain: 3
+      max_speed: 6
+      inputs:
+        - input:
+            from: turn_right
+        - input:
+            from: turn_left
+            type: inhibitory
+        - input:
+            from: wander.right
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      base_speed: 3
+      gain: 3
+      max_speed: 6
+      inputs:
+        - input:
+            from: turn_left
+        - input:
+            from: turn_right
+            type: inhibitory
+        - input:
+            from: wander.left
+
+units:
+  # Something close ahead: a wall about 6 units away, another rover about 7.
+  - unit:
+      name: near
+      type: threshold
+      threshold: 1.5
+      position: [0, 0.22]
+      inputs:
+        - input:
+            from: ir_left_front
+        - input:
+            from: ir_front_left
+        - input:
+            from: ir_front_right
+        - input:
+            from: ir_right_front
+  - unit:
+      name: clear
+      type: threshold
+      threshold: 0
+      position: [0.3, -0.05]
+      inputs:
+        - input:
+            from: near
+            type: inhibitory
+  # Which side is closer.
+  - unit:
+      name: left_closer
+      type: threshold
+      threshold: 0.05
+      position: [-0.55, 0.22]
+      inputs:
+        - input:
+            from: ir_left_front
+        - input:
+            from: ir_front_left
+        - input:
+            from: ir_front_right
+            type: inhibitory
+        - input:
+            from: ir_right_front
+            type: inhibitory
+  - unit:
+      name: right_closer
+      type: threshold
+      threshold: 0.05
+      position: [0.55, 0.22]
+      inputs:
+        - input:
+            from: ir_right_front
+        - input:
+            from: ir_front_right
+        - input:
+            from: ir_front_left
+            type: inhibitory
+        - input:
+            from: ir_left_front
+            type: inhibitory
+  # Close, and neither side closer: straight ahead.
+  - unit:
+      name: tie
+      type: threshold
+      threshold: 1
+      position: [-0.3, -0.05]
+      inputs:
+        - input:
+            from: near
+        - input:
+            from: left_closer
+            type: inhibitory
+        - input:
+            from: right_closer
+            type: inhibitory
+  # Turn away from the closer side, or left when it is straight ahead; once turning, keep
+  # turning the same way (each feeds back into itself and silences the other) until clear.
+  - unit:
+      name: turn_left
+      type: threshold
+      threshold: 2
+      position: [-0.55, -0.3]
+      inputs:
+        - input:
+            from: near
+        - input:
+            from: right_closer
+        - input:
+            from: tie
+        - input:
+            from: turn_left
+        - input:
+            from: turn_right
+            type: inhibitory
+        - input:
+            from: clear
+            type: inhibitory
+  - unit:
+      name: turn_right
+      type: threshold
+      threshold: 2
+      position: [0.55, -0.3]
+      inputs:
+        - input:
+            from: near
+        - input:
+            from: left_closer
+        - input:
+            from: turn_right
+        - input:
+            from: turn_left
+            type: inhibitory
+        - input:
+            from: clear
+            type: inhibitory
+
+modules:
+  # While nothing is close, a short turn now and then, to explore.
+  - module:
+      name: wander
+      file: ../modules/wander.yaml
+      position: [0, -0.4]
+      inputs:
+        enable: clear

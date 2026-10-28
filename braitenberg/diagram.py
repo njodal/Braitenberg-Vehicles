@@ -195,13 +195,14 @@ def definition_svg(definition: VehicleDefinition) -> str:
         stroke = f"{1.5 + 2.5 * w.strength:.1f}" if w.learning else "2"
         source, target = parts[w.source], parts[w.target]
         (x1, y1), (x2, y2) = wire_ends(w, parts, at)
-        if w.source == w.target:  # a unit feeding back into itself: a loop above it
-            r = PART_SIZE[target.kind]
-            out.append(f'<path d="M{x1 + r * 0.7:.1f},{y1 - r * 0.7:.1f} '
-                       f'C{x1 + 3 * r:.1f},{y1 - 4 * r:.1f} {x1 + 4 * r:.1f},{y1 - r:.1f} '
-                       f'{x1 + r:.1f},{y1:.1f}" fill="none" stroke="{color}" stroke-width="{stroke}"'
+        if w.source == w.target:  # a unit feeding back into itself: a loop above it,
+            r = PART_SIZE[target.kind]        # toward the outside of the body, so mirrored
+            o = -1 if target.position[0] < 0 else 1   # units on either side look alike
+            out.append(f'<path d="M{x1 + o * r * 0.7:.1f},{y1 - r * 0.7:.1f} '
+                       f'C{x1 + o * 3 * r:.1f},{y1 - 4 * r:.1f} {x1 + o * 4 * r:.1f},{y1 - r:.1f} '
+                       f'{x1 + o * r:.1f},{y1:.1f}" fill="none" stroke="{color}" stroke-width="{stroke}"'
                        f'{dash} marker-end="url(#arrow-{kind})"/>')
-            label_x, label_y = x1 + 3.4 * r, y1 - 2.6 * r
+            label_x, label_y = x1 + o * 3.4 * r, y1 - 2.6 * r
         else:
             length = math.hypot(x2 - x1, y2 - y1) or 1
             ux, uy = (x2 - x1) / length, (y2 - y1) / length

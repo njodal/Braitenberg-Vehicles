@@ -77,6 +77,8 @@ An appearance is only seen by cameras. It adds nothing to any field, so other ve
 
 A camera never sees the vehicle it is mounted on.
 
+Obstacles ([worlds.md](worlds.md), *Obstacles*) are seen the same way: boxes of their footprint and `height`, gray unless their `appearance` says otherwise. They do not move.
+
 ### Ground and sky
 
 The ground and the sky are dark: a line of sight that reaches the ground, or goes up past everything, sees brightness `0`. The ground is opaque, so a camera looking down sees the ground and nothing below it.

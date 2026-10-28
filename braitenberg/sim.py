@@ -34,21 +34,25 @@ class Simulation:
         self.has_cameras = any(s.camera for p in scenario.vehicles for s in p.definition.sensors)
 
     def step(self) -> None:
-        # Cameras see every vehicle where it was at the start of the step.
+        # Cameras and infrared sensors sense every vehicle where it was at the start of the step.
         bodies = [(v.x, v.y, v.half_width, v.half_length, v.heading, v.definition.general.height,
-                   v.definition)
-                  for v in self.vehicles] if self.has_cameras else []
+                   v.definition) for v in self.vehicles]
+        obstacles = [(*o.box(), o.height, o) for o in self.world.obstacles]
         things = {}   # stimulus -> things of the world
         for k, v in enumerate(self.vehicles):
-            fov = {s.name: s.field_of_view for s in v.definition.sensors}
-            readings = {name: float(self.world.stimulus_at(stimulus, x, y, self.time,
-                                                           v.heading, fov[name]))
+            sensors = {s.name: s for s in v.definition.sensors}
+            others = [body[:5] for i, body in enumerate(bodies) if i != k]
+            readings = {name: float(self.world.stimulus_at(
+                            stimulus, x, y, self.time,
+                            v.heading + math.radians(sensors[name].direction),
+                            sensors[name].field_of_view, others))
                         for name, stimulus, x, y in v.sensor_points()}
             for sensor, x, y in v.cameras():
                 if sensor.type not in things:
                     things[sensor.type] = self.world.things(sensor.type, self.time)
                 boxes = np.array([(*body[:6], *body[6].faces(sensor.type))
-                                  for i, body in enumerate(bodies) if i != k])
+                                  for i, body in enumerate(bodies) if i != k]
+                                 + [(*o[:6], *o[6].faces(sensor.type)) for o in obstacles])
                 key = id(sensor)
                 if key not in self.sight_lines:
                     self.sight_lines[key] = sight_lines(sensor)
@@ -62,6 +66,7 @@ class Simulation:
                       if energy and energy.charge_from else 0.0)
             v.step(readings, self.dt, self.rng, charge)
             self.world.arena.apply_edges(v)
+            self.world.block(v)
         self.time += self.dt
         self.steps += 1
 

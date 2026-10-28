@@ -8,6 +8,7 @@ Braitenberg's chapter on Vehicle 5 ("Logic") introduces **threshold units**, the
 - **The searcher** (see *Second example: Searcher*), which shows that a loop of units can keep a **rhythm**.
 - **The forager** (see *Third example: Forager*), the searcher with an energy store: it combines a rhythm with a memory of being full.
 - **The driver** (see *Fourth example: Driver*), which stops at a red traffic light: simple logic on two color sensors that only look ahead.
+- **The rover** (see *Fifth example: Rover*), which explores a room with infrared sensors without bumping into anything: it decides which way to turn and remembers its decision.
 
 ## First example: Moth
 
@@ -141,3 +142,17 @@ It relies on two features of the simulator: the traffic light is two sources tha
 ![Diagram of the driver: two color sensors, three units and one motor](images/vehicle5-driver.svg)
 
 The full design, the definition (`vehicles/vehicle5-driver.yaml`), the world (`worlds/traffic-light.yaml`), the scenario and the driver's acceptance criteria are in [vehicle-05-driver.md](vehicle-05-driver.md).
+
+## Fifth example: Rover
+
+![Two rovers explore a room with walls and blocks without bumping into anything](images/vehicle5-rover.gif)
+
+*The rover's default scenario, first 60 seconds (played at four times the speed). The heat map is the proximity field, bright near every surface.*
+
+The rover explores a room with four infrared sensors that look ahead, and touches neither the walls, nor the blocks, nor other rovers. Turning away from what is close is Vehicle 3 wiring; the units decide. `near` fires when something is close, `left_closer` and `right_closer` compare the two sides, and `turn_left` and `turn_right` turn away from the closer side. Each of them feeds back into itself and silences the other, so once the rover has chosen a way to turn it keeps to it until it is clear: in a corner, where the closer side changes as it turns, it does not swing between the two walls. When something is straight ahead, `tie` makes it turn left. While nothing is close, the module `wander` turns it now and then.
+
+It relies on obstacles and the proximity field ([worlds.md](worlds.md), *Obstacles*) and on sensors that look to one side ([vehicle-definition.md](vehicle-definition.md), *Field of view*).
+
+![Diagram of the rover: four infrared sensors, seven units, the wander module and two motors](images/vehicle5-rover.svg)
+
+The full design, the definition (`vehicles/vehicle5-rover.yaml`), the world (`worlds/room.yaml`), the scenario and the rover's acceptance criteria are in [vehicle-05-rover.md](vehicle-05-rover.md).
