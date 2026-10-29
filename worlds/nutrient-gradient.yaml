@@ -1,0 +1,14 @@
+name: Nutrient gradient
+description: A dish with food dissolved in the water, most of it in the middle. The nutrient reads 10 at the source, 5 at 40 units and about 1.4 at 100, so the gradient reaches every corner.
+
+arena:
+  width: 200
+  height: 200
+  edges: bounce
+
+stimuli:
+  nutrient:
+    sources:
+      - position: [100, 100]
+        intensity: 10
+        falloff: 40

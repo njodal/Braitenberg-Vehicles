@@ -70,11 +70,12 @@ The body is a rectangle `width` across and `length` long, centered on the vehicl
 | `type` | yes | The stimulus the sensor reads, e.g. `temperature`, `light`. It must be defined in the world the vehicle runs in. |
 | `position` | yes | `[x, y]` in body coordinates. |
 | `response` | no | How the sensor's output depends on its reading (see *Responses*). Default: `linear`. |
+| `habituation` | no | Makes the sensor get used to its stimulus, so that it passes on changes in its reading rather than the reading itself (see *Habituation*). Without it the sensor does not habituate. |
 | `field_of_view` | no | The angle, in degrees, of the cone in front of the vehicle in which the sensor detects sources (see *Field of view*). Default 360: it detects sources in every direction. |
 | `direction` | no | Where the sensor's field of view points, in degrees from the vehicle's heading, positive to the left (see *Field of view*). From -180 to 180. Default 0: straight ahead. Needs a `field_of_view`. |
 | `camera` | no | Makes the sensor a camera, whose output is a matrix of pixels instead of one value ([camera.md](camera.md)). A camera needs a `field_of_view`. |
 
-A sensor **reads** the value of its stimulus at the sensor's position in the arena (or, for an `energy` sensor, the vehicle's own energy; see *5. Energy*), and its **output**, the signal its connections carry, is that reading passed through its response. Sensors at different places on the body read different values; that is what lets Vehicles 2 and up steer.
+A sensor **reads** the value of its stimulus at the sensor's position in the arena (or, for an `energy` sensor, the vehicle's own energy; see *5. Energy*), and its **output**, the signal its connections carry, is that reading passed through its habituation, if it has one, and then its response. Sensors at different places on the body read different values; that is what lets Vehicles 2 and up steer.
 
 #### Field of view
 
@@ -123,6 +124,32 @@ A camera points with its own `camera.direction` ([camera.md](camera.md)) and can
       at: 4
       width: 1.5
 ```
+
+#### Habituation
+
+A sensor with a `habituation` section gets used to its stimulus: a reading that stays the same fades away, and only a change gets through, as a smell does after a while. The sensor keeps a **reference** `a`, which follows its reading `r` slowly, and passes the difference `r - a` to its response instead of `r`. Each step:
+
+1. the response receives `r - a`;
+2. then `a += (r - a) * min(1, dt / tau)`.
+
+At the first step `a` is the first reading, so a habituated sensor starts at 0.
+
+| Key | Required | Meaning |
+|---|---|---|
+| `tau` | yes | Seconds the reference takes to catch up with the reading: about how far back the sensor remembers. Positive. |
+
+```yaml
+- sensor:
+    name: nose
+    type: nutrient
+    position: [0, 1]
+    habituation:
+      tau: 0.5             # compares the reading with the last half second or so
+```
+
+So when the reading jumps by `R` and then stays, the sensor passes on `R` at once, and it fades to about `R / e` after `tau` seconds. When the reading rises steadily by `c` per second, the sensor settles at `tau * c`; when it falls, at a negative value. Since the sensor moves with the vehicle, `c` is the vehicle's speed times the slope of the field along its way: a single habituated sensor tells whether things are getting **better or worse** as the vehicle goes, by comparing now with the last `tau` seconds, which a sensor without memory cannot do. The Vehicle 5 E. coli finds food this way ([vehicle-05-ecoli.md](vehicle-05-ecoli.md)).
+
+The difference may be negative; units and motors receive it like any other signal (a motor's speed is still clipped at 0). The response applies to the difference, so a `step` response fires when the reading has risen by at least `at` lately. Any sensor except a camera may habituate, an `energy` sensor included. **Status:** implemented; used by the Vehicle 5 E. coli.
 
 ### 3. Actuators
 
@@ -261,7 +288,7 @@ Simulation time is measured in seconds; each step advances it by `dt` (see [scen
 
 Each simulation step:
 
-1. **Sensors** read the stimulus at their current position.
+1. **Sensors** read the stimulus at their current position. A habituated sensor passes on its reading minus its reference, then updates its reference (see *Habituation*).
 2. **Units** all update at once, in three parts:
    - **Outputs.** Each unit's visible output becomes the activation it computed `delay` seconds ago. Delays are rounded to a whole number of steps, at least one: with the default `delay` 0.05 and `dt` 0.05, one step; with `dt` 0.01, five steps. Outputs start at 0, and so do activations still on their way.
    - **Activations.** Each unit computes its activation, `1` or `0`, from its inputs: this step's sensor outputs and the unit outputs just made visible. Each input contributes the largest value it had within the unit's simultaneity window, which is the last `round(delay / dt)` steps including this one. The activation enters the unit's delay line, to become its output `delay` seconds later.
@@ -303,6 +330,7 @@ As with world files ([worlds.md](worlds.md)): parse with `yaml.safe_load`, valid
 - a `direction` is not from -180 to 180, or is given without a `field_of_view`, or for a camera;
 - an `energy` value is missing, of the wrong type or out of range (e.g. `initial` above `max`), or a sensor has type `energy` and there is no `energy` section;
 - a `response` has an unknown `type`, is missing a required field for its type, has a field that its type does not use, or has a `width` that is not positive;
+- a `habituation` section is missing `tau`, has an unknown key, has a `tau` that is not a positive number, or is given for a camera;
 - a sensor, actuator or unit `type` is unknown;
 - there are no actuators.
 
@@ -413,6 +441,7 @@ actuators:
 11. **Headless:** loading and running a definition never imports pygame.
 12. **Body shape:** a definition without `length` and `width` loads with both equal to `size`, and moves and places its parts exactly as before. With `width` 6 and `length` 2, a sensor at `[1, 1]` sits 3 units to the right of the center and 1 unit ahead of it, and two motors at `x = ±1` turn the vehicle at `(s_right - s_left) / 6`.
 13. **Direction:** a sensor with `direction` 90 and `field_of_view` 60 reads a source 90° to the left of the heading as a sensor without them reads it, and reads nothing from a source straight ahead; with `direction` -90, the same to the right. A sensor without `direction` reads exactly as before.
+14. **Habituation:** with `dt` 0.01, a sensor with `habituation` `tau` 0.5 and a `linear` response outputs 0 at the first step. When its reading then jumps by `R` and stays, it outputs `R` that step and `R * 0.98^50`, about `0.36 R`, 0.5 s later. When its reading rises by 2 per second, its output settles at 1, and at -1 when it falls by 2 per second. With a `step` response, the response applies to the difference. A sensor without `habituation` outputs exactly what it did before.
 
 Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (criteria 6 to 12).
 
@@ -420,5 +449,6 @@ Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (
 
 - Other unit types, and learning types other than Mnemotrix (e.g. Vehicle 8's Ergotrix connections, which learn sequences).
 - Response curves other than `linear`, `peak` and `step`, and responses on actuators or connections.
+- Other kinds of habituation, such as fatigue, where the stimulus wears out the sensor's sensitivity and rest restores it; and habituating cameras.
 - Overriding definition values from a scenario.
 - Evolving or editing definitions at runtime (Vehicle 6).

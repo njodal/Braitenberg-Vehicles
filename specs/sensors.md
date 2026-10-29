@@ -11,7 +11,7 @@ There are two kinds of sensors, plus cameras:
 
 - **Cameras** are world sensors with a `camera` section: instead of reading a field at one point, they see the things around them as a matrix of pixels ([camera.md](camera.md)).
 
-Whatever it reads, a sensor's **reading** passes through its **response** to give its **output**, the signal its connections carry (see *Responses* below).
+Whatever it reads, a sensor's **reading** passes through its **habituation**, if it has one, and its **response** to give its **output**, the signal its connections carry (see *Habituation* and *Responses* below).
 
 ## World sensors
 
@@ -24,6 +24,7 @@ A world sensor reads the value of its stimulus's field at the sensor's position 
 | `red` | The red lamp of a traffic light, switched by a schedule; a red lamp | `traffic-light`, `hot-lamp` | Vehicle 5 driver; Vehicle 7 wary moth (`red_eye`) | Implemented |
 | `green` | The green lamp of a traffic light, switched by a schedule | `traffic-light` | Vehicle 5 driver (`green_eye`) | Implemented |
 | `proximity` | Nearness of the surfaces of obstacles and other vehicles, by convention the stimulus with a `surfaces` section | `room` | Vehicle 5 rover (`ir_left_front`, `ir_front_left`, `ir_front_right`, `ir_right_front`) | Implemented |
+| `nutrient` | Food dissolved in the water, from one broad source | `nutrient-gradient` | Vehicle 5 E. coli (`nose`, habituated) | Implemented |
 
 ```yaml
 - sensor:
@@ -99,9 +100,24 @@ Internal sensors are also called proprioceptive: like the sense that tells an an
 
 An internal sensor's `position` only places it in the diagram, and it has no field of view. Its `type` is reserved: a world cannot define a stimulus with that name and have it read by a world sensor.
 
+## Habituation
+
+Any sensor but a camera may **habituate**: with a `habituation` section it keeps a reference that follows its reading slowly, over about `tau` seconds, and passes on the reading minus that reference. A reading that stays the same fades to 0, and only changes get through: positive while the reading rises, negative while it falls ([vehicle-definition.md](vehicle-definition.md), *Habituation*).
+
+```yaml
+- sensor:
+    name: nose
+    type: nutrient
+    position: [0, 1]
+    habituation:
+      tau: 0.5
+```
+
+On a moving vehicle, a habituated world sensor tells whether its stimulus grows or fades along the way, comparing now with the last `tau` seconds. So a single sensor can climb a field, which without memory takes two sensors compared side by side. A habituated sensor's output then goes through its response as usual. **Status:** implemented; used by the Vehicle 5 E. coli ([vehicle-05-ecoli.md](vehicle-05-ecoli.md)).
+
 ## Responses
 
-Every sensor, of either kind, has a response that turns its reading `r` into its output ([vehicle-definition.md](vehicle-definition.md), *Responses*):
+Every sensor, of either kind, has a response that turns its reading `r` (or, for a habituated sensor, its reading minus its reference) into its output ([vehicle-definition.md](vehicle-definition.md), *Responses*):
 
 | Response | Output | Used by |
 |---|---|---|
@@ -111,7 +127,7 @@ Every sensor, of either kind, has a response that turns its reading `r` into its
 
 ## In the diagrams
 
-In the simulator's panel and the SVG diagrams ([vehicle-diagram.md](vehicle-diagram.md)), every sensor is drawn as a round eye with two antennae at its position, labeled with its name and its `type` (plus its response when it is not linear). A sensor's level is its output relative to a reference: what saturates or fires its strongest excitatory target for a linear world sensor, the response's `height` for `peak` and `step`, and the energy `max` for an `energy` sensor.
+In the simulator's panel and the SVG diagrams ([vehicle-diagram.md](vehicle-diagram.md)), every sensor is drawn as a round eye with two antennae at its position, labeled with its name and its `type` (plus its response when it is not linear, and `habituates` with its `tau` when it habituates, e.g. `habituates 0.5 s`). A sensor's level is its output relative to a reference: what saturates or fires its strongest excitatory target for a linear world sensor, the response's `height` for `peak` and `step`, and the energy `max` for an `energy` sensor. A habituated sensor's output is negative while its reading falls; its level is then 0.
 
 ## Adding a sensor type
 
@@ -126,4 +142,5 @@ This spec adds no rules of its own, so it has no criteria of its own: each rule 
 - Sensor types checked against the world: [scenarios.md](scenarios.md) criterion 5.
 - `energy` sensors: [vehicle-definition.md](vehicle-definition.md) criterion 9.
 - Field of view: [vehicle-definition.md](vehicle-definition.md) criterion 10; `direction`: criterion 13.
+- Habituation: [vehicle-definition.md](vehicle-definition.md) criterion 14, and validation in criterion 3.
 - Infrared sensors: the proximity field in [worlds.md](worlds.md) criteria 8 to 10.

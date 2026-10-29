@@ -296,14 +296,17 @@ def definition_svg(definition: VehicleDefinition) -> str:
 
 
 def sensor_caption(sensor) -> str:
-    """The stimulus a sensor reads, and its response when it is not linear."""
+    """The stimulus a sensor reads, its response when it is not linear, and its habituation."""
     r = sensor.response
     height = f", height {r.height:g}" if r.height != 1 else ""
+    caption = sensor.type
     if r.type == "peak":
-        return f"{sensor.type}, peak at {r.at:g} \u00b1{r.width:g}{height}"
-    if r.type == "step":
-        return f"{sensor.type}, step at {r.at:g}{height}"
-    return sensor.type
+        caption = f"{sensor.type}, peak at {r.at:g} \u00b1{r.width:g}{height}"
+    elif r.type == "step":
+        caption = f"{sensor.type}, step at {r.at:g}{height}"
+    if sensor.habituation:
+        caption += f", habituates {sensor.habituation:g} s"
+    return caption
 
 
 def main(argv=None) -> None:

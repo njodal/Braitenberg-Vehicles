@@ -1,0 +1,14 @@
+name: E. coli
+description: An E. coli starts in a corner of the dish, about 113 units from the food in the middle. In runs and tumbles it climbs the gradient to the food, and stays there.
+
+world: ../worlds/nutrient-gradient.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle5-ecoli.yaml
+      position: [20, 20]
+      heading: 0
+
+simulation:
+  dt: 0.01
+  seed: 0

@@ -1,0 +1,64 @@
+general:
+  type: "5"
+  name: E. coli
+  description: Finds food with a single sensor, as the bacterium does. Its nose habituates, so it tells whether the food has grown in the last half second; while it has not, the E. coli tumbles every 1.5 s, and while it has, it runs straight.
+  size: 4
+  noise_std: 0.5
+
+sensors:
+  - sensor:
+      name: nose
+      type: nutrient
+      position: [0, 1]
+      habituation:
+        tau: 0.5
+
+units:
+  # The nutrient has grown in the last half second.
+  - unit:
+      name: better
+      type: threshold
+      threshold: 0.01
+      position: [0, 0.35]
+      inputs:
+        - input:
+            from: nose
+  # Fires on its own and silences itself: while nothing gets better,
+  # on for 0.5 s (a tumble) and off for about 1 s (a run), over and over.
+  - unit:
+      name: tumble
+      type: threshold
+      threshold: 0
+      delay: 0.5
+      position: [0, -0.2]
+      inputs:
+        - input:
+            from: better
+            type: inhibitory
+        - input:
+            from: tumble
+            type: inhibitory
+
+actuators:
+  # A tumble stops the left motor and speeds up the right one: about 86 degrees to the left.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      base_speed: 3
+      gain: 3
+      max_speed: 6
+      inputs:
+        - input:
+            from: tumble
+            type: inhibitory
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      base_speed: 3
+      gain: 3
+      max_speed: 6
+      inputs:
+        - input:
+            from: tumble

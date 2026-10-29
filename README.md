@@ -72,6 +72,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 5: Forager | Recharges at the light when hungry, zigzags away when full | `python -m braitenberg scenarios/vehicle5-forager.yaml` |
 | Vehicle 5: Driver | Stops before a red traffic light, goes on green | `python -m braitenberg scenarios/vehicle5-driver.yaml` |
 | Vehicle 5: Rover | Explores a room with infrared sensors without bumping into walls, blocks or other rovers | `python -m braitenberg scenarios/vehicle5-rover.yaml` |
+| Vehicle 5: E. coli | Finds food with one habituated sensor: runs while things get better, tumbles while they do not | `python -m braitenberg scenarios/vehicle5-ecoli.yaml` |
 | Vehicle 6: Evolved forager | The hand-tuned forager next to one tuned by selection | `python -m braitenberg scenarios/vehicle6-forager.yaml` |
 | Vehicle 7: Wary moth | Learns that the red lamp burns and keeps away from it; unlearns it when the lamp goes cold | `python -m braitenberg scenarios/vehicle7-wary-moth.yaml` |
 | Vehicle 8: Hunter | Ignores the still lamps; turns toward and lunges at its prey when it moves | `python -m braitenberg scenarios/vehicle8-hunter.yaml` |

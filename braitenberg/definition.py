@@ -130,6 +130,7 @@ class SensorDef:
     field_of_view: float = 360.0   # degrees, centered on `direction`
     direction: float = 0.0         # degrees from the heading, + to the left, where it looks
     camera: Camera | None = None   # a camera's output is a matrix of pixels, not one value
+    habituation: float | None = None   # tau in seconds: passes on the reading minus a slow reference
 
     def pixels(self) -> list[str]:
         """The signal names of a camera's pixels, row by row."""
@@ -491,7 +492,7 @@ class _DefinitionParser(Parser):
 
     def sensor(self, data, key: str, names, general: General) -> SensorDef:
         data = self.mapping(data, key, {"name", "type", "position"},
-                            {"response", "field_of_view", "camera", "direction"})
+                            {"response", "field_of_view", "camera", "direction", "habituation"})
         sensor = SensorDef(self.name(data, key, names),
                            self.string(data["type"], f"{key}.type"),
                            self.body_position(data["position"], f"{key}.position"),
@@ -519,6 +520,12 @@ class _DefinitionParser(Parser):
             sensor.direction = self.number(data["direction"], dkey)
             if not -180 <= sensor.direction <= 180:
                 raise self.error(dkey, "must be from -180 to 180")
+        if "habituation" in data:
+            hkey = f"{key}.habituation"
+            if "camera" in data:
+                raise self.error(hkey, "a camera cannot habituate")
+            habituation = self.mapping(data["habituation"], hkey, {"tau"})
+            sensor.habituation = self.number(habituation["tau"], f"{hkey}.tau", positive=True)
         return sensor
 
     def camera(self, data, key: str, general: General) -> Camera:

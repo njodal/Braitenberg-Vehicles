@@ -1,4 +1,4 @@
-# Vehicle 5 — Logic: the Moth, the Searcher, the Forager and the Driver
+# Vehicle 5 — Logic: the Moth, the Searcher, the Forager, the Driver, the Rover and the E. coli
 
 ## Summary
 
@@ -9,6 +9,7 @@ Braitenberg's chapter on Vehicle 5 ("Logic") introduces **threshold units**, the
 - **The forager** (see *Third example: Forager*), the searcher with an energy store: it combines a rhythm with a memory of being full.
 - **The driver** (see *Fourth example: Driver*), which stops at a red traffic light: simple logic on two color sensors that only look ahead.
 - **The rover** (see *Fifth example: Rover*), which explores a room with infrared sensors without bumping into anything: it decides which way to turn and remembers its decision.
+- **The E. coli** (see *Sixth example: E. coli*), which finds food with a single sensor, as the bacterium does: its sensor remembers the last half second, and it tumbles until things get better.
 
 ## First example: Moth
 
@@ -156,3 +157,15 @@ It relies on obstacles and the proximity field ([worlds.md](worlds.md), *Obstacl
 ![Diagram of the rover: four infrared sensors, seven units, the wander module and two motors](images/vehicle5-rover.svg)
 
 The full design, the definition (`vehicles/vehicle5-rover.yaml`), the world (`worlds/room.yaml`), the scenario and the rover's acceptance criteria are in [vehicle-05-rover.md](vehicle-05-rover.md).
+
+## Sixth example: E. coli
+
+![The E. coli swims in runs and tumbles from the corner of the dish up to the food in the middle, and stays there](images/vehicle5-ecoli.gif)
+
+*The E. coli's default scenario, first 120 seconds (played at four times the speed). The heat map is the nutrient.*
+
+The E. coli finds food as the bacterium does: too small to compare its two sides, it compares now with a moment ago. Its one sensor, the `nose`, habituates ([vehicle-definition.md](vehicle-definition.md), *Habituation*): it passes on how much the nutrient has grown in the last half second, not how much there is. `better` fires while it grows. `tumble` fires when `better` is off and silences itself, so that while things do not get better the E. coli tumbles every 1.5 s, turning about 86° to the left, and while they do it runs straight. The noise of its body makes each run different. None of its runs aims at the food, yet together they take it there, and at the food, where nothing gets better, it keeps tumbling and stays.
+
+![Diagram of the E. coli: one habituated nose, two units and two motors](images/vehicle5-ecoli.svg)
+
+The full design, the definition (`vehicles/vehicle5-ecoli.yaml`), the world (`worlds/nutrient-gradient.yaml`), the scenario and the E. coli's acceptance criteria are in [vehicle-05-ecoli.md](vehicle-05-ecoli.md).

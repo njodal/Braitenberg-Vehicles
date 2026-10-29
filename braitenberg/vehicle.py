@@ -88,6 +88,8 @@ class Vehicle:
         self.turn_rate = 0.0
         self.energy = definition.energy.initial if definition.energy else None
         self.dt = dt
+        # A habituated sensor's reference, which follows its reading; None until its first reading.
+        self.habituation_refs = {s.name: None for s in definition.sensors if s.habituation}
         # Current strength of each learning connection, by (unit name, input index). Each vehicle
         # starts from its definition's strengths and learns on its own; the definition never changes.
         self.strengths = {(u.name, j): c.strength for u in definition.units
@@ -181,7 +183,7 @@ class Vehicle:
                 pixels = sensor.response.outputs(np.asarray(readings[sensor.name], dtype=float))
                 values.update(zip(sensor.pixels(), pixels.ravel().tolist()))
             else:
-                values[sensor.name] = sensor.response.output(readings[sensor.name])
+                values[sensor.name] = sensor.response.output(self.habituate(sensor, readings[sensor.name]))
         self.sensor_values = values
         # Outputs now: the activations computed one delay ago.
         n_units = len(self.unit_names)
@@ -215,6 +217,16 @@ class Vehicle:
         for a in d.actuators:
             total = sum(c.sign * self.signal(c.source) for c in a.inputs if c.active)
             self.motor_speeds[a.name] = min(max(a.base_speed + a.gain * total, 0.0), a.max_speed)
+
+    def habituate(self, sensor, reading: float) -> float:
+        """The reading minus the sensor's reference, which then moves toward it (see 'Habituation')."""
+        if not sensor.habituation:
+            return reading
+        ref = self.habituation_refs[sensor.name]
+        if ref is None:
+            ref = reading
+        self.habituation_refs[sensor.name] = ref + (reading - ref) * min(1.0, self.dt / sensor.habituation)
+        return reading - ref
 
     @property
     def pending(self) -> dict[str, list[float]]:

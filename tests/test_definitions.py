@@ -505,3 +505,56 @@ def test_field_of_view_validation(write, field_of_view):
     with pytest.raises(ConfigError, match=r"sensors\[0\]\.sensor\.field_of_view"):
         fov_vehicle(write, field_of_view)
 
+
+
+# 14. Habituation
+def habituated_vehicle(write, response=None, tau=0.5):
+    data = one_sensor_vehicle()
+    sensor = data["sensors"][0]["sensor"]
+    sensor["habituation"] = {"tau": tau}
+    if response is not None:
+        sensor["response"] = response
+    return Vehicle(load_definition(write(data)), 50, 50, 0, dt=0.01)
+
+
+def test_habituation_passes_on_changes(write):
+    v = habituated_vehicle(write)
+    out = outputs(v, [3, 3, 5] + [5] * 50)
+    assert out[:2] == [0, 0]                           # starts at 0, and a steady reading stays 0
+    assert out[2] == pytest.approx(2)                  # a jump by 2 gets through at once
+    assert out[-1] == pytest.approx(2 * 0.98 ** 50)    # and fades, to about 0.36 of it in 0.5 s
+    assert v.sensor_readings["eye"] == 5
+
+
+@pytest.mark.parametrize("rate, settles_at", [(2, 1), (-2, -1)])
+def test_habituation_of_a_steady_change(write, rate, settles_at):
+    v = habituated_vehicle(write)
+    out = outputs(v, [10 + rate * 0.01 * n for n in range(1000)])
+    assert out[-1] == pytest.approx(settles_at)
+
+
+def test_response_applies_to_the_difference(write):
+    v = habituated_vehicle(write, {"type": "step", "at": 1})
+    assert outputs(v, [4, 4.5, 5.5]) == [0, 0, 1]    # risen by 0, 0.5 and about 1.5
+
+
+def test_without_habituation_the_output_is_the_reading(write):
+    v = Vehicle(load_definition(write(one_sensor_vehicle())), 50, 50, 0, dt=0.01)
+    assert outputs(v, [3, 3, 5]) == [3, 3, 5]
+
+
+@pytest.mark.parametrize("habituation", [{}, {"tau": 0.5, "rate": 1}, {"tau": 0}, {"tau": -1},
+                                         {"tau": "slow"}, 0.5])
+def test_habituation_validation(write, habituation):
+    data = read(VEHICLE2B)
+    data["sensors"][0]["sensor"]["habituation"] = habituation
+    with pytest.raises(ConfigError, match=r"sensors\[0\]\.sensor\.habituation"):
+        load_definition(write(data))
+
+
+def test_a_camera_cannot_habituate(write):
+    data = read(VEHICLE2B)
+    data["sensors"][0]["sensor"].update(field_of_view=60, habituation={"tau": 0.5},
+                                        camera={"columns": 2, "rows": 1, "vertical_field_of_view": 20})
+    with pytest.raises(ConfigError, match=r"sensors\[0\]\.sensor\.habituation"):
+        load_definition(write(data))
