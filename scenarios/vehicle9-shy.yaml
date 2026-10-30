@@ -1,0 +1,28 @@
+name: Shy
+description: >-
+  A shy vehicle watches what it sees, and runs away from whatever comes straight at it: a
+  vehicle seen from the front looks symmetric. A chaser follows it; two walkers wander by.
+
+world: ../worlds/open-field.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle9-shy.yaml
+      position: [50, 30]
+      heading: 90                # up, toward the chaser
+  - vehicle:
+      definition: ../vehicles/vehicle9-chaser.yaml
+      position: [50, 60]
+      heading: 270               # down, toward the shy vehicle
+  - vehicle:
+      definition: ../vehicles/vehicle9-walker.yaml
+      position: [20, 45]
+      heading: 0
+  - vehicle:
+      definition: ../vehicles/vehicle9-walker.yaml
+      position: [80, 20]
+      heading: 180
+
+simulation:
+  dt: 0.01
+  seed: 0

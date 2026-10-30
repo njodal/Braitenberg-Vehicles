@@ -31,6 +31,7 @@ NAME_PATTERN = re.compile(r"[a-z][a-z0-9_]*\Z")
 # A name, or module.unit for a module's output (specs/modules.md), with optional indices.
 FROM_PATTERN = re.compile(r"([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)\s*(?:\[([^\]]*)\])?\Z")
 INDEX_EXPRESSION = re.compile(r"([ij])\s*(?:([+-])\s*(\d+))?\Z")
+MIRROR_EXPRESSION = re.compile(r"(\d+)\s*-\s*([ij])\Z")   # k - i: the mirror image of i (Vehicle 9)
 INDEX_RANGE = re.compile(r"(\d+)\s*:\s*(\d+)\Z")
 
 
@@ -391,17 +392,21 @@ class _DefinitionParser(Parser):
             if not 0 <= value < size:
                 raise self.error(key, f"index {value} is outside '{base}' (0 to {size - 1})")
             return [value]
-        if m := INDEX_EXPRESSION.match(token):
-            var = m.group(1)
+        m, mirror = INDEX_EXPRESSION.match(token), MIRROR_EXPRESSION.match(token)
+        if m or mirror:
+            var = m.group(1) if m else mirror.group(2)
             if env is None:
                 raise self.error(key, f"'{var}' can only be used in the inputs of an array")
             if var not in env:
                 raise self.error(key, f"'{var}' is not an index of a one-dimensional array")
-            value = env[var] + (int(m.group(3)) * (1 if m.group(2) == "+" else -1)
-                                if m.group(2) else 0)
+            if mirror:
+                value = int(mirror.group(1)) - env[var]
+            else:
+                value = env[var] + (int(m.group(3)) * (1 if m.group(2) == "+" else -1)
+                                    if m.group(2) else 0)
             return [value] if 0 <= value < size else []
-        raise self.error(key, f"index '{token}' must be i, i+k, i-k, j, j+k, j-k, an integer, "
-                              "a:b or :")
+        raise self.error(key, f"index '{token}' must be i, i+k, i-k, k-i, j, j+k, j-k, k-j, "
+                              "an integer, a:b or :")
 
     def energy(self, data) -> Energy:
         data = self.mapping(data, "energy", {"initial", "max", "consumption"},

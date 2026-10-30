@@ -287,9 +287,9 @@ class Renderer:
             grow = max(1.0, MIN_VEHICLE / (max(v.half_width, v.half_length) * self.scale))
             corner = lambda bx, by: self.to_screen(*v.body_to_world(bx * grow, by * grow))
             points = [corner(-1, 1), corner(1, 1), corner(1, -1), corner(-1, -1)]
-            # A vehicle that cameras see as a color is drawn in that color.
-            fill = next((STIMULUS_COLORS[name] for name in v.definition.appearance
-                         if name in STIMULUS_COLORS), VEHICLE_FILL)
+            # A vehicle that cameras see as a color, on some face, is drawn in that color.
+            fill = next((STIMULUS_COLORS[name] for name, faces in v.definition.appearance.items()
+                         if name in STIMULUS_COLORS and max(faces.values()) > 0), VEHICLE_FILL)
             pygame.draw.polygon(surface, fill, points)
             pygame.draw.polygon(surface, VEHICLE_OUTLINE, points, 1)
             # The front: a line from the center to the middle of the front side.

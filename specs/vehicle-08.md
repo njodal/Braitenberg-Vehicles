@@ -76,7 +76,7 @@ An array of units is a shorthand. A definition with an array behaves exactly lik
 In addition to the cases in [vehicle-definition.md](vehicle-definition.md) and [camera.md](camera.md), loading fails, naming the file and the key, when:
 
 - `array` is not a positive integer or a pair of positive integers;
-- an index expression uses `i` or `j` outside an array, `j` in a one-dimensional array, or is not of the form `i`, `i+k`, `i-k`, `j`, `j+k`, `j-k`, an integer, `a:b` or `:`;
+- an index expression uses `i` or `j` outside an array, `j` in a one-dimensional array, or is not of the form `i`, `i+k`, `i-k`, `k-i`, `j`, `j+k`, `j-k`, `k-j`, an integer, `a:b` or `:` (`k-i` and `k-j`, mirror images, come from [vehicle-09.md](vehicle-09.md));
 - an input indexes an array with the wrong number of indices, or names an array without an index;
 - a constant index or range is outside its source.
 
@@ -283,4 +283,4 @@ Criteria 3 to 7 test the circuits on a **watcher**: the hunter's definition with
 - **Shapes.** Telling things apart by their outline is Braitenberg's Vehicle 9.
 - **Movement while moving.** The hunter only sees movement while it stands still. Telling the prey's movement from its own, by subtracting what its own movement should do to the image, is not attempted.
 - **Two eyes and depth by disparity.** Each vehicle here has one camera.
-- Arrays of sensors or motors, arrays with more than two indices, and index expressions other than `i ± k` and `j ± k` (such as `2*i`).
+- Arrays of sensors or motors, arrays with more than two indices, and index expressions other than `i ± k`, `j ± k` and, from [vehicle-09.md](vehicle-09.md), `k - i` and `k - j` (such as `2*i`).

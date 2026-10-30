@@ -1,0 +1,252 @@
+general:
+  type: "9"
+  name: Shy
+  description: >-
+    Watches what it sees, turning to keep it in the middle of its eye, and runs from whatever
+    comes straight at it. A vehicle coming straight at it looks symmetric, left and right
+    alike, with its white front in the middle; seen from the side, from behind, or at an angle,
+    it does not. It turns away, runs, and turns back to watch again.
+  size: 4
+  height: 2
+  noise_std: 0
+
+appearance:
+  blue: 10            # how its chaser sees it
+
+sensors:
+  - sensor:
+      name: retina
+      type: light
+      position: [0, 0.88]
+      field_of_view: 60
+      camera:
+        columns: 24                 # 2.5 degrees each; columns j and 23 - j are mirror images
+        rows: 4                     # 2 degrees each: two above the horizon, two below
+        vertical_field_of_view: 8
+        height: 1
+        range: 30
+      # No response: each pixel reports the brightness it sees, 10 for a white front, 5 for a
+      # gray face, 0 for the ground or the sky.
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.85]
+      gain: 2
+      max_speed: 6
+      inputs:
+        - input:
+            from: look_right
+        - input:
+            from: turn_away         # three times: one wheel at 6, a half turn in about a second
+        - input:
+            from: turn_away
+        - input:
+            from: turn_away
+        - input:
+            from: turn_back
+        - input:
+            from: turn_back
+        - input:
+            from: turn_back
+        - input:
+            from: run               # three times on both wheels: runs at 6
+        - input:
+            from: run
+        - input:
+            from: run
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.85]
+      gain: 2
+      max_speed: 6
+      inputs:
+        - input:
+            from: look_left
+        - input:
+            from: run
+        - input:
+            from: run
+        - input:
+            from: run
+
+units:
+  # Symmetry: a mismatch between a pixel and its mirror image, in the 8 middle columns (8 to 15).
+  # odd_left[i, j] compares column 8 + j with column 15 - j, and fires when the one on the left
+  # is brighter by 4 or more; odd_right when the one on the right is.
+  - unit:
+      name: odd_left
+      type: threshold
+      threshold: 4
+      array: [4, 4]
+      position: [-0.32, 0.5]
+      inputs:
+        - input:
+            from: retina[i, j+8]
+        - input:
+            from: retina[i, 15-j]
+            type: inhibitory
+  - unit:
+      name: odd_right
+      type: threshold
+      threshold: 4
+      array: [4, 4]
+      position: [0.32, 0.5]
+      inputs:
+        - input:
+            from: retina[i, 15-j]
+        - input:
+            from: retina[i, j+8]
+            type: inhibitory
+  # A white front fills the middle of the view: the 4 middle columns, on both sides of the horizon.
+  - unit:
+      name: front_ahead
+      type: threshold
+      threshold: 70                 # 8 pixels, 8.75 on average: mostly white
+      position: [0, 0.3]
+      inputs:
+        - input:
+            from: retina[1:3, 10:14]
+  # Faced: a white front in the middle, and the middle of the view the same on both sides.
+  - unit:
+      name: symmetric
+      type: threshold
+      threshold: 1
+      position: [0, 0.08]
+      inputs:
+        - input:
+            from: front_ahead
+        - input:
+            from: odd_left[:, :]
+            type: inhibitory
+        - input:
+            from: odd_right[:, :]
+            type: inhibitory
+  # Watching: turn toward the brighter half of the view, so that what is seen comes to the middle.
+  - unit:
+      name: left_heavier
+      type: threshold
+      threshold: 5
+      position: [-0.78, 0.5]
+      inputs:
+        - input:
+            from: retina[:, 0:12]
+        - input:
+            from: retina[:, 12:24]
+            type: inhibitory
+  - unit:
+      name: right_heavier
+      type: threshold
+      threshold: 5
+      position: [0.78, 0.5]
+      inputs:
+        - input:
+            from: retina[:, 12:24]
+        - input:
+            from: retina[:, 0:12]
+            type: inhibitory
+  - unit:
+      name: look_left
+      type: threshold
+      threshold: 1
+      position: [-0.78, 0.08]
+      inputs:
+        - input:
+            from: left_heavier
+        - input:
+            from: fleeing
+            type: inhibitory
+  - unit:
+      name: look_right
+      type: threshold
+      threshold: 1
+      position: [0.78, 0.08]
+      inputs:
+        - input:
+            from: right_heavier
+        - input:
+            from: fleeing
+            type: inhibitory
+  # Fleeing, in three steps. Turn away: it holds itself on until run starts, a second later.
+  - unit:
+      name: turn_away
+      type: threshold
+      threshold: 1
+      position: [-0.55, -0.34]
+      inputs:
+        - input:
+            from: symmetric
+        - input:
+            from: turn_away
+        - input:
+            from: run
+            type: inhibitory
+  # Run: from a second after turn_away comes on, for about 2 s.
+  - unit:
+      name: run
+      type: threshold
+      threshold: 1
+      delay: 1
+      position: [-0.2, -0.34]
+      inputs:
+        - input:
+            from: turn_away
+  # Run is over: run's echo, half a second long, once run has gone off.
+  - unit:
+      name: ran
+      type: threshold
+      threshold: 1
+      delay: 0.5
+      position: [0.15, -0.34]
+      inputs:
+        - input:
+            from: run
+  - unit:
+      name: run_over
+      type: threshold
+      threshold: 1
+      position: [0.5, -0.34]
+      inputs:
+        - input:
+            from: ran
+        - input:
+            from: run
+            type: inhibitory
+  # Turn back: like turn_away, held on until watch comes on, a second later.
+  - unit:
+      name: turn_back
+      type: threshold
+      threshold: 1
+      position: [0.5, -0.6]
+      inputs:
+        - input:
+            from: run_over
+        - input:
+            from: turn_back
+        - input:
+            from: watch
+            type: inhibitory
+  - unit:
+      name: watch
+      type: threshold
+      threshold: 1
+      delay: 1
+      position: [0.1, -0.6]
+      inputs:
+        - input:
+            from: turn_back
+  # While it flees, it does not turn to watch.
+  - unit:
+      name: fleeing
+      type: threshold
+      threshold: 1
+      position: [0, -0.1]
+      inputs:
+        - input:
+            from: turn_away
+        - input:
+            from: run
+        - input:
+            from: turn_back

@@ -45,6 +45,18 @@ python -m braitenberg scenarios/vehicle8-hunter.yaml
 
 See [specs/vehicle-08.md](specs/vehicle-08.md) for the circuits and [specs/camera.md](specs/camera.md) for the camera.
 
+### Vehicle 9 — A shy vehicle that runs from whatever comes straight at it
+
+![The shy vehicle watches the chaser, and each time it comes straight at it, turns away, runs, and turns back to watch](specs/images/vehicle9-shy.gif)
+
+Vehicles are boxes with a white front and gray sides and back, so one coming straight at you looks symmetric, left and right alike, with white in the middle; seen from the side, from behind or at an angle, it does not. The shy vehicle's eye is wired as two mirror halves: units compare each pixel in the middle of the image with its mirror image, and fire when they differ. The shy vehicle turns to keep what it sees in the middle, and when it sees something symmetric with a white front there, it turns away, runs, and turns back to watch. A chaser follows it, and two walkers wander by.
+
+```
+python -m braitenberg scenarios/vehicle9-shy.yaml
+```
+
+See [specs/vehicle-09.md](specs/vehicle-09.md) for the circuits.
+
 ## Running
 
 ### Setup
@@ -76,6 +88,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 6: Evolved forager | The hand-tuned forager next to one tuned by selection | `python -m braitenberg scenarios/vehicle6-forager.yaml` |
 | Vehicle 7: Wary moth | Learns that the red lamp burns and keeps away from it; unlearns it when the lamp goes cold | `python -m braitenberg scenarios/vehicle7-wary-moth.yaml` |
 | Vehicle 8: Hunter | Ignores the still lamps; turns toward and lunges at its prey when it moves | `python -m braitenberg scenarios/vehicle8-hunter.yaml` |
+| Vehicle 9: Shy | Watches what it sees; runs from whatever comes straight at it, which it tells by symmetry | `python -m braitenberg scenarios/vehicle9-shy.yaml` |
 
 In the window:
 

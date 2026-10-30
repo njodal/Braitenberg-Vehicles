@@ -197,7 +197,7 @@ In addition to the cases in [worlds.md](worlds.md) and [vehicle-definition.md](v
 
 [vehicle-diagram.md](vehicle-diagram.md) is updated to match:
 
-- **Arena:** things are drawn to scale as seen from above: sources as discs of their radius (sources without a radius as now), and vehicles as rectangles of their footprint, turned with their heading, with a mark at the front. A vehicle is drawn gray, or, when its appearance names a stimulus named after a color, such as `red`, in that color. The `V` key shows or hides the selected vehicle's camera views: for each camera, the two edges of its horizontal field of view, out to its `range` or to the edge of the arena.
+- **Arena:** things are drawn to scale as seen from above: sources as discs of their radius (sources without a radius as now), and vehicles as rectangles of their footprint, turned with their heading, with a mark at the front. A vehicle is drawn gray, or, when its appearance gives a face a brightness above 0 for a stimulus named after a color, such as `red`, in that color. The `V` key shows or hides the selected vehicle's camera views: for each camera, the two edges of its horizontal field of view, out to its `range` or to the edge of the arena.
 - **Diagram:** a camera is drawn at its position as a small grid of `R × C` cells, top row at the top and leftmost column on the left, each lit by its pixel's level. A wire from a pixel starts at that pixel's cell.
 - **Readouts:** one block per camera, with its name and stimulus, and the image as a grid of `R × C` cells shaded by level, instead of one bar. The panel shrinks the cells to fit large cameras.
 - **Levels:** each pixel's level is computed like a sensor's ([vehicle-diagram.md](vehicle-diagram.md), *Levels*), from that pixel's own targets.

@@ -1,0 +1,53 @@
+general:
+  type: "9"
+  name: Chaser
+  description: >-
+    Follows the shy vehicle, which it sees by its blue color, steering toward the side where
+    more of it is in view. Its front is white, like a walker's.
+  size: 4
+  height: 2
+  noise_std: 0.3
+
+appearance:
+  light:
+    front: 10
+  blue: 0
+
+sensors:
+  - sensor:
+      name: eye
+      type: blue
+      position: [0, 0.88]
+      field_of_view: 90
+      camera:
+        columns: 18               # 5 degrees each
+        rows: 1
+        vertical_field_of_view: 10
+        height: 1
+        range: 60
+      response:
+        type: step                # lit where the shy vehicle covers a tenth of a pixel or more
+        at: 1
+
+actuators:
+  # Crossed: more of it on the left speeds up the right motor, and turns the chaser left.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      base_speed: 1.5
+      gain: 1
+      max_speed: 3
+      inputs:
+        - input:
+            from: eye[0, 9:18]
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      base_speed: 1.5
+      gain: 1
+      max_speed: 3
+      inputs:
+        - input:
+            from: eye[0, 0:9]

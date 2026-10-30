@@ -1,0 +1,28 @@
+general:
+  type: "9"
+  name: Walker
+  description: Wanders at random. Its front is white and the rest of it gray, so a camera can tell its front from its sides and back.
+  size: 4
+  height: 2
+  noise_std: 0.8
+
+appearance:
+  light:
+    front: 10       # the other faces stay gray, 5
+  blue: 0           # black to the chaser's eye, which looks for the shy vehicle's blue
+
+sensors: []
+
+actuators:
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      base_speed: 2
+      inputs: []
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      base_speed: 2
+      inputs: []
