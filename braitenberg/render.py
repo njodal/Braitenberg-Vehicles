@@ -62,8 +62,8 @@ BODY_OUTLINE = (180, 185, 205)
 WIRE_OFF = (60, 64, 90)
 WIRE_ON = (255, 230, 140)
 WIRE_INACTIVE = (70, 74, 96)
-LEARN_DIM = (90, 70, 140)     # Mnemotrix wires (Vehicle 7)
-LEARN_ON = (200, 160, 255)
+LEARN_DIM = (40, 100, 70)      # Mnemotrix wires (Vehicle 7)
+LEARN_ON = (90, 230, 140)
 STRENGTH_TICK = 0.7           # a connection is active above this strength
 
 

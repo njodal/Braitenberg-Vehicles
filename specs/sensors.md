@@ -22,6 +22,7 @@ A world sensor reads the value of its stimulus's field at the sensor's position 
 | `temperature` | Heat from a hot spot, or from a hot lamp switched by a schedule | `hot-spot`, `hot-lamp` | Vehicle 1 (`sensor`); Vehicle 7 wary moth (`heat`) | Implemented (Vehicle 7: specified) |
 | `light` | Light from one or more lamps | `one-light`, `two-lights`, `far-lights`, `hot-lamp` | Vehicles 2a, 2b, 3a, 3b, 4a, 4b; Vehicle 5 moth, searcher and forager; Vehicle 7 wary moth (`left_eye`, `right_eye`) | Implemented |
 | `red` | The red lamp of a traffic light, switched by a schedule; a red lamp | `traffic-light`, `hot-lamp` | Vehicle 5 driver; Vehicle 7 wary moth (`red_eye`) | Implemented |
+| `white` | A white lamp | `hot-lamp` | Vehicle 7 wary moth (`white_eye`) | Implemented |
 | `green` | The green lamp of a traffic light, switched by a schedule | `traffic-light` | Vehicle 5 driver (`green_eye`) | Implemented |
 | `proximity` | Nearness of the surfaces of obstacles and other vehicles, by convention the stimulus with a `surfaces` section | `room` | Vehicle 5 rover (`ir_left_front`, `ir_front_left`, `ir_front_right`, `ir_right_front`) | Implemented |
 | `nutrient` | Food dissolved in the water, from one broad source | `nutrient-gradient` | Vehicle 5 E. coli (`nose`, habituated) | Implemented |

@@ -1,5 +1,5 @@
 name: Hot lamp
-description: Two lamps 40 units apart. The right one is red, and it is hot for 120 seconds, then cold for 120, and so on.
+description: Two lamps 40 units apart. The left one is white. The right one is red, and it is hot for 120 seconds, then cold for 120, and so on.
 
 arena:
   width: 100
@@ -13,6 +13,11 @@ stimuli:
         intensity: 10
         falloff: 15
       - position: [70, 50]
+        intensity: 10
+        falloff: 15
+  white:                    # the left lamp is white, always
+    sources:
+      - position: [30, 50]
         intensity: 10
         falloff: 15
   red:                      # the right lamp is red, always

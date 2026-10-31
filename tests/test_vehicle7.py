@@ -96,6 +96,21 @@ def test_visits_the_white_lamp_after_learning(seed):
     assert any(s > 0.7 and white < 8 for _, s, *_, white in run(seed))
 
 
+# 3. White never comes with a burn, so its wire never grows
+@pytest.mark.parametrize("seed", range(5))
+def test_white_wire_never_grows(seed):
+    scenario = load_scenario(WARY_MOTH_SCENARIO)
+    scenario.simulation.seed = seed
+    sim = Simulation(scenario)
+    moth = sim.vehicles[0]
+    seen_white = False
+    for _ in range(round(SECONDS / DT)):
+        sim.step()
+        seen_white |= bool(moth.unit_outputs["sees_white"])
+        assert moth.strength("sees_white", "danger") == 0
+    assert seen_white
+
+
 # 4. Unlearns
 @pytest.mark.parametrize("seed", range(5))
 def test_unlearns_when_the_lamp_is_cold(seed):
@@ -311,8 +326,8 @@ def test_static_svg_marks_learning_wires():
 
     root = ET.fromstring(definition_svg(load_definition(WARY_MOTH)))
     learning = [e for e in root.iter() if e.get("stroke") == LEARNING and e.get("marker-end")]
-    assert len(learning) == 2                       # the wire and its legend entry
-    assert learning[0].get("stroke-dasharray")      # starts inactive
+    assert len(learning) == 3                       # the two wires and their legend entry
+    assert all(e.get("stroke-dasharray") for e in learning[:2])     # both start inactive
     texts = [t.text for t in root.iter("{http://www.w3.org/2000/svg}text")]
     assert "+M" in texts and "M learning (Mnemotrix)" in texts
 
