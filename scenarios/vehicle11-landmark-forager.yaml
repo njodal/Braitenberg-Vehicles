@@ -1,0 +1,14 @@
+name: Landmark forager (learns where food is)
+description: A forager among blue and red posts. Food is at the blue posts, smelled only close by; the forager learns that a blue post seen far away is followed by food, and heads for blue posts when hungry.
+
+world: ../worlds/landmarks.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle11-landmark-forager.yaml
+      position: [50, 10]
+      heading: 60
+
+simulation:
+  dt: 0.01
+  seed: 0

@@ -1,0 +1,227 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1030" viewBox="0 0 900 1030" font-family="Helvetica, Arial, sans-serif">
+<defs>
+<marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+<marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+<marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker>
+<marker id="arrow-learn" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+<marker id="arrow-ergo" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+</defs>
+<rect width="900" height="1030" fill="white"/>
+<text x="450.0" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1f2937">Vehicle 11: Landmark forager (learns where food is)</text>
+<rect x="70" y="120" width="760" height="760" rx="114" fill="#f9fafb" stroke="#6b7280" stroke-width="2"/>
+<rect x="618.0" y="551.6" width="120.0" height="64.0" rx="6" fill="#f3f4f6" stroke="#1f2937" stroke-width="2"/>
+<circle cx="678.0" cy="551.6" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="685.0" y="564.6" font-size="10" fill="#6b7280">energy</text>
+<circle cx="678.0" cy="615.6" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="685.0" y="608.6" font-size="10" fill="#6b7280">full</text>
+<rect x="390.0" y="658.0" width="120.0" height="64.0" rx="6" fill="#f3f4f6" stroke="#1f2937" stroke-width="2"/>
+<circle cx="450.0" cy="658.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="457.0" y="671.0" font-size="10" fill="#6b7280">pause</text>
+<circle cx="420.0" cy="722.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="427.0" y="715.0" font-size="10" fill="#6b7280">zig</text>
+<circle cx="480.0" cy="722.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="487.0" y="715.0" font-size="10" fill="#6b7280">zag</text>
+<rect x="132.0" y="658.0" width="180.0" height="64.0" rx="6" fill="#f3f4f6" stroke="#1f2937" stroke-width="2"/>
+<circle cx="162.0" cy="658.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="169.0" y="671.0" font-size="10" fill="#6b7280">left</text>
+<circle cx="222.0" cy="658.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="229.0" y="671.0" font-size="10" fill="#6b7280">right</text>
+<circle cx="282.0" cy="658.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="289.0" y="671.0" font-size="10" fill="#6b7280">enable</text>
+<circle cx="177.0" cy="722.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="184.0" y="715.0" font-size="10" fill="#6b7280">turn_left</text>
+<circle cx="267.0" cy="722.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="274.0" y="715.0" font-size="10" fill="#6b7280">turn_right</text>
+<rect x="588.0" y="658.0" width="180.0" height="64.0" rx="6" fill="#f3f4f6" stroke="#1f2937" stroke-width="2"/>
+<circle cx="618.0" cy="658.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="625.0" y="671.0" font-size="10" fill="#6b7280">left</text>
+<circle cx="678.0" cy="658.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="685.0" y="671.0" font-size="10" fill="#6b7280">right</text>
+<circle cx="738.0" cy="658.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="745.0" y="671.0" font-size="10" fill="#6b7280">enable</text>
+<circle cx="633.0" cy="722.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="640.0" y="715.0" font-size="10" fill="#6b7280">turn_left</text>
+<circle cx="723.0" cy="722.0" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="730.0" y="715.0" font-size="10" fill="#6b7280">turn_right</text>
+<line x1="329.4" y1="170.3" x2="288.0" y2="247.7" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="282.5" y="243.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="342.6" y1="170.3" x2="384.0" y2="247.7" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="373.7" y="252.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="287.3" y1="279.3" x2="326.8" y2="350.4" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="316.7" y="355.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="384.7" y1="279.3" x2="345.2" y2="350.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="339.5" y="347.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="674.8" y1="613.2" x2="351.4" y2="378.2" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="409.7" y="414.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="557.4" y1="170.3" x2="516.0" y2="247.7" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="510.5" y="243.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="570.6" y1="170.3" x2="612.0" y2="247.7" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="601.7" y="252.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="515.3" y1="279.3" x2="554.8" y2="350.4" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="544.7" y="355.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="612.7" y1="279.3" x2="573.2" y2="350.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="567.5" y="347.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="676.3" y1="612.0" x2="571.9" y2="384.3" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="595.0" y="418.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="235.1" y1="162.9" x2="736.2" y2="349.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="644.5" y="329.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="683.0" y1="171.1" x2="747.2" y2="337.9" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="730.4" y="324.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="738.3" y1="362.1" x2="467.6" y2="473.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="507.4" y="452.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="348.0" y1="379.0" x2="436.6" y2="467.6" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-ergo)"/>
+<text x="420.8" y="469.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#0d9488">+E</text>
+<line x1="552.0" y1="379.0" x2="463.4" y2="467.6" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-ergo)"/>
+<text x="466.4" y="456.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#0d9488">+E</text>
+<line x1="110.5" y1="171.8" x2="142.6" y2="348.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="129.5" y="331.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="778.7" y1="162.3" x2="164.1" y2="361.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="272.4" y="321.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="436.9" y1="491.9" x2="350.6" y2="563.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="353.0" y="555.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="231.7" y1="556.7" x2="317.7" y2="570.1" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="310.8" y="583.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="318.7" y1="576.3" x2="232.7" y2="562.9" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="239.6" y="559.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="151.8" y1="383.0" x2="208.0" y2="539.1" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="192.3" y="527.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="738.1" y1="361.5" x2="232.2" y2="550.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="319.2" y="513.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="674.0" y1="615.1" x2="233.3" y2="559.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="308.2" y="564.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="740.4" y1="365.7" x2="636.3" y2="443.1" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="642.2" y="432.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="676.7" y1="611.8" x2="627.3" y2="472.3" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="640.9" y="488.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="457.2" y1="791.6" x2="671.8" y2="554.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="636.9" y="611.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="461.6" y1="795.6" x2="676.2" y2="558.1" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="641.3" y="615.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="230.0" y1="563.7" x2="444.5" y2="655.6" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="399.3" y="651.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="610.1" y1="467.4" x2="453.9" y2="653.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="477.3" y="616.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="112.5" y1="171.6" x2="164.3" y2="651.7" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="145.2" y="563.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="783.5" y1="169.5" x2="228.5" y2="656.3" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="332.0" y="558.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="779.5" y1="165.0" x2="224.5" y2="651.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="328.1" y="554.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="106.5" y1="172.2" x2="158.4" y2="652.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="139.3" y="564.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="223.9" y1="571.1" x2="278.7" y2="653.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="261.0" y="647.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="233.0" y1="167.1" x2="616.6" y2="651.4" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="534.1" y="566.7" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="681.0" y1="172.0" x2="681.0" y2="652.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="672.0" y="563.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="675.0" y1="172.0" x2="675.0" y2="652.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="666.0" y="563.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="228.3" y1="170.8" x2="611.9" y2="655.2" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="529.4" y="570.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="629.5" y1="469.1" x2="735.0" y2="652.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="706.8" y="626.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="476.1" y1="722.8" x2="278.6" y2="762.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="302.2" y="753.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="266.4" y1="726.0" x2="263.0" y2="747.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="252.5" y="760.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="719.0" y1="722.4" x2="278.9" y2="764.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="351.7" y="753.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="423.9" y1="722.8" x2="621.4" y2="762.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="594.2" y="771.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="181.0" y1="722.4" x2="621.1" y2="764.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="546.5" y="771.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="633.6" y1="726.0" x2="637.0" y2="747.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="629.7" y="763.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="108.0" y1="158.0" x2="100.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="108.0" y1="158.0" x2="116.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="108.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="108.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">blue_left</text>
+<text x="108.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">blue</text>
+<line x1="792.0" y1="158.0" x2="784.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="792.0" y1="158.0" x2="800.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="792.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="792.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">blue_right</text>
+<text x="792.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">blue</text>
+<line x1="336.0" y1="158.0" x2="328.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="336.0" y1="158.0" x2="344.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="336.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="336.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">blue_eye</text>
+<text x="336.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">blue</text>
+<line x1="564.0" y1="158.0" x2="556.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="564.0" y1="158.0" x2="572.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="564.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="564.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">red_eye</text>
+<text x="564.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">red</text>
+<line x1="222.0" y1="158.0" x2="214.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="222.0" y1="158.0" x2="230.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="222.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="222.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">nose_left</text>
+<text x="222.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">food</text>
+<line x1="678.0" y1="158.0" x2="670.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="678.0" y1="158.0" x2="686.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="678.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="678.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">nose_right</text>
+<text x="678.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">food</text>
+<line x1="450.0" y1="804.0" x2="442.0" y2="780.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="450.0" y1="804.0" x2="458.0" y2="780.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="450.0" cy="804.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="450.0" y="832.0" text-anchor="middle" font-size="12" fill="#1f2937">energy</text>
+<text x="450.0" y="845.0" text-anchor="middle" font-size="10" fill="#6b7280">energy</text>
+<circle cx="279.0" cy="264.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="279.0" y="268.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="279.0" y="295.4" text-anchor="middle" font-size="12" fill="#1f2937">blue_far</text>
+<circle cx="393.0" cy="264.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="393.0" y="268.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">6</text>
+<text x="393.0" y="295.4" text-anchor="middle" font-size="12" fill="#1f2937">blue_near</text>
+<circle cx="336.0" cy="367.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="336.0" y="371.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="336.0" y="398.0" text-anchor="middle" font-size="12" fill="#1f2937">sees_blue</text>
+<circle cx="507.0" cy="264.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="507.0" y="268.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="507.0" y="295.4" text-anchor="middle" font-size="12" fill="#1f2937">red_far</text>
+<circle cx="621.0" cy="264.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="621.0" y="268.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">6</text>
+<text x="621.0" y="295.4" text-anchor="middle" font-size="12" fill="#1f2937">red_near</text>
+<circle cx="564.0" cy="367.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="564.0" y="371.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="564.0" y="398.0" text-anchor="middle" font-size="12" fill="#1f2937">sees_red</text>
+<circle cx="754.0" cy="355.6" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="754.0" y="359.6" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">4</text>
+<text x="754.0" y="386.6" text-anchor="middle" font-size="12" fill="#1f2937">smells</text>
+<circle cx="450.0" cy="481.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="450.0" y="485.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="450.0" y="512.0" text-anchor="middle" font-size="12" fill="#1f2937">expects_food</text>
+<circle cx="146.0" cy="367.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="146.0" y="371.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="146.0" y="398.0" text-anchor="middle" font-size="12" fill="#1f2937">blue_seen</text>
+<circle cx="336.0" cy="576.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="336.0" y="580.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="336.0" y="607.0" text-anchor="middle" font-size="12" fill="#1f2937">lured</text>
+<circle cx="214.4" cy="557.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="214.4" y="561.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="214.4" y="588.0" text-anchor="middle" font-size="12" fill="#1f2937">going</text>
+<circle cx="621.0" cy="454.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="621.0" y="458.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="621.0" y="485.4" text-anchor="middle" font-size="12" fill="#1f2937">feeding</text>
+<text x="678.0" y="584.6" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2937" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">hunger</text>
+<text x="678.0" y="596.6" text-anchor="middle" font-size="10" fill="#6b7280" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">module Hunger</text>
+<text x="450.0" y="691.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2937" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">zigzag</text>
+<text x="450.0" y="703.0" text-anchor="middle" font-size="10" fill="#6b7280" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">module Zigzag</text>
+<text x="222.0" y="691.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2937" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">seek</text>
+<text x="222.0" y="703.0" text-anchor="middle" font-size="10" fill="#6b7280" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">module Steer</text>
+<text x="678.0" y="691.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2937" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">eat</text>
+<text x="678.0" y="703.0" text-anchor="middle" font-size="10" fill="#6b7280" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">module Steer</text>
+<rect x="243.0" y="755.0" width="34" height="22" rx="4" fill="#c7d2fe" stroke="#1f2937" stroke-width="2"/>
+<text x="260.0" y="794.0" text-anchor="middle" font-size="12" fill="#1f2937">left_motor</text>
+<text x="260.0" y="807.0" text-anchor="middle" font-size="10" fill="#6b7280">gain 3 · base 3</text>
+<rect x="623.0" y="755.0" width="34" height="22" rx="4" fill="#c7d2fe" stroke="#1f2937" stroke-width="2"/>
+<text x="640.0" y="794.0" text-anchor="middle" font-size="12" fill="#1f2937">right_motor</text>
+<text x="640.0" y="807.0" text-anchor="middle" font-size="10" fill="#6b7280">gain 3 · base 3</text>
+<line x1="70" y1="970.0" x2="100" y2="970.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="110" y="974.0" font-size="12" fill="#1f2937">+ excitatory</text>
+<line x1="250" y1="970.0" x2="280" y2="970.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="290" y="974.0" font-size="12" fill="#1f2937">− inhibitory</text>
+<line x1="70" y1="1010.0" x2="100" y2="1010.0" stroke="#0d9488" stroke-width="2" marker-end="url(#arrow-ergo)"/>
+<text x="110" y="1014.0" font-size="12" fill="#1f2937">E learning (Ergotrix)</text>
+</svg>

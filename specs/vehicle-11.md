@@ -1,6 +1,6 @@
 # Vehicle 11 — Rules and regularities: the cautious driver
 
-**Status:** implemented. The cautious driver's values were checked from ten starting positions; see *Acceptance criteria*.
+**Status:** implemented: the Ergotrix wire, the cautious driver (values checked from ten starting positions, see *Acceptance criteria*) and the landmark forager (tuned on seeds 0 to 4, see its own criteria).
 
 ## Summary
 
@@ -11,6 +11,8 @@ The wire is asymmetric. A wire from A to B learns that A comes before B; it lear
 This spec adds the Ergotrix learning type to the vehicle definition and uses it in one example, the **cautious driver**. It is the Vehicle 5 driver ([vehicle-05-driver.md](vehicle-05-driver.md)) on the same looping road, but the traffic light now has a **yellow** phase between green and red. At first the driver knows only red: yellow means nothing to it, so it drives on, and when the light turns red at the wrong moment it either stops past the line or, already too close to see the light, runs the red. But in this world red always comes a few seconds after yellow, so an Ergotrix wire from *sees yellow* to *expects red* grows. In the same way it learns that yellow follows green and green follows red: the whole sequence of the light. After a few cycles, yellow alone makes the driver expect red, and it stops at the line as soon as the light turns yellow, as a careful human driver does. It has learned a traffic rule from the regularity of the light, with no one teaching it and no fine: red itself, coming after yellow, is the lesson. When the light is changed so that yellow is followed by green, each yellow without red weakens the wire, and the driver drives through yellow again. Wires that start alike from every color to every other mature only where the light's order says so: from green to yellow, but not from yellow to green.
 
 A Mnemotrix wire cannot learn this. Yellow goes off when red comes on, so the two are never on together, and its rule never gets going.
+
+A second example, the **landmark forager** (*Second example: the landmark forager*), learns a sequence that its own movement makes: food is always at a blue post, so heading for a blue post seen in the distance is followed, a few seconds later, by the smell of food.
 
 ![The cautious driver learns the light's sequence and stops at the line as soon as the light turns yellow](images/vehicle11-cautious-driver.gif)
 
@@ -169,7 +171,106 @@ Nobody penalizes running a red. The criteria count it to show that the driver dr
 
 Ergotrix wires are drawn like Mnemotrix wires ([vehicle-diagram.md](vehicle-diagram.md)), with their own color, a teal green (`#0d9488`), kin to the Mnemotrix green but told apart from it, and the label `E`: wider as they grow stronger, dashed while inactive. Their readout line reads, for example, `sees_yellow->expects_red  E  0.30`, and the panel also shows whether the wire is waiting. The legend of the SVG explains `E` when the vehicle has an Ergotrix wire. Once the wires are active, watch each `expects_` unit turn on one phase before its color: `expects_red` as soon as the light turns yellow, while the driver is still far from the light.
 
+## Second example: the landmark forager
+
+**Status:** implemented; the values below were tuned on seeds 0 to 4.
+
+![The landmark forager zigzags until, by chance, it finds food at a blue post; once it has learned, it heads for blue posts it sees in the distance](images/vehicle11-landmark-forager.gif)
+
+*The default scenario, first 150 seconds (seed 0, played at eight times the speed). In the panel, `sees_blue->expects_food`, at the bottom, grows with each chance meal and passes 0.7 at about 96 s; `sees_red->expects_food`, below it, stays low. Watch `going` light up when a blue post comes into far sight.*
+
+In the cautious driver the sequence is set by a clock: the traffic light changes on a schedule, whatever the driver does. In the landmark forager nothing in the world changes at all. The sequence comes from the vehicle's own **movement** through a world with a regular layout: food is always at a blue post, so a forager that heads for a blue post it sees in the distance smells food a few seconds later. The same Ergotrix rule learns "blue, then food" as it learned "yellow, then red", and the forager starts heading for blue posts when it is hungry.
+
+### The world
+
+`worlds/landmarks.yaml`: a 100 × 100 arena with `edges: wrap`, with two blue posts and two red ones, 50 units apart in a grid.
+
+| Stimulus | Sources | Meaning |
+|---|---|---|
+| `blue` | `[25, 25]` and `[75, 75]`, intensity 10, falloff 15 | Blue posts, seen from far away |
+| `red` | `[75, 25]` and `[25, 75]`, intensity 10, falloff 15 | Red posts, the same but red |
+| `food` | `[25, 25]` and `[75, 75]`, intensity 10, falloff 4 | Food at each blue post, smelled only within about 8 units |
+
+Posts are landmarks: they stay where they are, they never switch, and nothing about a post tells the forager that there is food at it. Only the layout does: food is at blue posts and never at red ones. Food does not run out.
+
+### Design
+
+The forager is the Vehicle 5 forager ([vehicle-05-forager.md](vehicle-05-forager.md)) with a different sense of where food is. The Vehicle 5 forager recharges from a light that it sees from far away; this one recharges from food that it can only smell from close by, and the posts it sees from far away mean nothing to it until it learns what is at them.
+
+#### Parts
+
+- **Body:** `size` 4, `noise_std` 0.1, as the forager.
+- **Sensors:** `blue_left` at `[-0.9, 0.9]` and `blue_right` at `[0.9, 0.9]`, reading `blue`, with `field_of_view` 90, to steer toward a blue post. `blue_eye` at `[-0.3, 0.9]` and `red_eye` at `[0.3, 0.9]`, reading `blue` and `red`, with `field_of_view` 60, for the cues: a post more or less straight ahead. `nose_left` at `[-0.6, 0.9]` and `nose_right` at `[0.6, 0.9]`, reading `food`, which smell all around. `energy`, drawn at `[0, -0.8]`.
+- **Energy:** as the forager (`initial` 50, `max` 100, `consumption` 0.5, `basal` 2), but `charge_from: food` and `charge_gain` 4, so that food recharges about 10 per second within 4 units of it, as the light does the forager near it.
+- **Motors:** `left_motor` and `right_motor` as the forager's: `base_speed` 3, `gain` 3, `max_speed` 6.
+
+#### Units
+
+| Unit | Inputs | Threshold | Fires when | Role |
+|---|---|---|---|---|
+| `blue_far` | `blue_eye` | 2 | a blue post ahead within about 30 units | |
+| `blue_near` | `blue_eye` | 6 | a blue post ahead within about 12 units | |
+| `sees_blue` | `blue_far`, inhibitory `blue_near`, inhibitory `hunger.full` | 1 | a blue post far ahead, 12 to 30 units, while not full | The cue |
+| `red_far`, `red_near`, `sees_red` | the same from `red_eye` | | a red post far ahead, while not full | A cue that predicts nothing |
+| `smells` | `nose_left`, `nose_right` | 4 | food within about 8 units | Food |
+| `expects_food` | `smells`; `sees_blue` and `sees_red` (each **Ergotrix**, strength 0, `within` 8, `learn` 0.4, `forget` 0.05) | 1 | food is smelled, or a post is seen that, once learned, food comes after | Food smelled or about to be |
+| `blue_seen` | `blue_left`, `blue_right` | 1 | a blue post anywhere ahead | Something to head for |
+| `lured` | `expects_food`, `going` | 1 | `expects_food` OR `going` | |
+| `going` | `lured`, `blue_seen`, inhibitory `smells`, inhibitory `hunger.full` | 2 | lured AND a blue post in sight, while not smelling food and not full | Heading for a blue post |
+| `feeding` | `smells`, inhibitory `hunger.full` | 1 | food smelled while not full | Eating |
+
+The rest is done by modules ([modules.md](modules.md)), which are the Vehicle 5 searcher's and forager's circuits in files of their own:
+
+| Module | File | Inputs | Role |
+|---|---|---|---|
+| `hunger` | `hunger.yaml` | `energy`: `energy` | `full` from energy 90 until energy 30, as the forager |
+| `zigzag` | `zigzag.yaml` | `pause`: `going`, `feeding` | The searcher's zigzag, unless going to a post or eating |
+| `seek` | `steer.yaml` | `left`: `blue_left`, `right`: `blue_right`, `enable`: `going` | Turn toward the blue post while going to it |
+| `eat` | `steer.yaml` | `left`: `nose_left`, `right`: `nose_right`, `enable`: `feeding` | Circle the food while eating |
+
+`right_motor` takes `zigzag.zig`, `seek.turn_left` and `eat.turn_left`; `left_motor` takes `zigzag.zag`, `seek.turn_right` and `eat.turn_right`. With its units written out, the forager would have 28 parts, and its diagram would hide the cues and the wires among them; with the modules, what is new in this vehicle is what the diagram shows.
+
+**Seen far, not near.** `sees_blue` fires only while the post is 12 to 30 units ahead: it is the post recognized as a landmark in the distance, not the post up close. So the forager stops seeing the cue about 4 units before it starts smelling food, about a second at its speed, much longer than any simultaneity window. That is what makes this an Ergotrix problem: the cue is gone before the food comes, and a Mnemotrix wire never sees them together. It is the same gap that the cautious driver has between yellow going off and red coming on, made here by distance instead of by the clock.
+
+The cue comes from one eye in the middle, not from the two steering eyes added up: close to a post, one steering eye can see it while the other does not, and their sum then falls back into the far range. With the two eyes, the cue came back on while the forager was eating, and a Mnemotrix wire learned it.
+
+**Not while full.** The cues are gated by `full`, so a forager that has just eaten does not see posts as cues. Otherwise, leaving a blue post full, it would see it turn far again behind it, or another one ahead, go its own way, and find no food: a failed prediction every time it is not hungry. The rule is learned only when it matters, while looking for food.
+
+**Going.** A cue only lasts while the post is far. To get to the post, `going` holds on from the moment the forager expects food until it smells it, as long as a blue post is in sight: `going` feeds `lured`, which feeds `going` back, a loop of two units like the forager's `full`. It lets go when food is smelled, when the forager is full, or when the post is lost from sight.
+
+#### How it learns
+
+- **Before learning** posts mean nothing. The hungry forager zigzags, and when it happens to pass within about 6 units of food, it smells it, circles it, and recharges until full. Then it zigzags away, as the Vehicle 5 forager leaves its light.
+- **Chance teaches.** Whenever a blue post comes into far sight, the wire `sees_blue → expects_food` waits 8 s. The zigzag keeps the forager's overall direction, so a post that comes into sight ahead is often one it is heading for. When it gets there in time, it smells food while the wire waits: `+0.4`. When it zigzags past, the wait ends: `-0.05`. A pairing is worth eight misses, so even if only one blue post in five is reached by chance, the wire grows, and two pairings in a row make it active.
+- **Once learned**, `expects_food` fires as soon as a blue post is far ahead, `going` turns on, and the forager turns toward the post and drives straight to it. Every visit now ends in food, so every visit confirms the wire, as every stop confirmed the driver's.
+- **Red is not learned.** A red post comes into sight as often, and the forager goes past it or, by chance, to it, but there is never food at it. Its wire pairs only by coincidence, when the forager smells food within 8 s of seeing a red post far ahead: when it sees one while on its way to a blue post, 50 units from it. That is much rarer than a miss, so the wire stays near 0. It may twitch, and tuning must check that it never comes near 0.7; if it does, the posts go farther apart or `within` gets shorter.
+- **It eats more often.** A forager that heads for the blue posts it sees finds food sooner than one that waits to stumble on it, so it spends less time hungry and recharges more often.
+
+#### Diagram and panel
+
+As for the cautious driver. In the panel, watch `sees_blue->expects_food` grow while `sees_red->expects_food` stays at 0, and `going` light up when a blue post comes into far sight.
+
+#### Definition, world and scenario
+
+- `vehicles/vehicle11-landmark-forager.yaml`: the definition above, `general.type` `"11"`, named *Landmark forager (learns where food is)*.
+- `worlds/landmarks.yaml`: the world above.
+- `scenarios/vehicle11-landmark-forager.yaml`: one landmark forager with energy 50 in `landmarks`, at `[50, 10]` with heading 60, `dt` 0.01. (With heading 90 the forager drives up the line `x = 50`, halfway between the posts, and with some seeds hardly ever comes near one.)
+- `modules/hunger.yaml`, `modules/zigzag.yaml` and `modules/steer.yaml`: the modules above.
+- `specs/images/vehicle11-landmark-forager.svg` and `specs/images/vehicle11-landmark-forager.gif`: the diagram and the recording above.
+
+#### Acceptance criteria
+
+Criteria L1 to L4 use the default scenario, run headless for 600 seconds, and must hold for each of seeds 0 to 4. A **control** is the same definition with `learn` 0 on both wires.
+
+- **L1. Learns where food is:** the strength of `sees_blue → expects_food` exceeds 0.7 before 300 s.
+- **L2. Red is not learned:** the strength of `sees_red → expects_food` never exceeds 0.7.
+- **L3. Heads for blue posts:** after the blue wire first exceeds 0.7, there is a time when `going` turns on with the forager more than 12 units from the nearest blue post, and it then smells food within 10 s, without `going` turning off in between.
+- **L4. Eats more often:** over seeds 0 to 4 together, `full` turns on at least 1.5 times as often as for the control in the same scenario and seeds.
+- **L5. Mnemotrix cannot:** the same definition with both wires changed to `mnemotrix` (`learn` 0.5, `forget` 0.02, no `within`) keeps their strengths below 0.1.
+
 ## Definition, world and scenario
+
+For the cautious driver (the landmark forager's are in its own section):
 
 - `vehicles/vehicle11-cautious-driver.yaml`: the definition above, `general.type` `"11"`, named *Cautious driver (learns to stop at yellow)*.
 - `worlds/traffic-light-yellow.yaml`: the world above.
@@ -189,6 +290,7 @@ python -m braitenberg.record scenarios/vehicle11-cautious-driver.yaml --seconds 
 - [vehicle-definition.md](vehicle-definition.md): the `ergotrix` type and `within` key under *Learning connections*, and the validation cases.
 - [vehicle-diagram.md](vehicle-diagram.md): Ergotrix wires and readouts, in the panel and the SVG.
 - [worlds.md](worlds.md): schedules, used for the three phases of the light.
+- [vehicle-05-forager.md](vehicle-05-forager.md) and [vehicle-05-searcher.md](vehicle-05-searcher.md): the energy, the zigzag and the hunger the landmark forager builds on.
 
 ## Acceptance criteria
 

@@ -1,0 +1,21 @@
+name: Landmarks
+description: Two blue posts and two red ones, seen from far away; food, smelled only close by, is at each blue post and never at a red one (Vehicle 11).
+
+arena:
+  width: 100
+  height: 100
+  edges: wrap
+
+stimuli:
+  blue:
+    sources:
+      - {position: [25, 25], intensity: 10, falloff: 15}
+      - {position: [75, 75], intensity: 10, falloff: 15}
+  red:
+    sources:
+      - {position: [75, 25], intensity: 10, falloff: 15}
+      - {position: [25, 75], intensity: 10, falloff: 15}
+  food:                     # at the blue posts, smelled within about 8 units
+    sources:
+      - {position: [25, 25], intensity: 10, falloff: 4}
+      - {position: [75, 75], intensity: 10, falloff: 4}

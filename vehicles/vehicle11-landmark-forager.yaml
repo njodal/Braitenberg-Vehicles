@@ -1,0 +1,260 @@
+general:
+  type: "11"
+  name: Landmark forager (learns where food is)
+  description: The Vehicle 5 forager among blue and red posts that it sees from far away, with food, which it smells only close by, at the blue posts. Ergotrix wires from each post seen far away to expecting food grow when food follows; the blue one does, so a hungry forager learns to head for blue posts.
+  size: 4
+  noise_std: 0.1
+
+sensors:
+  - sensor:
+      name: blue_left
+      type: blue
+      position: [-0.9, 0.9]
+      field_of_view: 90
+  - sensor:
+      name: blue_right
+      type: blue
+      position: [0.9, 0.9]
+      field_of_view: 90
+  - sensor:
+      name: blue_eye
+      type: blue
+      position: [-0.3, 0.9]
+      field_of_view: 60     # the cue: a post more or less straight ahead
+  - sensor:
+      name: red_eye
+      type: red
+      position: [0.3, 0.9]
+      field_of_view: 60
+  - sensor:
+      name: nose_left
+      type: food           # smells all around
+      position: [-0.6, 0.9]
+  - sensor:
+      name: nose_right
+      type: food
+      position: [0.6, 0.9]
+  - sensor:
+      name: energy
+      type: energy         # the vehicle's own energy
+      position: [0, -0.8]
+
+energy:
+  initial: 50
+  max: 100
+  consumption: 0.5         # per unit of distance traveled
+  basal: 2                 # per second, for being alive, even standing still
+  charge_from: food
+  charge_gain: 4           # per second, per unit of food at the body center
+
+units:
+  # Posts seen far away, 12 to 30 units ahead, while not full: the cues
+  - unit:
+      name: blue_far
+      type: threshold
+      threshold: 2   # a blue post within about 30 units ahead
+      position: [-0.45, 0.62]
+      inputs:
+        - input:
+            from: blue_eye
+  - unit:
+      name: blue_near
+      type: threshold
+      threshold: 6   # within about 12 units
+      position: [-0.15, 0.62]
+      inputs:
+        - input:
+            from: blue_eye
+  - unit:
+      name: sees_blue
+      type: threshold
+      threshold: 1
+      position: [-0.3, 0.35]
+      inputs:
+        - input:
+            from: blue_far
+        - input:
+            from: blue_near
+            type: inhibitory
+        - input:
+            from: hunger.full
+            type: inhibitory
+  - unit:
+      name: red_far
+      type: threshold
+      threshold: 2   # a red post within about 30 units ahead
+      position: [0.15, 0.62]
+      inputs:
+        - input:
+            from: red_eye
+  - unit:
+      name: red_near
+      type: threshold
+      threshold: 6   # within about 12 units
+      position: [0.45, 0.62]
+      inputs:
+        - input:
+            from: red_eye
+  - unit:
+      name: sees_red
+      type: threshold
+      threshold: 1
+      position: [0.3, 0.35]
+      inputs:
+        - input:
+            from: red_far
+        - input:
+            from: red_near
+            type: inhibitory
+        - input:
+            from: hunger.full
+            type: inhibitory
+  # Food smelled, or about to be
+  - unit:
+      name: smells
+      type: threshold
+      threshold: 4   # food within about 6 units
+      position: [0.8, 0.38]
+      inputs:
+        - input:
+            from: nose_left
+        - input:
+            from: nose_right
+  - unit:
+      name: expects_food
+      type: threshold
+      threshold: 1
+      position: [0, 0.05]
+      inputs:
+        - input:
+            from: smells
+        - input:
+            from: sees_blue
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 8       # seconds from seeing the post far away
+              learn: 0.4
+              forget: 0.05
+        - input:
+            from: sees_red
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 8       # seconds from seeing the post far away
+              learn: 0.4
+              forget: 0.05
+  # Going to a blue post: from expecting food there until smelling it, while it is in sight
+  - unit:
+      name: blue_seen
+      type: threshold
+      threshold: 1   # a blue post anywhere ahead
+      position: [-0.8, 0.35]
+      inputs:
+        - input:
+            from: blue_left
+        - input:
+            from: blue_right
+  - unit:
+      name: lured
+      type: threshold
+      threshold: 1
+      position: [-0.3, -0.2]
+      inputs:
+        - input:
+            from: expects_food
+        - input:
+            from: going
+  - unit:
+      name: going
+      type: threshold
+      threshold: 2
+      position: [-0.62, -0.15]
+      inputs:
+        - input:
+            from: lured
+        - input:
+            from: blue_seen
+        - input:
+            from: smells
+            type: inhibitory
+        - input:
+            from: hunger.full
+            type: inhibitory
+  # Eating: circle the food while not full
+  - unit:
+      name: feeding
+      type: threshold
+      threshold: 1
+      position: [0.45, 0.12]
+      inputs:
+        - input:
+            from: smells
+        - input:
+            from: hunger.full
+            type: inhibitory
+
+modules:
+  # Full from energy 90 until hungry again at 30, as the Vehicle 5 forager.
+  - module:
+      name: hunger
+      file: ../modules/hunger.yaml
+      position: [0.6, -0.22]
+      inputs:
+        energy: energy
+  # Zigzag while searching: unless going to a post or eating.
+  - module:
+      name: zigzag
+      file: ../modules/zigzag.yaml
+      position: [0, -0.5]
+      inputs:
+        pause: [going, feeding]
+  # Turn toward a blue post while going to it...
+  - module:
+      name: seek
+      file: ../modules/steer.yaml
+      position: [-0.6, -0.5]
+      inputs:
+        left: blue_left
+        right: blue_right
+        enable: going
+  # ...and circle the food while eating.
+  - module:
+      name: eat
+      file: ../modules/steer.yaml
+      position: [0.6, -0.5]
+      inputs:
+        left: nose_left
+        right: nose_right
+        enable: feeding
+
+actuators:
+  # Speeding up the right motor turns left, the left motor turns right.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      inputs:
+        - input:
+            from: zigzag.zag
+        - input:
+            from: seek.turn_right
+        - input:
+            from: eat.turn_right
+      gain: 3
+      base_speed: 3
+      max_speed: 6
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      inputs:
+        - input:
+            from: zigzag.zig
+        - input:
+            from: seek.turn_left
+        - input:
+            from: eat.turn_left
+      gain: 3
+      base_speed: 3
+      max_speed: 6

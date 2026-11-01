@@ -17,7 +17,7 @@ from braitenberg.definition import VehicleDefinition, load_definition
 from braitenberg.vehicle import Vehicle
 
 RADIUS = 170            # pixels per body unit: the body spans [-1, 1]
-LARGE_RADIUS = 380      # for a vehicle with cameras or arrays of units, which have many parts
+LARGE_RADIUS = 380      # for a vehicle with cameras, arrays of units or modules, which have many parts
 MARGIN = 70
 TITLE_HEIGHT = 50
 LEGEND_HEIGHT = 40
@@ -153,7 +153,7 @@ def definition_svg(definition: VehicleDefinition) -> str:
     if any(w.learning == "ergotrix" for w in diagram.wires):
         legend.append(("ergo", "", "E learning (Ergotrix)"))
     legend_rows = -(-len(legend) // LEGEND_COLUMNS)
-    radius = LARGE_RADIUS if any(p.shape for p in diagram.parts) else RADIUS
+    radius = LARGE_RADIUS if any(p.shape or p.kind == "module" for p in diagram.parts) else RADIUS
     width = 2 * radius + 2 * MARGIN
     height = TITLE_HEIGHT + 2 * radius + 2 * MARGIN + LEGEND_HEIGHT * legend_rows
     cx, cy = width / 2, TITLE_HEIGHT + MARGIN + radius

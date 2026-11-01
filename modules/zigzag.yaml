@@ -1,0 +1,63 @@
+module:
+  name: Zigzag
+  description: >-
+    The Vehicle 5 searcher's oscillator: turns left and right in turn, by the same amount, so the
+    vehicle zigzags and keeps its overall direction, unless paused.
+
+inputs:
+  pause: while it carries a signal, no turns; without it, the zigzag
+
+outputs: [zig, zag]
+
+units:
+  # A ring of three units, each silenced by the one before it.
+  # The extra excitation from osc_a to osc_c keeps them from firing in step.
+  - unit:
+      name: osc_a
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      inputs:
+        - input:
+            from: osc_c
+            type: inhibitory
+  - unit:
+      name: osc_b
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      inputs:
+        - input:
+            from: osc_a
+            type: inhibitory
+  - unit:
+      name: osc_c
+      type: threshold
+      threshold: 0
+      delay: 0.3
+      inputs:
+        - input:
+            from: osc_b
+            type: inhibitory
+        - input:
+            from: osc_a
+  - unit:
+      name: zig              # turn left
+      type: threshold
+      threshold: 1
+      inputs:
+        - input:
+            from: osc_b
+        - input:
+            from: pause
+            type: inhibitory
+  - unit:
+      name: zag              # turn right
+      type: threshold
+      threshold: 1
+      inputs:
+        - input:
+            from: osc_c
+        - input:
+            from: pause
+            type: inhibitory

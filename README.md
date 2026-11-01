@@ -69,6 +69,14 @@ python -m braitenberg scenarios/vehicle11-cautious-driver.yaml
 
 See [specs/vehicle-11.md](specs/vehicle-11.md) for the Ergotrix rule and the circuits.
 
+The second Vehicle 11 example is a forager among blue and red posts that it sees from far away. Food, which it smells only close by, is always at the blue posts. At first it finds food only by chance, but each time it does, it had seen a blue post in the distance a few seconds before, and an Ergotrix wire from *sees blue* to *expects food* grows. After a couple of meals, a hungry forager heads for any blue post it sees, and eats far more often.
+
+![The landmark forager finds food by chance at first; once it has learned, it heads for blue posts it sees in the distance](specs/images/vehicle11-landmark-forager.gif)
+
+```
+python -m braitenberg scenarios/vehicle11-landmark-forager.yaml
+```
+
 ## Running
 
 ### Setup
@@ -102,6 +110,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 8: Hunter | Ignores the still lamps; turns toward and lunges at its prey when it moves | `python -m braitenberg scenarios/vehicle8-hunter.yaml` |
 | Vehicle 9: Shy | Watches what it sees; runs from whatever comes straight at it, which it tells by symmetry | `python -m braitenberg scenarios/vehicle9-shy.yaml` |
 | Vehicle 11: Cautious driver | Learns the traffic light's sequence and stops at yellow | `python -m braitenberg scenarios/vehicle11-cautious-driver.yaml` |
+| Vehicle 11: Landmark forager | Learns that food is at blue posts, and heads for them when hungry | `python -m braitenberg scenarios/vehicle11-landmark-forager.yaml` |
 
 In the window:
 

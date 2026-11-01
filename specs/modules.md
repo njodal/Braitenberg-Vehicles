@@ -6,7 +6,7 @@ A **module** is a piece of nervous system in a file of its own, which any vehicl
 
 Braitenberg builds every vehicle from the same few parts, and many of his circuits are useful in more than one vehicle. Until now each vehicle has to write its circuits out in full, so a behavior designed for one vehicle, such as the Vehicle 8 hunter's wandering, is copied by hand into another. A module is written once and included wherever it is needed.
 
-For example, the module [wander](../modules/wander.yaml) defines the ensemble of units that makes the vehicle move slowly and sideways in an almost random way. It is made of threshold units only, and the vehicle turns it on through its only input, `enable` (see *The wander module*). The first vehicle to use it is [vehicle 8](vehicle-08.md), which turns it on when it has seen nothing move for a while (*Searching*). The same vehicle uses two more modules: [boredom](../modules/boredom.yaml), which tells it when it has seen nothing for a while (see *The boredom module*), and [pursue](../modules/pursue.yaml), which turns toward what moves and lunges at it (see *The pursue module*).
+For example, the module [wander](../modules/wander.yaml) defines the ensemble of units that makes the vehicle move slowly and sideways in an almost random way. It is made of threshold units only, and the vehicle turns it on through its only input, `enable` (see *The wander module*). The first vehicle to use it is [vehicle 8](vehicle-08.md), which turns it on when it has seen nothing move for a while (*Searching*). The same vehicle uses two more modules: [boredom](../modules/boredom.yaml), which tells it when it has seen nothing for a while (see *The boredom module*), and [pursue](../modules/pursue.yaml), which turns toward what moves and lunges at it (see *The pursue module*). The Vehicle 11 landmark forager ([vehicle-11.md](vehicle-11.md)) uses three more, made from the Vehicle 5 searcher's and forager's circuits: [zigzag](../modules/zigzag.yaml), [hunger](../modules/hunger.yaml) and [steer](../modules/steer.yaml), the last one twice.
 
 ## Module files
 
@@ -102,7 +102,7 @@ So a module adds no new kind of part to the simulation: a vehicle with a module 
 
 ### In the diagram
 
-The diagram draws a module as one part, at its `position`: a box, with its inputs on top and its outputs below, in the order of the module file, each a small circle with its name beside it. Inside the box, in the middle, are the module's name in the vehicle, in bold, and below it `module` and the module's own name (`wander`, `module Wander`); they are drawn over the wires, so that a wire crossing the box does not hide them. Its units and the wires between them are not drawn: from outside, a module is what goes in and what comes out. A wire into the module ends at the input it comes through, and a wire out of it starts at its output. The box is drawn under the wires, so that a wire is seen leaving its output even when it goes up. In the panel, where there is less room, the box is smaller, with only its name inside and its ports as small circles, each output lit by its level; the readouts show one line for the module, with its outputs as cells ([vehicle-diagram.md](vehicle-diagram.md)).
+The diagram draws a module as one part, at its `position`: a box, with its inputs on top and its outputs below, in the order of the module file, each a small circle with its name beside it. Inside the box, in the middle, are the module's name in the vehicle, in bold, and below it `module` and the module's own name (`wander`, `module Wander`); they are drawn over the wires, so that a wire crossing the box does not hide them. Its units and the wires between them are not drawn: from outside, a module is what goes in and what comes out. A wire into the module ends at the input it comes through, and a wire out of it starts at its output. The box is drawn under the wires, so that a wire is seen leaving its output even when it goes up. A vehicle with modules is drawn with the larger body that a vehicle with cameras gets, so that the boxes fit among its other parts. In the panel, where there is less room, the box is smaller, with only its name inside and its ports as small circles, each output lit by its level; the readouts show one line for the module, with its outputs as cells ([vehicle-diagram.md](vehicle-diagram.md)).
 
 ![Diagram of the Vehicle 8 hunter, drawn by python -m braitenberg.diagram: below the movement detectors, on the left, the boredom module above the wander module; in the middle, the pursue module, with its inputs left, ahead, right and near on top and its outputs turn_left, turn_right and forward below, wired to the motors](images/vehicle8-hunter.svg)
 
@@ -147,6 +147,27 @@ A single unit with a long delay would not do: its output tells what happened a d
 
 Each command lasts about twice its delay longer than the signal that called for it, as for any unit. What the inputs mean is up to the vehicle: the hunter gives `left` both the movement it sees on the left and the left pulses of `wander`, so that its wandering turns are made by `pursue` too.
 
+## The zigzag module
+
+`modules/zigzag.yaml` is the Vehicle 5 searcher's oscillator ([vehicle-05-searcher.md](vehicle-05-searcher.md), *The oscillator*): a ring of three units with a delay of 0.3 s, `osc_a`, `osc_b` and `osc_c`, and the units that turn it into turns.
+
+- **Input:** `pause`: while it carries a signal, no turns.
+- **Outputs:** `zig` and `zag`, which fire with `osc_b` and `osc_c`, unless paused. They are on for about as long as each other, so a vehicle that wires `zig` to its right motor and `zag` to its left one zigzags and keeps its overall direction.
+
+## The hunger module
+
+`modules/hunger.yaml` is the Vehicle 5 forager's memory of being full ([vehicle-05-forager.md](vehicle-05-forager.md), *Full until hungry*).
+
+- **Input:** `energy`, which the vehicle gives from its energy sensor.
+- **Output:** `full`, on from the moment the energy reaches 90 until it is down to 30, through `charged`, `hungry` and `full` feeding back into itself.
+
+## The steer module
+
+`modules/steer.yaml` turns toward the side whose sensor reads more, as the Vehicle 5 searcher turns toward a light.
+
+- **Inputs:** `left` and `right`, two readings to compare, and `enable`.
+- **Outputs:** `turn_left`, while `left` reads at least 0.05 more than `right` and the module is enabled, and `turn_right` the other way round. A vehicle wires `turn_left` to its right motor and `turn_right` to its left one.
+
 ## Loading and validation
 
 Loading fails, naming the file and the key, when:
@@ -167,6 +188,9 @@ Loading fails, naming the file and the key, when:
 8. **Validation:** each failure case under *Loading and validation* raises an error naming the file and the key.
 9. **Diagram:** the diagram of a vehicle with the wander module has one part `wander`, of kind `module`, at the module's position, with input `enable` and outputs `left` and `right`, and no part for its units. Its wires are only those that cross its edge: each one into it names the input it comes through, and each one out of it the output it comes from. The SVG draws the box with the names of its inputs and outputs.
 10. **Headless:** loading a definition with modules never imports pygame.
+11. **Zigzag:** unpaused, `zig` and `zag` each come on at least 10 times in 20 s, and are on for the same time within 10%; paused, neither fires once the pause has passed through.
+12. **Hunger:** with the energy rising from 50, `full` is off at 89 and on at 90; with the energy falling, it stays on at 60 and 31 and is off at 30, and stays off as the energy rises again below 90.
+13. **Steer:** enabled, `steer` fires `turn_left` when `left` reads more and `turn_right` when `right` does, and neither when they read the same; not enabled, it never fires.
 
 ## Out of scope
 

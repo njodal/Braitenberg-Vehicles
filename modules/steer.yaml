@@ -1,0 +1,52 @@
+module:
+  name: Steer
+  description: >-
+    Turns toward the side whose sensor reads more, while enabled: the Vehicle 5 searcher's
+    seeking, for any pair of sensors.
+
+inputs:
+  left: the reading on the left
+  right: the reading on the right
+  enable: while it carries a signal, the module steers; without it, never
+
+outputs: [turn_left, turn_right]
+
+units:
+  - unit:
+      name: left_stronger
+      type: threshold
+      threshold: 0.05
+      inputs:
+        - input:
+            from: left
+        - input:
+            from: right
+            type: inhibitory
+  - unit:
+      name: right_stronger
+      type: threshold
+      threshold: 0.05
+      inputs:
+        - input:
+            from: right
+        - input:
+            from: left
+            type: inhibitory
+  - unit:
+      name: turn_left
+      type: threshold
+      threshold: 2
+      inputs:
+        - input:
+            from: left_stronger
+        - input:
+            from: enable
+  - unit:
+      name: turn_right
+      type: threshold
+      threshold: 2
+      inputs:
+        - input:
+            from: right_stronger
+        - input:
+            from: enable

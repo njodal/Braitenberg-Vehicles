@@ -15,6 +15,9 @@ from conftest import read, run_python
 WANDER = Path(__file__).parent.parent / "modules" / "wander.yaml"
 PURSUE = Path(__file__).parent.parent / "modules" / "pursue.yaml"
 BOREDOM = Path(__file__).parent.parent / "modules" / "boredom.yaml"
+ZIGZAG = Path(__file__).parent.parent / "modules" / "zigzag.yaml"
+HUNGER = Path(__file__).parent.parent / "modules" / "hunger.yaml"
+STEER = Path(__file__).parent.parent / "modules" / "steer.yaml"
 
 
 def vehicle(modules=None, units=(), actuator_inputs=("wander.left",)):
@@ -326,3 +329,55 @@ print("ok")
 """)
     assert result.returncode == 0, result.stderr
     assert "ok" in result.stdout
+
+
+def with_module(write, file, inputs, sensors, outputs):
+    """A vehicle whose sensors feed one module, named `m`, and whose motor takes its outputs."""
+    d = {"general": {"type": "11", "name": "Test", "size": 4},
+         "sensors": [{"sensor": {"name": n, "type": "light", "position": [0, 0.8]}} for n in sensors],
+         "actuators": [{"actuator": {"name": "motor", "type": "motor", "position": [0, -0.8],
+                                     "inputs": [{"input": {"from": f"m.{o}"}} for o in outputs]}}],
+         "modules": [{"module": {"name": "m", "file": str(file), "inputs": inputs}}]}
+    return Vehicle(load_definition(write(d)), 50, 50, 0, dt=0.01)
+
+
+# 11. The zigzag module
+def test_zigzag_turns_left_and_right_alike_unless_paused(write):
+    v = with_module(write, ZIGZAG, {"pause": "stop"}, ["stop"], ["zig", "zag"])
+    zig, zag = [], []
+    for step in range(3000):
+        v.think({"stop": 1.0 if step >= 2000 else 0.0})
+        zig.append(v.unit_outputs["m.zig"])
+        zag.append(v.unit_outputs["m.zag"])
+    assert len(starts(zig[:2000])) >= 10 and len(starts(zag[:2000])) >= 10
+    assert sum(zig[:2000]) == pytest.approx(sum(zag[:2000]), rel=0.1)
+    assert not any(zig[2010:]) and not any(zag[2010:])
+
+
+# 12. The hunger module
+def test_hunger_is_full_from_90_until_30(write):
+    v = with_module(write, HUNGER, {"energy": "energy_level"}, ["energy_level"], ["full"])
+    full = {}
+    for energy in [50, 89, 90, 60, 31, 30, 50, 89]:
+        for _ in range(20):
+            v.think({"energy_level": float(energy)})
+        full.setdefault(energy, []).append(v.unit_outputs["m.full"])
+    assert full[89] == [0, 0] and full[90] == [1] and full[60] == [1] and full[31] == [1]
+    assert full[30] == [0] and full[50] == [0, 0]
+
+
+# 13. The steer module
+@pytest.mark.parametrize("left, right, enable, expected", [
+    (2.0, 1.0, 1.0, {"turn_left"}),
+    (1.0, 2.0, 1.0, {"turn_right"}),
+    (1.0, 1.0, 1.0, set()),
+    (2.0, 1.0, 0.0, set()),
+])
+def test_steer_turns_toward_the_stronger_side_while_enabled(write, left, right, enable, expected):
+    v = with_module(write, STEER, {"left": "l", "right": "r", "enable": "on"}, ["l", "r", "on"],
+                    ["turn_left", "turn_right"])
+    seen = set()
+    for _ in range(50):
+        v.think({"l": left, "r": right, "on": enable})
+        seen |= {o for o in ("turn_left", "turn_right") if v.unit_outputs[f"m.{o}"]}
+    assert seen == expected

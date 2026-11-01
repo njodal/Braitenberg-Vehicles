@@ -1,0 +1,39 @@
+module:
+  name: Hunger
+  description: >-
+    The Vehicle 5 forager's memory of being full: full from the moment the energy reaches 90
+    until it is down to 30 again.
+
+inputs:
+  energy: the vehicle's energy, from an energy sensor
+
+outputs: [full]
+
+units:
+  - unit:
+      name: charged
+      type: threshold
+      threshold: 90
+      inputs:
+        - input:
+            from: energy
+  - unit:
+      name: hungry
+      type: threshold
+      threshold: -30         # fires when -energy >= -30, that is, energy <= 30
+      inputs:
+        - input:
+            from: energy
+            type: inhibitory
+  - unit:
+      name: full
+      type: threshold
+      threshold: 1
+      inputs:
+        - input:
+            from: charged
+        - input:
+            from: full       # feeds back into itself: stays on once charged...
+        - input:
+            from: hungry     # ...until hungry again
+            type: inhibitory

@@ -1,5 +1,6 @@
 """Acceptance criteria of specs/vehicle-11.md."""
 
+import math
 from functools import lru_cache
 
 import pytest
@@ -326,3 +327,86 @@ def test_runs_without_pygame():
         "Simulation(load_scenario('scenarios/vehicle11-cautious-driver.yaml')).run(100)\n"
         "assert 'pygame' not in sys.modules\n")
     assert result.returncode == 0, result.stderr
+
+
+# Second example: the landmark forager
+FORAGER_SCENARIO = REPO / "scenarios" / "vehicle11-landmark-forager.yaml"
+BLUE_POSTS = [(25, 25), (75, 75)]
+SEEDS = range(5)
+
+
+@lru_cache(maxsize=None)
+def forage(seed, variant="default", seconds=600):
+    """Run the forager's scenario; per step: (time, blue strength, red strength, full, going,
+    smells, distance to the nearest blue post)."""
+    scenario = load_scenario(FORAGER_SCENARIO)
+    scenario.simulation.seed = seed
+    for u in scenario.vehicles[0].definition.units:
+        for c in u.inputs:
+            if c.learning and variant == "control":
+                c.learning.learn = 0.0
+            elif c.learning and variant == "mnemotrix":
+                c.learning.type, c.learning.learn, c.learning.forget = "mnemotrix", 0.5, 0.02
+                c.learning.within = None
+    sim = Simulation(scenario)
+    v = sim.vehicles[0]
+    track = []
+    for _ in range(round(seconds / DT)):
+        sim.step()
+        out = v.unit_outputs
+        nearest = min(math.hypot(*sim.world.arena.delta(v.x - x, v.y - y)) for x, y in BLUE_POSTS)
+        track.append((sim.time, v.strength("sees_blue", "expects_food"),
+                      v.strength("sees_red", "expects_food"), out["hunger.full"], out["going"],
+                      out["smells"], nearest))
+    return track
+
+
+def onsets(track, column):
+    return [k for k in range(1, len(track)) if track[k][column] and not track[k - 1][column]]
+
+
+# L1. Learns where food is
+@pytest.mark.parametrize("seed", SEEDS)
+def test_forager_learns_that_food_is_at_blue_posts(seed):
+    learned = next((t for t, blue, *_ in forage(seed) if blue > 0.7), None)
+    assert learned is not None and learned < 300
+
+
+# L2. Red is not learned
+@pytest.mark.parametrize("seed", SEEDS)
+def test_forager_does_not_learn_red(seed):
+    assert max(red for _, _, red, *_ in forage(seed)) <= 0.7
+
+
+# L3. Heads for blue posts
+@pytest.mark.parametrize("seed", SEEDS)
+def test_forager_heads_for_blue_posts_and_finds_food(seed):
+    track = forage(seed)
+    learned = next(k for k, step in enumerate(track) if step[1] > 0.7)
+    steps = round(10 / DT)
+
+    def reaches(k):
+        if track[k][6] <= 12:
+            return False
+        for j in range(k, min(k + steps, len(track))):
+            if track[j][5]:
+                return True
+            if not track[j][4]:
+                return False
+        return False
+
+    assert any(reaches(k) for k in onsets(track, 4) if k > learned)
+
+
+# L4. Eats more often
+def test_forager_eats_more_often_than_control():
+    learned = sum(len(onsets(forage(seed), 3)) for seed in SEEDS)
+    control = sum(len(onsets(forage(seed, "control"), 3)) for seed in SEEDS)
+    assert learned >= 1.5 * control
+
+
+# L5. Mnemotrix cannot
+@pytest.mark.parametrize("seed", [0, 1])
+def test_forager_mnemotrix_wires_do_not_learn(seed):
+    track = forage(seed, "mnemotrix", seconds=300)
+    assert max(max(blue, red) for _, blue, red, *_ in track) < 0.1
