@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="480" height="570" viewBox="0 0 480 570" font-family="Helvetica, Arial, sans-serif">
 <defs>
-<marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
-<marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
-<marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker>
-<marker id="arrow-learn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+<marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+<marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+<marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker>
+<marker id="arrow-learn" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
 </defs>
 <rect width="480" height="570" fill="white"/>
 <text x="240.0" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1f2937">Vehicle 5: Rover</text>
@@ -55,8 +55,8 @@
 <text x="148.6" y="331.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
 <path d="M134.6,329.1 C95.5,273.0 78.5,324.0 129.5,341.0" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
 <text x="88.7" y="301.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
-<line x1="316.5" y1="344.0" x2="165.5" y2="344.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
-<text x="183.9" y="340.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="316.5" y1="338.0" x2="165.5" y2="338.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="183.9" y="334.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
 <line x1="274.7" y1="303.3" x2="164.7" y2="335.6" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
 <text x="172.9" y="328.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
 <line x1="252.4" y1="264.3" x2="319.7" y2="327.9" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>

@@ -16,7 +16,7 @@ from braitenberg.yamlfile import Parser, read_yaml
 ACTUATOR_TYPES = ("motor",)
 UNIT_TYPES = ("threshold",)
 CONNECTION_TYPES = ("excitatory", "inhibitory")
-LEARNING_TYPES = ("mnemotrix",)
+LEARNING_TYPES = ("mnemotrix", "ergotrix")
 # Sensor response types: required fields, and optional fields with their defaults.
 RESPONSE_FIELDS = {
     "linear": (set(), {}),
@@ -42,11 +42,15 @@ def element_name(name: str, index: tuple[int, ...]) -> str:
 
 @dataclass
 class Learning:
-    """How a connection's strength changes while the vehicle runs (Vehicle 7)."""
+    """How a connection's strength changes while the vehicle runs (Vehicles 7 and 11)."""
 
     type: str = "mnemotrix"
-    learn: float = 0.0    # per second, while the source fires and the target's other inputs fire it
-    forget: float = 0.0   # per second, while the source fires and they do not
+    # Mnemotrix: per second, while the source fires and the target's other inputs fire it, or not.
+    # Ergotrix: per pairing, each time the target's fixed inputs turn on within `within` seconds
+    # after the source turns on, or not.
+    learn: float = 0.0
+    forget: float = 0.0
+    within: float | None = None   # Ergotrix only: seconds after the source turns on
 
 
 @dataclass
@@ -487,12 +491,18 @@ class _DefinitionParser(Parser):
     def learning(self, data, key: str) -> Learning:
         if isinstance(data, dict) and "type" in data:
             self.kind(data["type"], f"{key}.type", LEARNING_TYPES)
-        data = self.mapping(data, key, {"type", "learn"}, {"forget"})
+        ergotrix = isinstance(data, dict) and data.get("type") == "ergotrix"
+        data = self.mapping(data, key, {"type", "learn", *(["within"] if ergotrix else [])},
+                            {"forget"})
         learning = Learning(data["type"], self.number(data["learn"], f"{key}.learn"),
                             self.number(data.get("forget", 0.0), f"{key}.forget"))
         for rate in ("learn", "forget"):
             if getattr(learning, rate) < 0:
                 raise self.error(f"{key}.{rate}", "must not be negative")
+        if ergotrix:
+            learning.within = self.number(data["within"], f"{key}.within")
+            if learning.within <= 0:
+                raise self.error(f"{key}.within", "must be positive")
         return learning
 
     def sensor(self, data, key: str, names, general: General) -> SensorDef:

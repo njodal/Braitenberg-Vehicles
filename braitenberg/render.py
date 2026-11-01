@@ -64,7 +64,15 @@ WIRE_ON = (255, 230, 140)
 WIRE_INACTIVE = (70, 74, 96)
 LEARN_DIM = (40, 100, 70)      # Mnemotrix wires (Vehicle 7)
 LEARN_ON = (90, 230, 140)
+ERGO_DIM = (25, 95, 90)        # Ergotrix wires (Vehicle 11)
+ERGO_ON = (60, 215, 200)
+LEARNING_LABELS = {"mnemotrix": "M", "ergotrix": "E"}
 STRENGTH_TICK = 0.7           # a connection is active above this strength
+
+
+def learning_colors(w) -> tuple[tuple, tuple]:
+    """A learning wire's colors, inactive and fully active."""
+    return (ERGO_DIM, ERGO_ON) if w.learning == "ergotrix" else (LEARN_DIM, LEARN_ON)
 
 
 def heat_colors(values: np.ndarray) -> np.ndarray:
@@ -374,7 +382,8 @@ class Renderer:
         for w in bundles(diagram.wires):
             a, b = wire_ends(w, parts, at, PANEL_PORT_GAP, PANEL_BOX_HEIGHT)
             if w.learning:  # wider as it grows stronger, dashed until it is active
-                color = lerp_color(LEARN_DIM, LEARN_ON, w.level) if w.active else LEARN_DIM
+                dim, on = learning_colors(w)
+                color = lerp_color(dim, on, w.level) if w.active else dim
                 width = 1 + round(4 * w.strength)
             else:
                 color = lerp_color(WIRE_OFF, WIRE_ON, w.level) if w.active else WIRE_INACTIVE
@@ -390,7 +399,7 @@ class Renderer:
                     pygame.draw.line(surface, color, a, b, width)
                 # Near the target, so crossed wires do not label the same spot.
                 label_at = (a[0] + 0.85 * (b[0] - a[0]) + 8, a[1] + 0.85 * (b[1] - a[1]) - 22)
-            sign = ("+" if w.sign > 0 else "-") + ("M" if w.learning else "")
+            sign = ("+" if w.sign > 0 else "-") + LEARNING_LABELS.get(w.learning, "")
             if not w.label:   # bundles of an array's wires would crowd the diagram with signs
                 surface.blit(self.title_font.render(sign, True, color), label_at)
 
@@ -510,14 +519,16 @@ class Renderer:
         for w in diagram.wires:
             if not w.learning:
                 continue
+            dim, on = learning_colors(w)
             name = self.font.render(f"{w.source}->{w.target}", True, TEXT)
             surface.blit(name, (x0, y + 2))
-            surface.blit(self.small_font.render("M", True, LEARN_ON),
-                         (x0 + name.get_width() + 6, y + 4))
+            # An Ergotrix wire waiting for its target shows a dot after its letter.
+            letter = LEARNING_LABELS[w.learning] + (" •" if w.waiting else "")
+            surface.blit(self.small_font.render(letter, True, on), (x0 + name.get_width() + 6, y + 4))
             pygame.draw.rect(surface, PANEL_BORDER, (bar_x, y + 7, bar_width, 6), border_radius=3)
             filled = round(bar_width * w.strength)
             if filled:
-                pygame.draw.rect(surface, LEARN_ON if w.active else LEARN_DIM,
+                pygame.draw.rect(surface, on if w.active else dim,
                                  (bar_x, y + 7, filled, 6), border_radius=3)
             tick = bar_x + round(bar_width * STRENGTH_TICK)
             pygame.draw.line(surface, TEXT, (tick, y + 4), (tick, y + 15), 1)

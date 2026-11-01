@@ -245,7 +245,7 @@ Connections have no weights. How strongly a motor responds is set on the motor, 
 
 #### Learning connections
 
-An input with a `learning` section changes its strength while the vehicle runs. The only learning type so far is Braitenberg's **Mnemotrix** wire from Vehicle 7 ([vehicle-07.md](vehicle-07.md)): it grows stronger when its source fires together with its destination.
+An input with a `learning` section changes its strength while the vehicle runs. There are two learning types: Braitenberg's **Mnemotrix** wire from Vehicle 7 ([vehicle-07.md](vehicle-07.md)), which grows stronger when its source fires together with its destination, and his **Ergotrix** wire from Vehicle 11 ([vehicle-11.md](vehicle-11.md)), which grows stronger when its destination follows its source shortly after. This section describes Mnemotrix; the Ergotrix rule and its `within` key are in [vehicle-11.md](vehicle-11.md).
 
 ```yaml
 inputs:
@@ -260,7 +260,7 @@ inputs:
 
 | Key | Required | Meaning |
 |---|---|---|
-| `type` | yes | `mnemotrix`, the only learning type for now. |
+| `type` | yes | `mnemotrix`, or `ergotrix` ([vehicle-11.md](vehicle-11.md)). |
 | `learn` | yes | Strength gained per second while the source fires and the destination is driven by its other inputs. Not negative. |
 | `forget` | no | Strength lost per second while the source fires and the destination is not driven by its other inputs. Not negative. Default 0. |
 
@@ -443,11 +443,11 @@ actuators:
 13. **Direction:** a sensor with `direction` 90 and `field_of_view` 60 reads a source 90° to the left of the heading as a sensor without them reads it, and reads nothing from a source straight ahead; with `direction` -90, the same to the right. A sensor without `direction` reads exactly as before.
 14. **Habituation:** with `dt` 0.01, a sensor with `habituation` `tau` 0.5 and a `linear` response outputs 0 at the first step. When its reading then jumps by `R` and stays, it outputs `R` that step and `R * 0.98^50`, about `0.36 R`, 0.5 s later. When its reading rises by 2 per second, its output settles at 1, and at -1 when it falls by 2 per second. With a `step` response, the response applies to the difference. A sensor without `habituation` outputs exactly what it did before.
 
-Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (criteria 6 to 12).
+Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (criteria 6 to 12) and [vehicle-11.md](vehicle-11.md) (criteria 7 to 13).
 
 ## Out of scope
 
-- Other unit types, and learning types other than Mnemotrix (e.g. Vehicle 8's Ergotrix connections, which learn sequences).
+- Other unit types, and learning types other than Mnemotrix and Ergotrix.
 - Response curves other than `linear`, `peak` and `step`, and responses on actuators or connections.
 - Other kinds of habituation, such as fatigue, where the stimulus wears out the sensor's sensitivity and rest restores it; and habituating cameras.
 - Overriding definition values from a scenario.

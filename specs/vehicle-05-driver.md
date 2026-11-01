@@ -84,6 +84,6 @@ All criteria use the default scenario, run headless for 120 seconds of simulated
 
 ## Out of scope
 
-- An amber phase and the decision to go on when it is too late to stop.
+- An amber phase and the decision to go on when it is too late to stop. Vehicle 11 adds a yellow phase and a driver that learns to stop at it ([vehicle-11.md](vehicle-11.md)); going on when it is too late is still out of scope.
 - Slowing down gradually as a red light gets closer (the driver brakes at once at the stopping line).
 - Several traffic lights, other vehicles on the road, and turning.

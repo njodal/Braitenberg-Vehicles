@@ -1,0 +1,32 @@
+name: Traffic light with yellow
+description: A straight road with a traffic light beside it that turns green, yellow and red, 4.5 seconds each.
+
+arena:
+  width: 100
+  height: 20
+  edges: wrap               # the road loops: the driver comes back to the light on every lap
+
+stimuli:
+  green:
+    sources:
+      - position: [50, 13]  # 3 units to the side of the road's center line (y = 10)
+        intensity: 10
+        falloff: 15
+        schedule: {period: 13.5, on_at: 0, off_at: 4.5}
+  yellow:
+    sources:
+      - position: [50, 13]
+        intensity: 10
+        falloff: 15
+        schedule: {period: 13.5, on_at: 4.5, off_at: 9}
+  red:
+    sources:
+      - position: [50, 13]
+        intensity: 10
+        falloff: 15
+        schedule: {period: 13.5, on_at: 9, off_at: 13.5}
+  post:                     # the traffic light itself, lit or not: where the stopping line is
+    sources:
+      - position: [50, 13]
+        intensity: 10
+        falloff: 15

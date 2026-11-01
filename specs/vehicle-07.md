@@ -216,7 +216,7 @@ The behavior criteria are deliberately about what happens, not when: when the mo
 
 ## Out of scope
 
-- **Ergotrix** wires, Braitenberg's next step (Vehicle 8), which learn **sequences**: the source fires shortly **before** the destination. Mnemotrix only learns what happens together.
+- **Ergotrix** wires, which learn **sequences**: the source fires shortly **before** the destination. Braitenberg introduces them in Vehicle 11, see [vehicle-11.md](vehicle-11.md). Mnemotrix only learns what happens together.
 - Learning connections from sensors or into motors, and learning that changes thresholds or motor gains.
 - Strength as a weight rather than a gate. Connections stay all-or-nothing, as in Vehicle 5.
 - Passive decay: forgetting while the cue is absent.

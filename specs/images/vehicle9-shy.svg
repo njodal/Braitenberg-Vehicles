@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="990" viewBox="0 0 900 990" font-family="Helvetica, Arial, sans-serif">
 <defs>
-<marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
-<marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
-<marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker>
-<marker id="arrow-learn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+<marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+<marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+<marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker>
+<marker id="arrow-learn" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
 </defs>
 <rect width="900" height="990" fill="white"/>
 <text x="450.0" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1f2937">Vehicle 9: Shy</text>
@@ -57,8 +57,8 @@
 <text x="183.2" y="590.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
 <line x1="357.0" y1="632.2" x2="260.0" y2="632.2" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
 <text x="267.6" y="628.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
-<line x1="258.0" y1="632.2" x2="355.0" y2="632.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
-<text x="347.4" y="646.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="258.0" y1="626.2" x2="355.0" y2="626.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="347.4" y="640.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
 <line x1="391.0" y1="629.2" x2="488.0" y2="629.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
 <text x="480.4" y="643.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
 <line x1="524.0" y1="629.2" x2="621.0" y2="629.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
@@ -69,8 +69,8 @@
 <text x="631.0" y="713.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
 <path d="M651.9,716.1 C691.0,660.0 708.0,711.0 657.0,728.0" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
 <text x="697.8" y="688.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
-<line x1="505.0" y1="725.0" x2="621.0" y2="725.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
-<text x="609.6" y="739.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="505.0" y1="731.0" x2="621.0" y2="731.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="609.6" y="745.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
 <line x1="623.0" y1="725.0" x2="507.0" y2="725.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
 <text x="518.4" y="721.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
 <line x1="256.6" y1="622.4" x2="432.6" y2="545.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>

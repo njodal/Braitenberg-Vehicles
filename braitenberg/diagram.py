@@ -25,6 +25,7 @@ EXCITATORY = "#2563eb"
 INHIBITORY = "#dc2626"
 INACTIVE = "#9ca3af"
 LEARNING = "#16a34a"    # Mnemotrix wires (Vehicle 7), whatever their sign
+ERGOTRIX = "#0d9488"    # Ergotrix wires (Vehicle 11), kin to Mnemotrix but told apart from it
 INK = "#1f2937"
 DIM = "#6b7280"
 PART_SIZE = {"sensor": 14, "motor": 17, "unit": 17, "module": 20}   # where wires stop, from the center
@@ -32,7 +33,9 @@ UNIT_RADIUS = 16
 
 
 LEGEND_COLUMNS = 2
-WIRE_COLORS = {"exc": EXCITATORY, "inh": INHIBITORY, "off": INACTIVE, "learn": LEARNING}
+WIRE_COLORS = {"exc": EXCITATORY, "inh": INHIBITORY, "off": INACTIVE, "learn": LEARNING,
+               "ergo": ERGOTRIX}
+LEARNING_LABELS = {"mnemotrix": "M", "ergotrix": "E"}
 
 
 GRID_WIDTH = 0.6        # body units: the width of a camera's or an array's grid of cells
@@ -135,7 +138,7 @@ def bundles(wires) -> list:
 
 def wire_kind(w) -> str:
     if w.learning:
-        return "learn"
+        return "ergo" if w.learning == "ergotrix" else "learn"
     return "off" if not w.active else "exc" if w.sign > 0 else "inh"
 
 
@@ -145,8 +148,10 @@ def definition_svg(definition: VehicleDefinition) -> str:
     legend = [("exc", "", "+ excitatory"), ("inh", "", "− inhibitory")]
     if any(not w.active and not w.learning for w in diagram.wires):
         legend.append(("off", ' stroke-dasharray="5,4"', "inactive (strength ≤ 0.7)"))
-    if any(w.learning for w in diagram.wires):
+    if any(w.learning == "mnemotrix" for w in diagram.wires):
         legend.append(("learn", "", "M learning (Mnemotrix)"))
+    if any(w.learning == "ergotrix" for w in diagram.wires):
+        legend.append(("ergo", "", "E learning (Ergotrix)"))
     legend_rows = -(-len(legend) // LEGEND_COLUMNS)
     radius = LARGE_RADIUS if any(p.shape for p in diagram.parts) else RADIUS
     width = 2 * radius + 2 * MARGIN
@@ -164,8 +169,9 @@ def definition_svg(definition: VehicleDefinition) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}" font-family="Helvetica, Arial, sans-serif">',
         "<defs>",
-        *(f'<marker id="arrow-{name}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" '
-          f'markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" '
+        # Arrowheads keep one size, however wide the wire: a strong learning wire is wider, not its head.
+        *(f'<marker id="arrow-{name}" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" '
+          f'markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" '
           f'fill="{color}"/></marker>'
           for name, color in WIRE_COLORS.items()),
         "</defs>",
@@ -183,16 +189,23 @@ def definition_svg(definition: VehicleDefinition) -> str:
         if p.kind == "module":
             out += module_svg(p, *at(p.position))
 
-    pairs: dict[frozenset, int] = {}   # bundles between the same two parts are drawn side by side
+    def stroke_width(w) -> float:  # a learning wire is drawn wider the stronger it starts
+        return 1.5 + 2.5 * w.strength if w.learning else 2
+
+    pairs: dict[frozenset, int] = {}   # bundles between the same two parts are drawn side by side,
+    spacing: dict[frozenset, float] = {}   # far enough apart that a wide wire does not hide its neighbor
+    directions: dict[frozenset, set] = {}
     for w in diagram.wires:
-        pairs[frozenset((w.source, w.target))] = pairs.get(frozenset((w.source, w.target)), 0) + 1
+        pair = frozenset((w.source, w.target))
+        pairs[pair] = pairs.get(pair, 0) + 1
+        directions.setdefault(pair, set()).add((w.source, w.target))
+        spacing[pair] = max(spacing.get(pair, 6), stroke_width(w) + 4)
     drawn: dict[frozenset, int] = {}
     for w in diagram.wires:
         kind = wire_kind(w)
         color = WIRE_COLORS[kind]
         dash = ' stroke-dasharray="5,4"' if not w.active else ""
-        # A learning wire is drawn wider the stronger it starts.
-        stroke = f"{1.5 + 2.5 * w.strength:.1f}" if w.learning else "2"
+        stroke = f"{stroke_width(w):g}"
         source, target = parts[w.source], parts[w.target]
         (x1, y1), (x2, y2) = wire_ends(w, parts, at)
         if w.source == w.target:  # a unit feeding back into itself: a loop above it,
@@ -208,7 +221,9 @@ def definition_svg(definition: VehicleDefinition) -> str:
             ux, uy = (x2 - x1) / length, (y2 - y1) / length
             pair = frozenset((w.source, w.target))
             k = drawn[pair] = drawn.get(pair, -1) + 1
-            shift = (k - (pairs[pair] - 1) / 2) * 6
+            shift = (k - (pairs[pair] - 1) / 2) * spacing[pair]
+            if len(directions[pair]) > 1 and w.source > w.target:
+                shift = -shift  # wires in opposite directions: measure the shift the same way across
             x1, y1, x2, y2 = x1 - uy * shift, y1 + ux * shift, x2 - uy * shift, y2 + ux * shift
             # A wire to or from a module's port ends at the port, not at the part's outline.
             start = 4 if w.source_port else edge(source, ux, uy, radius)
@@ -219,7 +234,7 @@ def definition_svg(definition: VehicleDefinition) -> str:
             # The sign sits near the target, beside the wire, so crossed wires do not share it.
             label_x = x1 + 0.8 * (x2 - x1) - uy * 9
             label_y = y1 + 0.8 * (y2 - y1) + ux * 9
-        sign = ("+" if w.sign > 0 else "−") + ("M" if w.learning else "")
+        sign = ("+" if w.sign > 0 else "−") + LEARNING_LABELS.get(w.learning, "")
         out.append(f'<text x="{label_x:.1f}" y="{label_y + 5:.1f}" text-anchor="middle" '
                    f'font-size="15" font-weight="bold" fill="{color}">{sign}</text>')
         if w.label and w.source != w.target:

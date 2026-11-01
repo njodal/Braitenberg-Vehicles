@@ -1,0 +1,14 @@
+name: Cautious driver (learns to stop at yellow)
+description: A driver on a looping road with a traffic light that turns green, yellow and red. It learns the light's sequence, and comes to stop at the line as soon as the light turns yellow.
+
+world: ../worlds/traffic-light-yellow.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle11-cautious-driver.yaml
+      position: [25, 10]
+      heading: 0                 # driving toward the light along the road's center line
+
+simulation:
+  dt: 0.01                   # finer than the units' 0.05 s delay, so delays and simultaneity show
+  seed: 0

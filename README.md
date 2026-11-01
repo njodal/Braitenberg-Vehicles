@@ -57,6 +57,18 @@ python -m braitenberg scenarios/vehicle9-shy.yaml
 
 See [specs/vehicle-09.md](specs/vehicle-09.md) for the circuits.
 
+### Vehicle 11 — A cautious driver that learns to stop at yellow
+
+![The cautious driver learns the light's sequence and stops at the line as soon as the light turns yellow](specs/images/vehicle11-cautious-driver.gif)
+
+The Vehicle 5 driver on a road whose traffic light turns green, yellow and red. It has *Ergotrix* wires, which learn sequences: a wire from what the driver sees to what it expects grows each time the expected color comes shortly after the seen one. There is one from every color to every other, but only the three that follow the light's order mature: green before yellow, yellow before red, red before green. Once yellow means "red is coming", the driver stops at the line as soon as the light turns yellow. In the panel, watch the three forward wires at the bottom cross the tick at 0.7 while the backward ones stay at 0.
+
+```
+python -m braitenberg scenarios/vehicle11-cautious-driver.yaml
+```
+
+See [specs/vehicle-11.md](specs/vehicle-11.md) for the Ergotrix rule and the circuits.
+
 ## Running
 
 ### Setup
@@ -89,6 +101,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 7: Wary moth | Learns that the red lamp burns and keeps away from it; unlearns it when the lamp goes cold | `python -m braitenberg scenarios/vehicle7-wary-moth.yaml` |
 | Vehicle 8: Hunter | Ignores the still lamps; turns toward and lunges at its prey when it moves | `python -m braitenberg scenarios/vehicle8-hunter.yaml` |
 | Vehicle 9: Shy | Watches what it sees; runs from whatever comes straight at it, which it tells by symmetry | `python -m braitenberg scenarios/vehicle9-shy.yaml` |
+| Vehicle 11: Cautious driver | Learns the traffic light's sequence and stops at yellow | `python -m braitenberg scenarios/vehicle11-cautious-driver.yaml` |
 
 In the window:
 

@@ -259,7 +259,7 @@ def dest_input(data):
 
 
 @pytest.mark.parametrize("change, key", [
-    (lambda d: dest_input(d)["learning"].update(type="ergotrix"), "inputs[1].input.learning.type"),
+    (lambda d: dest_input(d)["learning"].update(type="hebbian"), "inputs[1].input.learning.type"),
     (lambda d: dest_input(d)["learning"].pop("learn"), "inputs[1].input.learning.learn"),
     (lambda d: dest_input(d)["learning"].pop("type"), "inputs[1].input.learning.type"),
     (lambda d: dest_input(d)["learning"].update(rate=1), "inputs[1].input.learning.rate"),

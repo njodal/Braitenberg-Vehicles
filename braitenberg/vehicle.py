@@ -44,6 +44,7 @@ class Wire:
     active: bool = True  # connections with strength 0.7 or less carry no signal
     strength: float = 1.0
     learning: str | None = None  # the learning type, for a connection that learns (Vehicle 7)
+    waiting: bool = False   # an Ergotrix connection waiting for its target (Vehicle 11)
     source_index: tuple[int, ...] | None = None  # the pixel or element, from a camera or an array
     target_index: tuple[int, ...] | None = None  # the element, into an array
     label: str = ""   # the input's `from` as written, when it has indices, e.g. lump[i-1]
@@ -94,6 +95,11 @@ class Vehicle:
         # starts from its definition's strengths and learns on its own; the definition never changes.
         self.strengths = {(u.name, j): c.strength for u in definition.units
                           for j, c in enumerate(u.inputs) if c.learning}
+        # Each Ergotrix connection's memory from step to step: its source's output and whether its
+        # unit was driven by its fixed inputs at the last step, and the steps left in its wait.
+        self.ergotrix = {(u.name, j): {"source": 0.0, "driven": False, "wait": 0}
+                         for u in definition.units for j, c in enumerate(u.inputs)
+                         if c.learning and c.learning.type == "ergotrix"}
         self.fixed_strengths = {(p.name, j): c.strength
                                 for p in [*definition.units, *definition.actuators]
                                 for j, c in enumerate(p.inputs) if not c.learning}
@@ -200,16 +206,21 @@ class Vehicle:
         contributions = np.where(self.input_active, self.input_sign * inputs, 0.0)
         sums = np.bincount(self.input_unit, contributions, minlength=n_units)
         self.activations[self.t % len(self.activations)] = sums >= self.thresholds
-        # Learning: a connection whose source is on learns when the unit's other inputs
-        # fire it, and forgets when they do not (see 'Learning connections').
+        # Learning: a Mnemotrix connection whose source is on learns when the unit's other inputs
+        # fire it, and forgets when they do not (see 'Learning connections'). An Ergotrix
+        # connection learns when the unit's fixed inputs turn it on soon after its source turns on.
         learned = {}
         for k, j in self.learning_inputs:
             u = d.units[k]
             first = self.input_first[k]
-            if inputs[first + j] > 0:
+            c = u.inputs[j]
+            if c.learning.type == "ergotrix":
+                strength = self.ergotrix_step(u, j, contributions[first:first + len(u.inputs)])
+                if strength is not None:
+                    learned[(u.name, j)] = strength
+            elif inputs[first + j] > 0:
                 signals_k = contributions[first:first + len(u.inputs)].tolist()
                 others = sum(signals_k[:j] + signals_k[j + 1:])
-                c = u.inputs[j]
                 rate = c.learning.learn if others >= u.threshold else -c.learning.forget
                 learned[(u.name, j)] = clamp01(self.strengths[(u.name, j)] + rate * self.dt)
         self.strengths.update(learned)  # takes effect from the next step
@@ -217,6 +228,29 @@ class Vehicle:
         for a in d.actuators:
             total = sum(c.sign * self.signal(c.source) for c in a.inputs if c.active)
             self.motor_speeds[a.name] = min(max(a.base_speed + a.gain * total, 0.0), a.max_speed)
+
+    def ergotrix_step(self, u, j: int, contributions) -> float | None:
+        """One step of Ergotrix connection `j` into unit `u` (specs/vehicle-11.md, *The rule*).
+
+        Returns its new strength, or None when it does not change.
+        """
+        c, memory = u.inputs[j], self.ergotrix[(u.name, j)]
+        fixed = sum(x for i, x in enumerate(contributions.tolist()) if not u.inputs[i].learning)
+        driven = fixed >= u.threshold
+        source = self.unit_outputs[c.source]
+        turns_on, driven_on = source > 0 and memory["source"] <= 0, driven and not memory["driven"]
+        memory["source"], memory["driven"] = source, driven
+        strength = None
+        if memory["wait"]:
+            if driven_on:   # it came in time
+                strength, memory["wait"] = self.strengths[(u.name, j)] + c.learning.learn, 0
+            else:
+                memory["wait"] -= 1
+                if not memory["wait"]:   # it did not come
+                    strength = self.strengths[(u.name, j)] - c.learning.forget
+        elif turns_on:
+            memory["wait"] = max(1, round(c.learning.within / self.dt))
+        return None if strength is None else clamp01(strength)
 
     def habituate(self, sensor, reading: float) -> float:
         """The reading minus the sensor's reference, which then moves toward it (see 'Habituation')."""
@@ -363,6 +397,7 @@ class Vehicle:
                                   group_of.get(target.name, target.name), c.sign,
                                   levels[c.source] if active else 0.0, active, strength,
                                   c.learning.type if c.learning else None,
+                                  self.ergotrix.get((target.name, j), {}).get("wait", 0) > 0,
                                   indices.get(c.source), indices.get(target.name), c.label,
                                   source_port=c.source.split(".", 1)[1] if c.source in module_of
                                   else None,

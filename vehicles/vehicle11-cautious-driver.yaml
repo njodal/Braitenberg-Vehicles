@@ -1,0 +1,167 @@
+general:
+  type: "11"
+  name: Cautious driver (learns to stop at yellow)
+  description: The Vehicle 5 driver on a road whose traffic light turns green, yellow and red. Ergotrix wires from each color it sees to each other color it expects grow where one color follows another, so it learns the light's sequence, and stops at the line as soon as the light turns yellow.
+  size: 4
+  noise_std: 0              # keeps to a straight line
+
+sensors:
+  - sensor:
+      name: red_eye
+      type: red
+      position: [-0.85, 0.9]   # sees all around, so it sees every change of the light
+  - sensor:
+      name: yellow_eye
+      type: yellow
+      position: [-0.3, 0.9]   # sees all around, so it sees every change of the light
+  - sensor:
+      name: green_eye
+      type: green
+      position: [0.25, 0.9]   # sees all around, so it sees every change of the light
+  - sensor:
+      name: post_eye
+      type: post
+      position: [0.85, 0.9]
+      field_of_view: 90     # only ahead: the light it is coming to, not one it has passed
+
+units:
+  # What the light shows, read from anywhere on the road
+  - unit:
+      name: sees_red
+      type: threshold
+      threshold: 0.5        # the reading is at least 0.8 anywhere on the road
+      position: [-0.85, 0.55]
+      inputs:
+        - input:
+            from: red_eye
+  - unit:
+      name: sees_yellow
+      type: threshold
+      threshold: 0.5        # the reading is at least 0.8 anywhere on the road
+      position: [-0.3, 0.55]
+      inputs:
+        - input:
+            from: yellow_eye
+  - unit:
+      name: sees_green
+      type: threshold
+      threshold: 0.5        # the reading is at least 0.8 anywhere on the road
+      position: [0.25, 0.55]
+      inputs:
+        - input:
+            from: green_eye
+  # What the light shows or is about to show: the color seen, or one learned to come before it
+  - unit:
+      name: expects_red
+      type: threshold
+      threshold: 1
+      position: [-0.85, -0.1]
+      inputs:
+        - input:
+            from: sees_red
+        - input:
+            from: sees_yellow
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 5.5       # longer than a phase, shorter than two
+              learn: 0.3
+              forget: 0.1
+        - input:
+            from: sees_green
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 5.5       # longer than a phase, shorter than two
+              learn: 0.3
+              forget: 0.1
+  - unit:
+      name: expects_yellow
+      type: threshold
+      threshold: 1
+      position: [-0.3, -0.1]
+      inputs:
+        - input:
+            from: sees_yellow
+        - input:
+            from: sees_red
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 5.5       # longer than a phase, shorter than two
+              learn: 0.3
+              forget: 0.1
+        - input:
+            from: sees_green
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 5.5       # longer than a phase, shorter than two
+              learn: 0.3
+              forget: 0.1
+  - unit:
+      name: expects_green
+      type: threshold
+      threshold: 1
+      position: [0.25, -0.1]
+      inputs:
+        - input:
+            from: sees_green
+        - input:
+            from: sees_red
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 5.5       # longer than a phase, shorter than two
+              learn: 0.3
+              forget: 0.1
+        - input:
+            from: sees_yellow
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 5.5       # longer than a phase, shorter than two
+              learn: 0.3
+              forget: 0.1
+  # Where and whether to stop
+  - unit:
+      name: at_line
+      type: threshold
+      threshold: 7.5        # the light is ahead and about 8.3 units away or closer
+      position: [0.85, 0.2]
+      inputs:
+        - input:
+            from: post_eye
+  - unit:
+      name: stop
+      type: threshold
+      threshold: 2          # red expected AND at the line
+      position: [0.1, -0.6]
+      inputs:
+        - input:
+            from: expects_red
+        - input:
+            from: at_line
+  - unit:
+      name: go
+      type: threshold
+      threshold: 0          # fires on its own: the driver moves unless something stops it
+      position: [0.75, -0.55]
+      inputs:
+        - input:
+            from: stop
+            type: inhibitory
+        - input:
+            from: sees_green
+
+actuators:
+  - actuator:
+      name: motor
+      type: motor
+      position: [0, -0.85]   # on the center line: the driver never turns
+      inputs:
+        - input:
+            from: go
+      gain: 5
+      base_speed: 0
+      max_speed: 5
