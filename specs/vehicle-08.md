@@ -145,6 +145,18 @@ The chapter suggests more combinations; they are not used by the hunter, but are
 - **Objects made of movement:** a unit summing a few neighboring `right` detectors, with a threshold of 2 or 3, fires for several points moving the same way together. It sees an object only as points moving together, as we see a cuttlefish against the sand only when it moves.
 - **Other directions and speeds:** the same circuit along the columns of a grid (`slow[i, j]` with `front[i+1, j]`) detects vertical movement, and a longer delay tunes it to slower movement.
 
+## Space and reality
+
+Every circuit above relies on the same thing: an **orderly representation of space** inside the vehicle. Column `i` of every array looks in the direction next to that of column `i+1`, so a wire from `i` to `i+1` connects neighboring places. Braitenberg makes this the point of the chapter. Once space is a set of points inside the vehicle, neighborhood is just wires between them, and the wires can build any space: the plane of an image, the three dimensions of touch or of two eyes, an image with time as one more dimension, or a network of four dimensions, which no one can picture but anyone can build out of balls and wires. What makes such a space is its connectivity, not its shape: the hunter's arrays are drawn as strips only to put them on paper.
+
+An orderly space is more than convenient: it lets the vehicle **test reality**. Real objects move continuously, never infinitely fast and never by sudden jumps, so continuity of movement is, for Braitenberg, a primary criterion that an image comes from a real object. The hunter's movement detectors apply exactly that test:
+
+- A point counts as moving only when it passes from one column to the **next**.
+- Something that appears all at once, such as a lamp switching on, does not count.
+- Something that crosses a column in less than about 0.15 s does not count either. The hunter's own turns sweep the image that fast, so to the hunter they hardly look real (*Holding still to look*).
+
+Braitenberg also gives the vehicle a map of space wired in from the start, an **a priori** concept of space: a sheet of uniform conducting material, on which a point stands for where the vehicle is and another for where it wants to go. The current between them is strongest along the straight line, so the vehicle can go back to a place by the diagonal rather than by the way it came, which is his test of whether it has two-dimensional space built in. The hunter has no such map: its space is only the image of the moment (see *Out of scope*).
+
 ## The hunter
 
 The hunter is a predator that waits and watches, as a frog or a cat does. It stands still in a field of lamps, with its eye looking ahead. Somewhere in the field wanders its prey, which shines exactly as brightly as the lamps: in a single image the hunter cannot tell the prey from a lamp. What gives the prey away is that it moves.
@@ -278,7 +290,8 @@ Criteria 3 to 7 test the circuits on a **watcher**: the hunter's definition with
 
 ## Out of scope
 
-- **Learning space.** The circuits here are wired by the designer: which pixels are neighbors is written in the definition. A vehicle that discovers its own neighbor relations, by noticing which pixels tend to light up together, would use Mnemotrix wires ([vehicle-07.md](vehicle-07.md)) between pixels; it is left for later.
+- **A map of space.** Braitenberg's conducting sheet (see *Space and reality*), with which a vehicle finds the shortest way back to a place. With units, it could be a grid of places wired to their neighbors, through which a wave spreads from the goal one delay per step: the neighbor of "here" that the wave reaches first gives the way. It also needs the vehicle to know where it is as it moves, which nothing in the simulator senses yet.
+- **Learning space.** The circuits here, like Braitenberg's, are wired by the designer: which pixels are neighbors is written in the definition. A vehicle that discovers its own neighbor relations, by noticing which pixels tend to light up together, would use Mnemotrix wires ([vehicle-07.md](vehicle-07.md)) between pixels. The chapter does not propose it; it is an idea of this project, left for later.
 - **Graded lateral inhibition**, where a more active unit inhibits its neighbors more. Units are all-or-nothing.
 - **Shapes.** Telling things apart by their outline is Braitenberg's Vehicle 9.
 - **Movement while moving.** The hunter only sees movement while it stands still. Telling the prey's movement from its own, by subtracting what its own movement should do to the image, is not attempted.
