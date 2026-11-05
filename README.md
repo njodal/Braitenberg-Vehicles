@@ -148,6 +148,12 @@ An evolution file (`evolutions/`) names a vehicle, a world and the numbers that 
 
 A simulation is built from three kinds of YAML files: worlds (`worlds/`), vehicle definitions (`vehicles/`) and scenarios that combine them (`scenarios/`). See [specs/scenarios.md](specs/scenarios.md).
 
+## Experiments
+
+Explorations outside the simulator, each in its own folder under `experiments/` with a README:
+
+- [A CSCG learns the traffic light](experiments/cscg/README.md): a clone-structured cognitive graph learns the sequence the Vehicle 11 cautious driver learns with Ergotrix wires, and also when each color will change.
+
 ## Images for the specs
 
 ```

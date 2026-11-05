@@ -47,6 +47,7 @@ scenarios/              # experiments in YAML, see specs/scenarios.md
 evolutions/             # evolution runs in YAML, see specs/vehicle-06.md
 runs/                   # results of evolution runs (not committed)
 webots/                 # Webots project: the braitenberg controller and e-puck worlds
+experiments/            # explorations outside the simulator, one folder each with a README
 tests/                  # pytest tests, one file per spec covering its acceptance criteria
 ```
 
