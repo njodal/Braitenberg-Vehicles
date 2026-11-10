@@ -416,3 +416,104 @@ def test_trains_follow_the_wires(seed):
 
 def test_same_seed_same_thoughts():
     assert run("daydreamer", 0, 30)["onsets"] == run.__wrapped__("daydreamer", 0, 30)["onsets"]
+
+
+# 19 to 23. The distracted dreamer
+DISTRACTED = REPO / "vehicles" / "vehicle12-distracted.yaml"
+DISTRACTED_SCENARIOS = {variant: REPO / "scenarios" / f"vehicle12-distracted{suffix}.yaml"
+                        for variant, suffix in (("distracted", ""), ("absorbed", "-absorbed"))}
+DIM, BRIGHT = (25, 50), (75, 50)
+CYCLE, DIM_ON, BRIGHT_ON, BRIGHT_OFF = 100, (10, 30), 50, 70
+
+
+def torus_distance(x, y, point) -> float:
+    dx = (x - point[0] + 50) % 100 - 50
+    dy = (y - point[1] + 50) % 100 - 50
+    return math.hypot(dx, dy)
+
+
+@lru_cache(maxsize=None)
+def watch(variant: str, seed: int, seconds: float = 300) -> list[dict]:
+    """Per step: time, ideas turning on, eyes firing, the dim lamp's reading at each eye and
+    the distance to the bright lamp."""
+    scenario = load_scenario(DISTRACTED_SCENARIOS[variant])
+    scenario.simulation.seed = seed
+    sim = Simulation(scenario)
+    v = sim.vehicles[0]
+    steps, previous = [], [0.0] * 8
+    for _ in range(round(seconds / DT)):
+        sim.step()
+        outputs = [v.unit_outputs[name] for name in IDEAS]
+        dim = [4 / (1 + (torus_distance(x, y, DIM) / 15) ** 2)
+               for _, _, x, y in v.sensor_points()]
+        steps.append({"t": sim.time,
+                      "onsets": sum(1 for k in range(8) if outputs[k] and not previous[k]),
+                      "sees": v.unit_outputs["sees_left"] + v.unit_outputs["sees_right"] > 0,
+                      "dim": max(dim), "bright": torus_distance(v.x, v.y, BRIGHT)})
+        previous = outputs
+    return steps
+
+
+def phase(steps, cycle: int, start: float, end: float) -> list[dict]:
+    return [s for s in steps if cycle * CYCLE + start <= s["t"] < cycle * CYCLE + end]
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_ignores_a_dim_lamp(seed):
+    steps = watch("distracted", seed)
+    for cycle in range(3):
+        dim_phase = phase(steps, cycle, *DIM_ON)
+        faint = [s for s in dim_phase if s["dim"] < 2.5]
+        assert not any(s["sees"] for s in faint)
+        if len(faint) == len(dim_phase):
+            assert sum(s["onsets"] for s in dim_phase) >= 5
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_caught_by_a_bright_lamp(seed):
+    steps = watch("distracted", seed)
+    caught = 0
+    for cycle in range(3):
+        bright_phase = phase(steps, cycle, BRIGHT_ON, BRIGHT_OFF)
+        if bright_phase[0]["bright"] > 40:
+            continue
+        caught += 1
+        first = next(s["t"] for s in bright_phase if s["sees"])
+        assert first - cycle * CYCLE - BRIGHT_ON <= 1
+        assert sum(s["onsets"] for s in phase(steps, cycle, BRIGHT_ON + 5, BRIGHT_OFF)) == 0
+        if bright_phase[0]["bright"] <= 30:
+            assert min(s["bright"] for s in bright_phase) < 15
+    assert caught >= 2
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_back_to_its_thoughts(seed):
+    steps = watch("distracted", seed)
+    for cycle in range(2):    # the third cycle's 25 s after the lamp go past the end of the run
+        assert sum(s["onsets"] for s in phase(steps, cycle, BRIGHT_OFF, BRIGHT_OFF + 25)) > 0
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_absorbed_keeps_thinking(seed):
+    steps = watch("absorbed", seed)
+    for cycle in range(3):
+        bright_phase = phase(steps, cycle, BRIGHT_ON, BRIGHT_OFF)
+        if any(s["sees"] for s in bright_phase):
+            assert sum(s["onsets"] for s in bright_phase) >= 10
+
+
+def test_distracted_diagram_and_headless():
+    drawn = bundles(Vehicle(load_definition(DISTRACTED), 0, 0, 0).diagram().wires)
+    for eye in ("sees_left", "sees_right"):
+        assert any(w.control and w.watched and w.target == eye for w in drawn)
+    absorbed = bundles(Vehicle(load_definition(REPO / "vehicles" /
+                                               "vehicle12-distracted-absorbed.yaml"),
+                               0, 0, 0).diagram().wires)
+    assert not any(w.control and w.target.startswith("sees") for w in absorbed)
+    result = run_python(
+        "import sys\n"
+        "from braitenberg.scenario import load_scenario\n"
+        "from braitenberg.sim import Simulation\n"
+        "Simulation(load_scenario('scenarios/vehicle12-distracted.yaml')).run(100)\n"
+        "assert 'pygame' not in sys.modules\n")
+    assert result.returncode == 0, result.stderr

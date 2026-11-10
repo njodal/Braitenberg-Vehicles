@@ -1,6 +1,6 @@
 # Vehicle 12 — Trains of Thought: threshold control
 
-**Status:** implemented: variable thresholds, the threshold control unit and a first example, the daydreamer, whose ideas are wired by hand (values checked on seeds 0 to 4, see *Acceptance criteria*). Its trains of thought settle into loops (see *Whether its thoughts vary*). A version that learns its ideas, and the learning rule it needs (see *Open questions*), are still to be specified.
+**Status:** implemented: variable thresholds, the threshold control unit and a first example, the daydreamer, whose ideas are wired by hand (values checked on seeds 0 to 4, see *Acceptance criteria*). Its trains of thought settle into loops (see *Whether its thoughts vary*). A second example, the distracted dreamer (see *Second example: the distracted dreamer*), is implemented too. A version that learns its ideas, and the learning rule it needs (see *Open questions*), are still to be specified.
 
 ![The daydreamer: eight ideas, each exciting two others, and the caudate, which moves their thresholds](images/vehicle12-daydreamer.svg)
 
@@ -227,6 +227,63 @@ So with one unit per idea and a fixed jitter, this circuit gives either a smooth
 
 From outside, the daydreamer could be mistaken for a vehicle with the `wander` module, which moves at random. It is different inside: there is no noise, the same seed gives the same run, and each idea turns on because an idea wired to it was on, or, when the thresholds are low enough, on its own.
 
+## Second example: the distracted dreamer
+
+The daydreamer thinks in the dark. The distracted dreamer is the daydreamer with eyes, in a field with two lamps that take turns: a dim one and a bright one. Its thoughts and what it sees compete for the same activity, because the caudate watches and controls both.
+
+- **A dim lamp** does not reach the eyes' threshold, and the daydreamer goes on with its gestures, absorbed.
+- **A bright lamp** fires what it sees. Now the caudate sees two things on, a thought and the lamp, more than its target, and it raises every threshold until one goes off. The lamp, read by a sensor whose reading keeps rising as the vehicle turns to it, outlasts the thought: the train of thought stops, and the vehicle heads for the lamp. Something has caught its attention.
+- **When the bright lamp goes off,** nothing is on, and the thresholds fall until an idea fires on its own: it goes back to its thoughts. This takes a while, because the brighter the lamp it was looking at, the higher the thresholds had to go to keep only one thing on, and the longer they take to come down.
+
+What the caudate does here is not to raise thresholds while it thinks: while it thinks, thresholds are lower than the base values, since the ideas need it. What it does is share one budget of activity, about one thing on at a time, between thinking and seeing.
+
+### Eyes and attention
+
+![The distracted dreamer: the daydreamer's ring, plus two eyes whose units the caudate also watches and controls](images/vehicle12-distracted.svg)
+
+The vehicle has the daydreamer's ring of ideas, its caudate and its `wake` pulse, plus:
+
+| Part | Kind | Inputs | Does |
+|---|---|---|---|
+| `left_eye`, `right_eye` | light sensors at `[∓0.6, 0.9]`, seeing all around, linear response | | read the light |
+| `sees_left`, `sees_right` | threshold units, `threshold` 4, `delay` 0.2 | `left_eye`, `right_eye` | fire when a lamp is bright enough at that side |
+| `left_motor`, `right_motor` | the daydreamer's motors | also `sees_right`, `sees_left`, crossed | turn toward the lamp, as Vehicle 2b does |
+
+The caudate also watches `sees_left` and `sees_right`, and controls them: its `inputs` and its `controls` list both, besides the eight ideas. With its target of 1, the ideas and the eyes share one unit of activity.
+
+While it thinks, the offset is about -1, so the eyes fire from a reading of about 3; their jitter moves this by up to 0.3. When a lamp holds one of them on, the offset rises above 0, so the ideas, whose effective threshold is then well above 1, cannot fire, since an idea gets at most 1 from the idea before it. When both eyes see the lamp, the caudate raises the thresholds until one goes off, and the one with the lower threshold keeps steering.
+
+### The world
+
+`worlds/two-lamps.yaml`: an arena 100 by 100 with wrapping edges and one stimulus, `light`, with two lamps that take turns, each with `falloff` 15:
+
+| Lamp | Position | Intensity | On, in every 100 s |
+|---|---|---|---|
+| Dim | `[25, 50]` | 4 | from 10 to 30 s |
+| Bright | `[75, 50]` | 20 | from 50 to 70 s |
+
+The vehicle starts at `[50, 50]`, 25 units from each. There the dim lamp reads about 1.1 at each eye and the bright one about 5.5.
+
+### Two variants
+
+| Variant | Files | Caudate | Expected |
+|---|---|---|---|
+| Distracted | `vehicles/vehicle12-distracted.yaml`, `scenarios/vehicle12-distracted.yaml` | watches and controls the eyes and the ideas | Ignores the dim lamp; the bright lamp stops its thoughts and draws it in; its thoughts come back about 20 s after the lamp goes off. |
+| Absorbed | `vehicles/vehicle12-distracted-absorbed.yaml`, `scenarios/vehicle12-distracted-absorbed.yaml` | watches and controls the ideas only | Its eyes fire at their base threshold of 4, but they do not count in the caudate's budget, so it keeps thinking while it sees the bright lamp: its gestures and its steering mix, and it does not always reach the lamp. |
+
+### What it shows
+
+![The distracted dreamer thinks through the dim lamp, is caught by the bright one, and goes back to its thoughts](images/vehicle12-distracted.gif)
+
+*The default scenario, first 100 s, at five times the speed: the dim lamp at the left, the bright one at the right.*
+
+On seeds 0 to 4, over three 100-s cycles each:
+
+- The dim lamp was ignored in every cycle except when the vehicle had wandered within a few units of it, where it reads as strongly as the bright lamp from afar; then it caught the vehicle's attention too.
+- When the bright lamp came on within about 40 units, an eye fired within 0.3 s and the train of thought stopped, after up to 3 s in which ideas and eyes flickered while the caudate settled. From within 30 units, the vehicle came within about 12 units of the lamp; from farther, it sometimes circled without reaching it. Farther than about 50 units, the lamp was too faint to notice.
+- After the bright lamp went off, the first idea fired again after 15 to 21 s, once after 5 s.
+- The absorbed variant went on firing ideas, about 20 in each bright phase, while it saw the lamp.
+
 ## Acceptance criteria
 
 Criteria 7 and 8 use the daydreamer's network.
@@ -252,6 +309,14 @@ The daydreamer, with `noise_std` 0, for seeds 0 to 4, 120 s each:
 16. **Daydreamer:** an idea turns on in the last 5 s of the run, at least 4 different ideas fire, and after the first 10 s never more than 3 are on at once. The vehicle travels more than 80 units, and after the first 10 s its heading takes more than 20 values (in steps of 10°).
 17. **Trains:** at least 70% of idea onsets are along a wire: the idea turns on while an idea wired to it was on in the second before.
 18. **Deterministic:** the same seed gives the same sequence of ideas. Different seeds, which give different jitter, are not required to give different sequences (see *Whether its thoughts vary*).
+
+The distracted dreamer, for seeds 0 to 4, 300 s each (three cycles of the lamps):
+
+19. **Ignores a dim lamp:** while each eye reads less than 2.5 from the dim lamp, neither `sees_left` nor `sees_right` fires. In a dim phase where that holds throughout, at least 5 ideas turn on.
+20. **Caught by a bright lamp:** in each cycle in which the vehicle is within 40 units of the bright lamp when it comes on, an eye fires within 1 s, and no idea turns on from 5 s after it comes on until it goes off. In the first seconds, ideas and eyes may flicker while the caudate settles. When the vehicle starts within 30 units, it comes within 15 units of the lamp; from farther, it may see the lamp yet circle without reaching it. At least two cycles of each run qualify.
+21. **Back to its thoughts:** after the bright lamp goes off, an idea turns on within 25 s (checked in the first two cycles; the third ends with the run).
+22. **Absorbed:** in the absorbed variant, in each cycle in which an eye fires while the bright lamp is on, at least 10 ideas turn on during that phase.
+23. **Display and headless:** the diagram of the distracted dreamer shows its eyes and the caudate's lines to them, and running it never imports pygame.
 
 ## Open questions
 

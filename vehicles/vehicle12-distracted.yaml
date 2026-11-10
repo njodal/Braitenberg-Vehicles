@@ -1,0 +1,253 @@
+general:
+  type: "12"
+  name: Distracted dreamer
+  description: >-
+    The daydreamer with eyes. Its caudate watches and controls both its ideas and what it sees,
+    so thinking and seeing share one budget of activity. A dim lamp does not reach its eyes and
+    it goes on thinking; a bright lamp wins the budget, stops its train of thought and draws it
+    in. When the lamp goes off, its thoughts come back.
+  size: 4
+  noise_std: 0              # no noise: whatever it does comes from its ideas
+
+sensors:
+  - sensor:
+      name: left_eye
+      type: light
+      position: [-0.6, 0.9]     # sees all around
+  - sensor:
+      name: right_eye
+      type: light
+      position: [0.6, 0.9]
+
+units:
+  # One pulse at the start of the run, to set the first idea going
+  - unit:
+      name: wake
+      type: threshold
+      position: [-0.15, -0.8]
+      threshold: 0          # fires on its own ...
+      delay: 1
+      inputs:
+        - input:
+            from: awake     # ... until awake stops it
+            type: inhibitory
+  - unit:
+      name: awake
+      type: threshold
+      position: [0.15, -0.8]
+      threshold: 1
+      inputs:
+        - input:
+            from: wake
+        - input:
+            from: awake     # and stays on
+  # Eight ideas around a ring, each exciting the next one and the one three places on
+  # idea_0: forward
+  - unit:
+      name: idea_0
+      type: threshold
+      position: [0.0, 0.7]
+      threshold: 2
+      delay: 1              # each idea lasts about a second: long enough to see its gesture
+      inputs:
+        - input:
+            from: idea_7     # the previous idea
+        - input:
+            from: idea_5     # and the one three places back
+        - input:
+            from: wake        # the start pulse
+        - input:
+            from: idea_0     # itself, inhibitory: an idea fires once, for one delay
+            type: inhibitory
+  # idea_1: turn left
+  - unit:
+      name: idea_1
+      type: threshold
+      position: [0.35, 0.55]
+      threshold: 2
+      delay: 1
+      inputs:
+        - input:
+            from: idea_0
+        - input:
+            from: idea_6
+        - input:
+            from: idea_1
+            type: inhibitory
+  # idea_2: turn right
+  - unit:
+      name: idea_2
+      type: threshold
+      position: [0.5, 0.2]
+      threshold: 2
+      delay: 1
+      inputs:
+        - input:
+            from: idea_1
+        - input:
+            from: idea_7
+        - input:
+            from: idea_2
+            type: inhibitory
+  # idea_3: stop
+  - unit:
+      name: idea_3
+      type: threshold
+      position: [0.35, -0.15]
+      threshold: 2
+      delay: 1
+      inputs:
+        - input:
+            from: idea_2
+        - input:
+            from: idea_0
+        - input:
+            from: idea_3
+            type: inhibitory
+  # idea_4: forward
+  - unit:
+      name: idea_4
+      type: threshold
+      position: [0.0, -0.3]
+      threshold: 2
+      delay: 1
+      inputs:
+        - input:
+            from: idea_3
+        - input:
+            from: idea_1
+        - input:
+            from: idea_4
+            type: inhibitory
+  # idea_5: turn left
+  - unit:
+      name: idea_5
+      type: threshold
+      position: [-0.35, -0.15]
+      threshold: 2
+      delay: 1
+      inputs:
+        - input:
+            from: idea_4
+        - input:
+            from: idea_2
+        - input:
+            from: idea_5
+            type: inhibitory
+  # idea_6: turn right
+  - unit:
+      name: idea_6
+      type: threshold
+      position: [-0.5, 0.2]
+      threshold: 2
+      delay: 1
+      inputs:
+        - input:
+            from: idea_5
+        - input:
+            from: idea_3
+        - input:
+            from: idea_6
+            type: inhibitory
+  # idea_7: stop
+  - unit:
+      name: idea_7
+      type: threshold
+      position: [-0.35, 0.55]
+      threshold: 2
+      delay: 1
+      inputs:
+        - input:
+            from: idea_6
+        - input:
+            from: idea_4
+        - input:
+            from: idea_7
+            type: inhibitory
+  # What it sees: a lamp bright enough at one side
+  - unit:
+      name: sees_left
+      type: threshold
+      position: [-0.85, 0.45]
+      threshold: 4          # about 3 while it thinks, when the offset is about -1
+      delay: 0.2
+      inputs:
+        - input:
+            from: left_eye
+  - unit:
+      name: sees_right
+      type: threshold
+      position: [0.85, 0.45]
+      threshold: 4
+      delay: 0.2
+      inputs:
+        - input:
+            from: right_eye
+  # The caudate: watches the eyes and the ideas and moves all their thresholds, so seeing and
+  # thinking share one budget of activity
+  - unit:
+      name: caudate
+      type: threshold_control
+      position: [0.0, 0.2]
+      inputs:
+        - input:
+            from: sees_left
+        - input:
+            from: sees_right
+        - input:
+            from: idea_0
+        - input:
+            from: idea_1
+        - input:
+            from: idea_2
+        - input:
+            from: idea_3
+        - input:
+            from: idea_4
+        - input:
+            from: idea_5
+        - input:
+            from: idea_6
+        - input:
+            from: idea_7
+      controls: [sees_left, sees_right, idea_0, idea_1, idea_2, idea_3, idea_4, idea_5, idea_6, idea_7]
+      target: 1
+      rate: 0.5
+      delay: 0.05           # one step: much shorter than an idea, to catch an ignition early
+      jitter: 0.3
+
+actuators:
+  # The eyes, crossed, and the gestures: idea_0 and idea_4 forward, idea_1 and idea_5 turn left,
+  # idea_2 and idea_6 turn right, idea_3 and idea_7 stop
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.8, -0.75]
+      gain: 2
+      inputs:
+        - input:
+            from: sees_right    # crossed, as in Vehicle 2b: turns toward the lamp
+        - input:
+            from: idea_0
+        - input:
+            from: idea_2
+        - input:
+            from: idea_4
+        - input:
+            from: idea_6
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.8, -0.75]
+      gain: 2
+      inputs:
+        - input:
+            from: sees_left
+        - input:
+            from: idea_0
+        - input:
+            from: idea_1
+        - input:
+            from: idea_4
+        - input:
+            from: idea_5

@@ -1,0 +1,14 @@
+name: Distracted dreamer (thinking and seeing share one budget)
+description: The daydreamer with eyes, between a dim lamp and a bright one that take turns. It goes on thinking while the dim lamp is on; the bright one stops its thoughts and draws it in, and when it goes off its thoughts come back.
+
+world: ../worlds/two-lamps.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle12-distracted.yaml
+      position: [50, 50]
+      heading: 90
+
+simulation:
+  dt: 0.05
+  seed: 0

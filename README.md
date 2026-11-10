@@ -89,6 +89,14 @@ python -m braitenberg scenarios/vehicle12-daydreamer.yaml
 
 See [specs/vehicle-12.md](specs/vehicle-12.md) for the threshold control and what the daydreamer shows.
 
+The second Vehicle 12 example, the distracted dreamer, is the daydreamer with eyes, between a dim lamp and a bright one that take turns. Its caudate watches its eyes as well as its ideas, so seeing and thinking share one budget of activity. It thinks right through the dim lamp; the bright one stops its train of thought and draws it in, and some 20 s after the lamp goes off its thoughts come back. An absorbed variant, whose caudate ignores its eyes, keeps thinking while it steers to the lamp.
+
+![The distracted dreamer thinks through the dim lamp, is caught by the bright one, and goes back to its thoughts](specs/images/vehicle12-distracted.gif)
+
+```
+python -m braitenberg scenarios/vehicle12-distracted.yaml
+```
+
 ## Running
 
 ### Setup
@@ -125,6 +133,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 11: Landmark forager | Learns that food is at blue posts, and heads for them when hungry | `python -m braitenberg scenarios/vehicle11-landmark-forager.yaml` |
 | Vehicle 12: Daydreamer | With nothing to sense, one idea leads to the next under a threshold control | `python -m braitenberg scenarios/vehicle12-daydreamer.yaml` |
 | Vehicle 12: Flooded and silent | The daydreamer's ideas without the control: all on, or none | `python -m braitenberg scenarios/vehicle12-daydreamer-flooded.yaml` |
+| Vehicle 12: Distracted dreamer | Thinks through a dim lamp; a bright one stops its thoughts and draws it in | `python -m braitenberg scenarios/vehicle12-distracted.yaml` |
 
 In the window:
 

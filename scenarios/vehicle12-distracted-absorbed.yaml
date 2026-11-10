@@ -1,0 +1,14 @@
+name: Absorbed dreamer (its eyes outside the budget)
+description: The distracted dreamer whose caudate ignores its eyes. It goes on thinking while it sees the bright lamp, and its gestures and its steering mix.
+
+world: ../worlds/two-lamps.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle12-distracted-absorbed.yaml
+      position: [50, 50]
+      heading: 90
+
+simulation:
+  dt: 0.05
+  seed: 0
