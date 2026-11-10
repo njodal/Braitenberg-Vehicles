@@ -26,15 +26,16 @@ INHIBITORY = "#dc2626"
 INACTIVE = "#9ca3af"
 LEARNING = "#16a34a"    # Mnemotrix wires (Vehicle 7), whatever their sign
 ERGOTRIX = "#0d9488"    # Ergotrix wires (Vehicle 11), kin to Mnemotrix but told apart from it
+CONTROL = "#7c3aed"     # a threshold control's arrows to what it controls (Vehicle 12)
 INK = "#1f2937"
 DIM = "#6b7280"
-PART_SIZE = {"sensor": 14, "motor": 17, "unit": 17, "module": 20}   # where wires stop, from the center
+PART_SIZE = {"sensor": 14, "motor": 17, "unit": 17, "module": 20, "control": 19}   # where wires stop, from the center
 UNIT_RADIUS = 16
 
 
 LEGEND_COLUMNS = 2
 WIRE_COLORS = {"exc": EXCITATORY, "inh": INHIBITORY, "off": INACTIVE, "learn": LEARNING,
-               "ergo": ERGOTRIX}
+               "ergo": ERGOTRIX, "ctrl": CONTROL}
 LEARNING_LABELS = {"mnemotrix": "M", "ergotrix": "E"}
 
 
@@ -121,7 +122,8 @@ def bundles(wires) -> list:
     """
     groups, labels = {}, {}
     for w in wires:
-        key = (w.source, w.target, w.source_port, w.target_port, w.sign, w.learning, w.active)
+        key = (w.source, w.target, w.source_port, w.target_port, w.sign, w.learning, w.active,
+               w.control)
         if key in groups:
             first = groups[key]
             first.level = max(first.level, w.level)
@@ -133,10 +135,23 @@ def bundles(wires) -> list:
             labels[key].append(w.label)
     for key, w in groups.items():
         w.label = ", ".join(labels[key])
-    return list(groups.values())
+    # A threshold control's arrow to a part it also watches, and the wire it watches it by, are
+    # drawn as one dashed line with an arrowhead at each end.
+    watched = {(w.source, w.target) for w in groups.values() if w.control}
+    merged = []
+    for w in groups.values():
+        if w.control:
+            w.watched = any((w.target, w.source) == (v.source, v.target) and not v.control
+                            and v.sign > 0 for v in groups.values())
+            merged.append(w)
+        elif not ((w.target, w.source) in watched and w.sign > 0):
+            merged.append(w)
+    return merged
 
 
 def wire_kind(w) -> str:
+    if w.control:
+        return "ctrl"
     if w.learning:
         return "ergo" if w.learning == "ergotrix" else "learn"
     return "off" if not w.active else "exc" if w.sign > 0 else "inh"
@@ -152,8 +167,13 @@ def definition_svg(definition: VehicleDefinition) -> str:
         legend.append(("learn", "", "M learning (Mnemotrix)"))
     if any(w.learning == "ergotrix" for w in diagram.wires):
         legend.append(("ergo", "", "E learning (Ergotrix)"))
+    if any(w.control for w in diagram.wires):
+        legend.append(("ctrl", ' stroke-dasharray="5,4"',
+                       "θ watches and moves thresholds" if any(w.watched for w in diagram.wires)
+                       else "θ moves thresholds"))
     legend_rows = -(-len(legend) // LEGEND_COLUMNS)
-    radius = LARGE_RADIUS if any(p.shape or p.kind == "module" for p in diagram.parts) else RADIUS
+    radius = (LARGE_RADIUS if any(p.shape or p.kind == "module" for p in diagram.parts)
+              or len(diagram.parts) > 10 else RADIUS)
     width = 2 * radius + 2 * MARGIN
     height = TITLE_HEIGHT + 2 * radius + 2 * MARGIN + LEGEND_HEIGHT * legend_rows
     cx, cy = width / 2, TITLE_HEIGHT + MARGIN + radius
@@ -204,12 +224,12 @@ def definition_svg(definition: VehicleDefinition) -> str:
     for w in diagram.wires:
         kind = wire_kind(w)
         color = WIRE_COLORS[kind]
-        dash = ' stroke-dasharray="5,4"' if not w.active else ""
+        dash = ' stroke-dasharray="5,4"' if not w.active or w.control else ""
         stroke = f"{stroke_width(w):g}"
         source, target = parts[w.source], parts[w.target]
         (x1, y1), (x2, y2) = wire_ends(w, parts, at)
         if w.source == w.target:  # a unit feeding back into itself: a loop above it,
-            r = PART_SIZE[target.kind]        # toward the outside of the body, so mirrored
+            r = edge(target, 0, -1, radius)   # toward the outside of the body, so mirrored
             o = -1 if target.position[0] < 0 else 1   # units on either side look alike
             out.append(f'<path d="M{x1 + o * r * 0.7:.1f},{y1 - r * 0.7:.1f} '
                        f'C{x1 + o * 3 * r:.1f},{y1 - 4 * r:.1f} {x1 + o * 4 * r:.1f},{y1 - r:.1f} '
@@ -230,11 +250,14 @@ def definition_svg(definition: VehicleDefinition) -> str:
             end = 6 if w.target_port else edge(target, ux, uy, radius) + 2
             out.append(f'<line x1="{x1 + ux * start:.1f}" y1="{y1 + uy * start:.1f}" '
                        f'x2="{x2 - ux * end:.1f}" y2="{y2 - uy * end:.1f}" stroke="{color}" '
-                       f'stroke-width="{stroke}"{dash} marker-end="url(#arrow-{kind})"/>')
+                       f'stroke-width="{stroke}"{dash} marker-end="url(#arrow-{kind})"'
+                       + (f' marker-start="url(#arrow-{kind})"' if w.watched else "") + '/>')
             # The sign sits near the target, beside the wire, so crossed wires do not share it.
             label_x = x1 + 0.8 * (x2 - x1) - uy * 9
             label_y = y1 + 0.8 * (y2 - y1) + ux * 9
         sign = ("+" if w.sign > 0 else "−") + LEARNING_LABELS.get(w.learning, "")
+        if w.control:
+            continue   # it carries no signal: no sign, and its color says what it is
         out.append(f'<text x="{label_x:.1f}" y="{label_y + 5:.1f}" text-anchor="middle" '
                    f'font-size="15" font-weight="bold" fill="{color}">{sign}</text>')
         if w.label and w.source != w.target:
@@ -261,6 +284,14 @@ def definition_svg(definition: VehicleDefinition) -> str:
             a = actuators[p.name]
             caption = [p.name] + ([f"gain {a.gain:g} \u00b7 base {a.base_speed:g}"]
                                   if (a.gain, a.base_speed) != (1, 0) else [])
+        elif p.kind == "control":
+            # A threshold control: a diamond, with θ inside.
+            r = PART_SIZE["control"]
+            out.append(f'<polygon points="{x},{y - r} {x + r},{y} {x},{y + r} {x - r},{y}" '
+                       f'fill="#ede9fe" stroke="{INK}" stroke-width="2"/>')
+            out.append(f'<text x="{x}" y="{y + 5}" text-anchor="middle" font-size="14" '
+                       f'font-weight="bold" fill="{CONTROL}">θ</text>')
+            caption = [p.name, p.label]
         elif p.kind == "module":
             out += module_name_svg(p, x, y)   # its box is drawn under the wires, above
             caption = []
@@ -289,7 +320,7 @@ def definition_svg(definition: VehicleDefinition) -> str:
             out.append(f'<text x="{x}" y="{y + 4}" text-anchor="middle" font-size="11" '
                        f'font-weight="bold" fill="{INK}">{p.threshold:g}</text>')
             caption = [p.name]
-        below = (UNIT_RADIUS + 15 if p.kind == "unit"
+        below = (UNIT_RADIUS + 15 if p.kind in ("unit", "control")
                  else module_box(p)[1] / 2 + 16 if p.kind == "module"
                  else grid_size(p.shape, radius)[1] / 2 + 14 if p.shape is not None else 28)
         for i, text in enumerate(caption):

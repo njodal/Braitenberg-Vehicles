@@ -170,7 +170,7 @@ A motor adds up the signals of its active inputs, excitatory ones with `+` and i
 | Key | Required | Meaning |
 |---|---|---|
 | `name` | yes | Unique name. |
-| `type` | yes | `threshold` (the only type for now): Braitenberg's threshold device from Vehicle 5. |
+| `type` | yes | `threshold`: Braitenberg's threshold device from Vehicle 5. Or `threshold_control`, which moves other units' thresholds and has keys of its own ([vehicle-12.md](vehicle-12.md)). |
 | `threshold` | yes | The unit fires when the sum of its active inputs reaches this value. `0` or less means the unit fires on its own, unless an inhibitory connection stops it. |
 | `inputs` | yes | Sensors and/or other units, including itself (see *Inputs*). |
 | `delay` | no | Seconds between the inputs reaching the threshold and the output appearing. Default `0.05`. Must be positive. |
@@ -447,7 +447,7 @@ Learning connections have their own criteria in [vehicle-07.md](vehicle-07.md) (
 
 ## Out of scope
 
-- Other unit types, and learning types other than Mnemotrix and Ergotrix.
+- Other unit types than `threshold` and `threshold_control` ([vehicle-12.md](vehicle-12.md)), and learning types other than Mnemotrix and Ergotrix.
 - Response curves other than `linear`, `peak` and `step`, and responses on actuators or connections.
 - Other kinds of habituation, such as fatigue, where the stimulus wears out the sensor's sensitivity and rest restores it; and habituating cameras.
 - Overriding definition values from a scenario.

@@ -1,0 +1,14 @@
+name: Daydreamer, flooded (no control, low threshold)
+description: The daydreamer's ideas with a low threshold and no control. One idea fires two, and soon all are on, so it drives straight ahead.
+
+world: ../worlds/open-field.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle12-daydreamer-flooded.yaml
+      position: [50, 50]
+      heading: 90
+
+simulation:
+  dt: 0.05
+  seed: 0

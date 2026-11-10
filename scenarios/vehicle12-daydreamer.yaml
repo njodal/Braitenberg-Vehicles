@@ -1,0 +1,14 @@
+name: Daydreamer (a train of thought in the dark)
+description: The daydreamer in an empty, dark field. With nothing to sense, its threshold control keeps one idea on at a time, and each idea moves it its own way, so its track shows a train of thought.
+
+world: ../worlds/open-field.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle12-daydreamer.yaml
+      position: [50, 50]
+      heading: 90
+
+simulation:
+  dt: 0.05
+  seed: 0

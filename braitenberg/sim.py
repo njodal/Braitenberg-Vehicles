@@ -28,8 +28,9 @@ class Simulation:
         self.dt = scenario.simulation.dt
         self.time = 0.0
         self.steps = 0
-        self.vehicles = [Vehicle(p.definition, *p.position, p.heading, p.label, self.dt)
-                         for p in scenario.vehicles]
+        seed = scenario.simulation.seed
+        self.vehicles = [Vehicle(p.definition, *p.position, p.heading, p.label, self.dt, [seed, k])
+                         for k, p in enumerate(scenario.vehicles)]
         self.sight_lines = {}   # camera sensor -> its lines of sight, computed once
         self.has_cameras = any(s.camera for p in scenario.vehicles for s in p.definition.sensors)
 

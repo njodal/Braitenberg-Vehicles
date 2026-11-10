@@ -66,6 +66,7 @@ LEARN_DIM = (40, 100, 70)      # Mnemotrix wires (Vehicle 7)
 LEARN_ON = (90, 230, 140)
 ERGO_DIM = (25, 95, 90)        # Ergotrix wires (Vehicle 11)
 ERGO_ON = (60, 215, 200)
+CONTROL_COLOR = (170, 130, 245)   # a threshold control and its arrows (Vehicle 12)
 LEARNING_LABELS = {"mnemotrix": "M", "ergotrix": "E"}
 STRENGTH_TICK = 0.7           # a connection is active above this strength
 
@@ -381,6 +382,9 @@ class Renderer:
                 self.draw_module(surface, p, at(p.position))
         for w in bundles(diagram.wires):
             a, b = wire_ends(w, parts, at, PANEL_PORT_GAP, PANEL_BOX_HEIGHT)
+            if w.control:   # a threshold control's arrow: dashed, it carries no signal
+                draw_dashed_line(surface, CONTROL_COLOR, a, b, 2)
+                continue
             if w.learning:  # wider as it grows stronger, dashed until it is active
                 dim, on = learning_colors(w)
                 color = lerp_color(dim, on, w.level) if w.active else dim
@@ -420,6 +424,12 @@ class Renderer:
                 pygame.draw.circle(surface, BODY_OUTLINE, (x, y), 13, 2)
             elif p.shape is not None:
                 self.draw_cells(surface, p.level, (x, y), GRID_WIDTH * radius, centered=True)
+            elif p.kind == "control":
+                # A diamond, lit by the activity it sees (half lit at its target).
+                r = UNIT_RADIUS + 2
+                diamond = [(x, y - r), (x + r, y), (x, y + r), (x - r, y)]
+                pygame.draw.polygon(surface, fill, diamond)
+                pygame.draw.polygon(surface, CONTROL_COLOR, diamond, 2)
             elif p.kind == "motor":
                 rect = pygame.Rect(0, 0, 34, 22)
                 rect.center = (x, y)
@@ -429,14 +439,16 @@ class Renderer:
                 pygame.draw.circle(surface, fill, (x, y), UNIT_RADIUS)
                 pygame.draw.circle(surface, BODY_OUTLINE, (x, y), UNIT_RADIUS, 2)
                 if p.threshold is not None:
-                    # The threshold inside the circle, dark on a lit unit and light on a dark one.
+                    # The threshold inside the circle, dark on a lit unit and light on a dark one;
+                    # a controlled unit's threshold now, with one decimal.
                     color = VEHICLE_OUTLINE if p.level > 0.5 else TEXT
-                    value = self.small_font.render(f"{p.threshold:g}", True, color)
+                    text = f"{p.effective:.1f}" if p.effective is not None else f"{p.threshold:g}"
+                    value = self.small_font.render(text, True, color)
                     surface.blit(value, (x - value.get_width() / 2, y - value.get_height() / 2))
             if p.kind == "module":
                 continue   # its name is inside its box
             label = self.small_font.render(p.name, True, PANEL_DIM)
-            below = (UNIT_RADIUS + 4 if p.kind == "unit"
+            below = (UNIT_RADIUS + 4 if p.kind in ("unit", "control")
                      else self.cells_height(p.level, GRID_WIDTH * radius) / 2 + 3
                      if p.shape is not None else 15)
             surface.blit(label, (x - label.get_width() / 2, y + below))
@@ -486,7 +498,8 @@ class Renderer:
         for p in diagram.parts:
             name = self.font.render(p.name, True, TEXT)
             surface.blit(name, (x0, y + 2))
-            surface.blit(self.small_font.render(p.label, True, PANEL_DIM),
+            label = p.label if p.effective is None else f"threshold {p.effective:.1f}"
+            surface.blit(self.small_font.render(label, True, PANEL_DIM),
                          (x0 + name.get_width() + 6, y + 4))
             if p.kind == "module":
                 # Its outputs, as cells, and how many are on.
@@ -512,7 +525,8 @@ class Renderer:
             if filled:
                 color = tuple(int(c) for c in heat_colors(np.array(p.level)))
                 pygame.draw.rect(surface, color, (bar_x, y + 7, filled, 6), border_radius=3)
-            value = self.font.render(f"{p.value:.2f}", True, TEXT)
+            value = self.font.render(f"{p.value:+.2f}" if p.kind == "control" else f"{p.value:.2f}",
+                                     True, TEXT)
             surface.blit(value, (x0 + width - value.get_width(), y + 2))
             y += ROW
         # Then each learning connection: its strength, with a tick where it becomes active.

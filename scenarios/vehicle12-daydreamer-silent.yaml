@@ -1,0 +1,14 @@
+name: Daydreamer, silent (no control, high threshold)
+description: The daydreamer's ideas with a high threshold and no control. No idea can fire another, and it never moves.
+
+world: ../worlds/open-field.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle12-daydreamer-silent.yaml
+      position: [50, 50]
+      heading: 90
+
+simulation:
+  dt: 0.05
+  seed: 0

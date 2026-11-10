@@ -23,7 +23,7 @@ class Part:
     for a camera or a two-dimensional array), one entry per pixel or element.
     """
 
-    kind: str     # sensor | camera | motor | unit | array
+    kind: str     # sensor | camera | motor | unit | array | module | control
     name: str
     position: tuple[float, float]
     label: str
@@ -33,6 +33,7 @@ class Part:
     shape: tuple[int, ...] | None = None  # cameras and arrays only
     inputs: list[str] | None = None   # a module's inputs, drawn on top of its box
     outputs: list[str] | None = None  # a module's outputs, drawn below it; value and level are theirs
+    effective: float | None = None    # a controlled unit's or array's threshold now (Vehicle 12)
 
 
 @dataclass
@@ -50,6 +51,8 @@ class Wire:
     label: str = ""   # the input's `from` as written, when it has indices, e.g. lump[i-1]
     source_port: str | None = None   # the module output it comes from
     target_port: str | None = None   # the module input it goes to
+    control: bool = False   # from a threshold control to a unit or array it controls (Vehicle 12)
+    watched: bool = False   # a control's arrow to a part it also watches, drawn as one (Vehicle 12)
 
 
 @dataclass
@@ -72,7 +75,7 @@ def clamp01(x: float) -> float:
 
 class Vehicle:
     def __init__(self, definition: VehicleDefinition, x: float, y: float, heading: float,
-                 label: str = "", dt: float = 0.05):
+                 label: str = "", dt: float = 0.05, seed=0):
         self.definition = definition
         self.label = label or definition.general.name
         self.x = x
@@ -105,6 +108,15 @@ class Vehicle:
                                 for j, c in enumerate(p.inputs) if not c.learning}
         # A unit's delay and simultaneity window, in steps (see 'Signal flow' in the spec).
         self.unit_steps = {u.name: max(1, round(u.delay / dt)) for u in definition.units}
+        # Each controlled unit's fixed difference from its base threshold, drawn once from `seed`
+        # (specs/vehicle-12.md, *Jitter*).
+        rng = np.random.default_rng(seed)
+        controls = {u.name: u for u in definition.units if u.is_control}
+        self.jitters = {}
+        for u in definition.units:
+            control = controls.get(u.controller)
+            self.jitters[u.name] = (float(rng.uniform(-control.jitter, control.jitter))
+                                    if control and control.jitter else 0.0)
         self.setup_signals()
 
     @staticmethod
@@ -120,7 +132,23 @@ class Vehicle:
         self.unit_names = [u.name for u in units]
         steps = np.array([self.unit_steps[u.name] for u in units], dtype=int)
         self.steps = steps
-        self.thresholds = np.array([u.threshold for u in units])
+        self.thresholds = np.array([u.threshold + self.jitters[u.name] for u in units])
+        # Threshold controls (specs/vehicle-12.md): which units are controls, each unit's control
+        # (-1 for none), and each control's target, rate and latest offset, before its delay.
+        position = {u.name: k for k, u in enumerate(units)}
+        self.is_control = np.array([u.is_control for u in units], dtype=bool)
+        self.controller = np.array([position[u.controller] if u.controller else -1 for u in units],
+                                   dtype=int)
+        self.targets = np.array([u.target for u in units])
+        self.rates = np.array([u.rate for u in units])
+        self.offsets = np.zeros(len(units))
+        self.effective_thresholds = self.thresholds.copy()
+        self.activity = np.zeros(len(units))   # what each control saw at the last step
+        # A control watches the activations of its units as they are computed, not their outputs:
+        # (control position, unit position or -1, signal position for a sensor, sign) per input.
+        self.control_inputs = [(k, position.get(c.source, -1), self.signal_index[c.source],
+                                float(c.sign) if c.active else 0.0)
+                               for k, u in enumerate(units) if u.is_control for c in u.inputs]
         # Activations on their way to becoming outputs: a unit's output is its activation
         # `steps` steps ago (zero before that).
         self.activations = np.zeros((int(steps.max(initial=0)) + 1, len(units)))
@@ -205,7 +233,20 @@ class Vehicle:
         inputs = recent[self.input_group, self.input_signal]
         contributions = np.where(self.input_active, self.input_sign * inputs, 0.0)
         sums = np.bincount(self.input_unit, contributions, minlength=n_units)
-        self.activations[self.t % len(self.activations)] = sums >= self.thresholds
+        activations = (sums >= self.effective(outputs)).astype(float)
+        if self.is_control.any():
+            # A control adds up the activations of the units it watches, just computed, and
+            # sensor outputs: it sees an ignition as it starts. Its activation is its new offset,
+            # which reaches its units `delay` later.
+            activity = np.zeros(n_units)
+            for k, unit, signal, sign in self.control_inputs:
+                activity[k] += sign * (activations[unit] if unit >= 0 else signals[signal])
+            self.activity = activity
+            self.offsets = np.where(self.is_control,
+                                    self.offsets + self.rates * (activity - self.targets) * self.dt,
+                                    0.0)
+            activations = np.where(self.is_control, self.offsets, activations)
+        self.activations[self.t % len(self.activations)] = activations
         # Learning: a Mnemotrix connection whose source is on learns when the unit's other inputs
         # fire it, and forgets when they do not (see 'Learning connections'). An Ergotrix
         # connection learns when the unit's fixed inputs turn it on soon after its source turns on.
@@ -228,6 +269,14 @@ class Vehicle:
         for a in d.actuators:
             total = sum(c.sign * self.signal(c.source) for c in a.inputs if c.active)
             self.motor_speeds[a.name] = min(max(a.base_speed + a.gain * total, 0.0), a.max_speed)
+
+    def effective(self, outputs: np.ndarray) -> np.ndarray:
+        """Each unit's threshold now: its base threshold, its jitter and its control's visible
+        offset, which is that control's output (specs/vehicle-12.md)."""
+        if (self.controller >= 0).any():
+            offsets = np.where(self.controller >= 0, outputs[np.maximum(self.controller, 0)], 0.0)
+            self.effective_thresholds = self.thresholds + offsets
+        return self.effective_thresholds
 
     def ergotrix_step(self, u, j: int, contributions) -> float | None:
         """One step of Ergotrix connection `j` into unit `u` (specs/vehicle-11.md, *The rule*).
@@ -336,6 +385,15 @@ class Vehicle:
                     ref = self.references.get(name, 1.0)
                 levels[name] = clamp01(value / ref) if ref > 0 else (1.0 if value > 0 else 0.0)
         levels.update(self.unit_outputs)
+        position = {name: k for k, name in enumerate(self.unit_names)}
+        for u in d.units:
+            if u.is_control:   # a control's output is an offset, not a level
+                k = position[u.name]
+                levels[u.name] = clamp01(self.activity[k] / (2 * u.target)) if u.target > 0 else 0.0
+
+        def effective(u):   # the threshold now, without the jitter, which differs element by element
+            return u.threshold + self.unit_outputs[u.controller] if u.controller else None
+
         parts = []
         for s in d.sensors:
             if s.camera:
@@ -360,6 +418,10 @@ class Vehicle:
                 values = [self.unit_outputs[f"{u.module}.{o}"] for o in use.outputs]
                 parts.append(Part("module", u.module, positions[u.module], f"module {use.title}",
                                   values, values, inputs=use.inputs, outputs=use.outputs))
+            elif u.is_control:
+                parts.append(Part("control", u.name, positions[u.name],
+                                  f"target {u.target:g}, rate {u.rate:g}",
+                                  self.unit_outputs[u.name], levels[u.name]))
             elif u.array:
                 group_of[u.name] = u.array
                 if u.index != (0,) * len(u.index):
@@ -370,11 +432,14 @@ class Vehicle:
                 if len(shape) == 2:
                     values = [values[r * shape[1]:(r + 1) * shape[1]] for r in range(shape[0])]
                 parts.append(Part("array", u.array, positions[u.array],
-                                  f"threshold {u.threshold:g}", values, values, u.threshold, shape))
+                                  f"threshold {u.threshold:g}", values, values, u.threshold, shape,
+                                  effective=effective(u)))
             else:
                 value = self.unit_outputs[u.name]
                 parts.append(Part("unit", u.name, positions[u.name], f"threshold {u.threshold:g}",
-                                  value, value, u.threshold))
+                                  value, value, u.threshold,
+                                  effective=(self.effective_thresholds[position[u.name]]
+                                             if u.controller else None)))
         for a in d.actuators:
             value = self.motor_speeds[a.name]
             level = clamp01(value / a.max_speed) if a.max_speed > 0 else 0.0
@@ -402,6 +467,10 @@ class Vehicle:
                                   source_port=c.source.split(".", 1)[1] if c.source in module_of
                                   else None,
                                   target_port=c.port or None))
+        for u in d.units:
+            if u.is_control:
+                for name in u.controls:
+                    wires.append(Wire(u.name, name, 1, levels[u.name], control=True))
         return Diagram(
             title=self.label,
             subtitle=f"Vehicle {d.general.type}: {d.general.name}",

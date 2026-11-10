@@ -14,7 +14,8 @@ from braitenberg.yamlfile import Parser, read_yaml
 
 # Sensor types are stimulus names, checked against the world by the scenario loader.
 ACTUATOR_TYPES = ("motor",)
-UNIT_TYPES = ("threshold",)
+UNIT_TYPES = ("threshold", "threshold_control")
+CONTROL = "threshold_control"   # a unit that moves other units' thresholds (specs/vehicle-12.md)
 CONNECTION_TYPES = ("excitatory", "inhibitory")
 LEARNING_TYPES = ("mnemotrix", "ergotrix")
 # Sensor response types: required fields, and optional fields with their defaults.
@@ -165,6 +166,16 @@ class UnitDef:
     array: str | None = None             # the array this unit is an element of (Vehicle 8)
     index: tuple[int, ...] | None = None  # its index in that array
     module: str | None = None            # the module this unit comes from (specs/modules.md)
+    controller: str | None = None        # the threshold control that moves its threshold
+    # A threshold control's own fields (specs/vehicle-12.md); its `threshold` is unused.
+    controls: list[str] = field(default_factory=list)   # names of units and arrays, as written
+    target: float = 0.0
+    rate: float = 0.0
+    jitter: float = 0.0
+
+    @property
+    def is_control(self) -> bool:
+        return self.type == CONTROL
 
 
 ENERGY_SENSOR = "energy"   # a sensor type the vehicle reads from itself, not from the world
@@ -232,10 +243,13 @@ class _DefinitionParser(Parser):
         self.kinds = {**{s.name: "sensor" for s in sensors}, **{a.name: "actuator" for a in actuators},
                       **{u.name: "unit" for u in units}}
         arrays = {u.name: u.index for u in units if u.array}
+        self.control_names = {u.name for u in units if u.is_control}
         for (key, _), a in zip(actuator_items, actuators):
             a.inputs = self.resolve(a.inputs, f"{key}.inputs", None, a.name, "actuators")
+        keys = {u.name: key for (key, _), u in zip(unit_items, units)}
         units = [element for (key, _), u in zip(unit_items, units)
                  for element in self.expand(u, key)]
+        self.assign_controls(keys, units)
         energy = self.energy(data["energy"]) if "energy" in data else None
         if energy is None:
             for i, s in enumerate(sensors):
@@ -301,6 +315,9 @@ class _DefinitionParser(Parser):
                 raise self.error(fkey, f"'{c.source}' is an actuator; inputs must be sensors or units")
             if kind is None:
                 raise self.error(fkey, f"'{c.source}' is not a sensor or unit of this vehicle")
+            if base in self.control_names:
+                raise self.error(fkey, f"'{base}' is a threshold control; nothing takes it as an "
+                                       "input")
             shape = self.shapes.get(base)
             if indices is None:
                 if shape:
@@ -597,8 +614,63 @@ class _DefinitionParser(Parser):
             raise self.error(key, "base_speed and max_speed must not be negative")
         return a
 
+    def assign_controls(self, keys: dict[str, str], units: list[UnitDef]) -> None:
+        """Mark each unit with the threshold control that controls it (specs/vehicle-12.md)."""
+        members = {}   # unit or array name -> its units
+        for u in units:
+            members.setdefault(u.array or u.name, []).append(u)
+        for control in (u for u in units if u.is_control):
+            key = keys[control.name]
+            for i, name in enumerate(control.controls):
+                ckey = f"{key}.controls[{i}]"
+                if name in self.control_names:
+                    raise self.error(ckey, f"'{name}' is a threshold control; a control cannot "
+                                           "control another")
+                if self.kinds.get(name) == "sensor":
+                    raise self.error(ckey, f"'{name}' is a sensor; a control moves thresholds "
+                                           "of units")
+                if name not in members:
+                    raise self.error(ckey, f"'{name}' is not a unit or array of this vehicle")
+                for u in members[name]:
+                    if u.controller:
+                        raise self.error(ckey, f"'{u.name}' is already controlled by "
+                                               f"'{u.controller}'; a unit has at most one control")
+                    u.controller = control.name
+
+    def control(self, data, key: str, names) -> UnitDef:
+        """A threshold control (specs/vehicle-12.md)."""
+        for forbidden in ("threshold", "array"):
+            if isinstance(data, dict) and forbidden in data:
+                raise self.error(f"{key}.{forbidden}", "a threshold control has no "
+                                                       f"{forbidden}")
+        data = self.mapping(data, key, {"name", "type", "inputs", "controls", "target", "rate"},
+                            {"position", "delay", "jitter"})
+        controls = data["controls"]
+        if not isinstance(controls, list) or not controls:
+            raise self.error(f"{key}.controls", "must be a non-empty list of units or arrays")
+        unit = UnitDef(self.name(data, key, names), CONTROL, 0.0,
+                       self.connections(data["inputs"], f"{key}.inputs", self.connection),
+                       self.body_position(data["position"], f"{key}.position")
+                       if "position" in data else None,
+                       self.number(data.get("delay", 0.05), f"{key}.delay", positive=True),
+                       controls=[self.string(c, f"{key}.controls[{i}]")
+                                 for i, c in enumerate(controls)],
+                       target=self.number(data["target"], f"{key}.target"),
+                       rate=self.number(data["rate"], f"{key}.rate", positive=True),
+                       jitter=self.number(data.get("jitter", 0.0), f"{key}.jitter"))
+        for param in ("target", "jitter"):
+            if getattr(unit, param) < 0:
+                raise self.error(f"{key}.{param}", "must not be negative")
+        for j, c in enumerate(unit.inputs):
+            if c.learning:
+                raise self.error(f"{key}.inputs[{j}].input.learning",
+                                 "a threshold control's inputs do not learn")
+        return unit
+
     def unit(self, data, key: str, names) -> UnitDef:
         """A unit as written; an array keeps its shape in `index` until it is expanded."""
+        if isinstance(data, dict) and data.get("type") == CONTROL:
+            return self.control(data, key, names)
         data = self.mapping(data, key, {"name", "type", "threshold", "inputs"},
                             {"position", "delay", "array"})
         unit = UnitDef(self.name(data, key, names),
@@ -660,6 +732,8 @@ class _ModuleParser(_DefinitionParser):
         unit_items = self.items(data["units"], "units", "unit")
         units = [self.unit(body, key, names) for key, body in unit_items]
         for (key, _), u in zip(unit_items, units):
+            if u.is_control:
+                raise self.error(key, "a module cannot contain a threshold control")
             if u.position is not None:
                 raise self.error(f"{key}.position", "a module's units have no position: the "
                                  "diagram draws the module as one part, where the vehicle puts it")

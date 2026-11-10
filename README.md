@@ -77,6 +77,18 @@ The second Vehicle 11 example is a forager among blue and red posts that it sees
 python -m braitenberg scenarios/vehicle11-landmark-forager.yaml
 ```
 
+### Vehicle 12 — A daydreamer, whose thoughts go on in the dark
+
+![The daydreamer, alone in a dark field, moves to a train of ideas inside it](specs/images/vehicle12-daydreamer.gif)
+
+A vehicle with no sensors and eight "ideas", each wired to excite two others: left alone, such a network either dies out or flares up until every idea is on. A *threshold control*, which Braitenberg places in the caudate nucleus, watches how many ideas ignite and raises or lowers all their thresholds to keep about one on. The ideas then follow one another along their wires, and each moves the motors its own way, so the train of thought shows in the vehicle's track. Two variants without the control show the alternatives: one drives straight ahead with every idea on, the other never moves. The daydreamer's trains settle into loops of a few ideas.
+
+```
+python -m braitenberg scenarios/vehicle12-daydreamer.yaml
+```
+
+See [specs/vehicle-12.md](specs/vehicle-12.md) for the threshold control and what the daydreamer shows.
+
 ## Running
 
 ### Setup
@@ -111,6 +123,8 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 9: Shy | Watches what it sees; runs from whatever comes straight at it, which it tells by symmetry | `python -m braitenberg scenarios/vehicle9-shy.yaml` |
 | Vehicle 11: Cautious driver | Learns the traffic light's sequence and stops at yellow | `python -m braitenberg scenarios/vehicle11-cautious-driver.yaml` |
 | Vehicle 11: Landmark forager | Learns that food is at blue posts, and heads for them when hungry | `python -m braitenberg scenarios/vehicle11-landmark-forager.yaml` |
+| Vehicle 12: Daydreamer | With nothing to sense, one idea leads to the next under a threshold control | `python -m braitenberg scenarios/vehicle12-daydreamer.yaml` |
+| Vehicle 12: Flooded and silent | The daydreamer's ideas without the control: all on, or none | `python -m braitenberg scenarios/vehicle12-daydreamer-flooded.yaml` |
 
 In the window:
 
