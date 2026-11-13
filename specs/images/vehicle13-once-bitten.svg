@@ -1,0 +1,462 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1030" viewBox="0 0 900 1030" font-family="Helvetica, Arial, sans-serif">
+<defs>
+<marker id="arrow-exc" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+<marker id="arrow-inh" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+<marker id="arrow-off" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9ca3af"/></marker>
+<marker id="arrow-learn" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+<marker id="arrow-ergo" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/></marker>
+<marker id="arrow-ctrl" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+</defs>
+<rect width="900" height="1030" fill="white"/>
+<text x="450.0" y="32" text-anchor="middle" font-size="20" font-weight="bold" fill="#1f2937">Vehicle 13: Once bitten (learns from one bad encounter)</text>
+<rect x="70" y="120" width="760" height="760" rx="114" fill="#f9fafb" stroke="#6b7280" stroke-width="2"/>
+<rect x="390.0" y="726.4" width="120.0" height="64.0" rx="6" fill="#f3f4f6" stroke="#1f2937" stroke-width="2"/>
+<circle cx="450.0" cy="726.4" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="457.0" y="739.4" font-size="10" fill="#6b7280">enable</text>
+<circle cx="420.0" cy="790.4" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="427.0" y="783.4" font-size="10" fill="#6b7280">left</text>
+<circle cx="480.0" cy="790.4" r="4" fill="white" stroke="#1f2937" stroke-width="1.5"/>
+<text x="487.0" y="783.4" font-size="10" fill="#6b7280">right</text>
+<line x1="416.1" y1="480.0" x2="132.0" y2="312.1" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="187.1" y="339.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<text x="249.7" y="376.3" text-anchor="start" font-size="10" font-style="italic" fill="#6b7280">eye[0, :]</text>
+<line x1="461.9" y1="424.3" x2="768.2" y2="236.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="722.2" y="280.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="767.4" y1="226.4" x2="704.6" y2="226.4" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="705.4" y="222.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="435.5" y1="479.4" x2="246.7" y2="211.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="290.2" y="262.7" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<text x="328.7" y="318.1" text-anchor="start" font-size="10" font-style="italic" fill="#6b7280">eye[0, i]</text>
+<line x1="432.4" y1="479.5" x2="247.7" y2="264.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="289.6" y="304.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<text x="327.6" y="349.3" text-anchor="start" font-size="10" font-style="italic" fill="#6b7280">eye[0, i]</text>
+<line x1="241.0" y1="210.3" x2="241.0" y2="248.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="232.0" y="251.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<text x="233.0" y="237.0" text-anchor="end" font-size="10" font-style="italic" fill="#6b7280">was_near[i], was_near[i+1], was_near[i-1]</text>
+<line x1="268.5" y1="251.7" x2="385.7" y2="229.9" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="373.4" y="246.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<text x="340.3" y="250.5" text-anchor="middle" font-size="10" font-style="italic" fill="#6b7280">new_near[0:24]</text>
+<line x1="767.4" y1="226.4" x2="605.8" y2="226.4" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="626.3" y="222.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="668.6" y1="226.4" x2="605.8" y2="226.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="606.6" y="222.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="767.8" y1="230.2" x2="468.5" y2="298.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="514.9" y="283.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<path d="M461.9,290.5 C501.0,234.4 518.0,285.4 467.0,302.4" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="507.8" y="263.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="547.0" y1="305.4" x2="469.0" y2="305.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="472.8" y="301.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="467.0" y1="299.4" x2="545.0" y2="299.4" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="541.2" y="313.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="433.0" y1="302.4" x2="355.0" y2="302.4" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="358.8" y="298.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="389.4" y1="234.5" x2="124.7" y2="377.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="163.0" y="351.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="320.0" y1="308.3" x2="125.8" y2="379.5" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="150.5" y="365.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="262.0" y1="553.2" x2="127.0" y2="553.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="142.2" y="549.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="436.3" y1="312.5" x2="123.3" y2="542.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="171.1" y="500.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="374.0" y1="597.0" x2="374.0" y2="405.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="383.0" y="436.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="438.6" y1="315.0" x2="386.8" y2="371.9" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="382.5" y="368.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="600.2" y1="236.8" x2="777.0" y2="374.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="745.4" y="366.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="352.7" y1="305.5" x2="773.3" y2="382.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="699.2" y="383.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="638.0" y1="553.2" x2="773.0" y2="553.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="757.8" y="567.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="463.7" y1="312.5" x2="776.7" y2="542.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="718.3" y="515.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="526.0" y1="597.0" x2="526.0" y2="405.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="535.0" y="436.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="461.4" y1="315.0" x2="513.2" y2="371.9" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="504.1" y="380.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="125.0" y1="386.0" x2="172.6" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="174.9" y="400.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="357.0" y1="386.0" x2="210.6" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="228.1" y="382.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="125.0" y1="386.0" x2="260.0" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="244.8" y="400.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="357.0" y1="386.0" x2="298.0" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="298.0" y="382.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="208.6" y1="386.0" x2="260.0" y2="386.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="261.5" y="400.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="266.7" y1="397.8" x2="205.3" y2="456.5" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="202.9" y="451.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="279.0" y1="403.0" x2="279.0" y2="450.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="270.0" y="457.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="208.6" y1="469.6" x2="260.0" y2="469.6" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="261.5" y="483.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="266.7" y1="481.4" x2="205.3" y2="540.1" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="202.9" y="535.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="279.0" y1="486.6" x2="279.0" y2="534.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="270.0" y="541.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="208.6" y1="553.2" x2="260.0" y2="553.2" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="261.5" y="567.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="775.0" y1="386.0" x2="727.4" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="725.1" y="382.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="543.0" y1="386.0" x2="689.4" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="671.9" y="400.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="775.0" y1="386.0" x2="640.0" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="655.2" y="382.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="543.0" y1="386.0" x2="602.0" y2="386.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="602.0" y="400.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="691.4" y1="386.0" x2="640.0" y2="386.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="638.5" y="382.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="633.3" y1="397.8" x2="694.7" y2="456.5" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="684.7" y="464.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="621.0" y1="403.0" x2="621.0" y2="450.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="612.0" y="457.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="691.4" y1="469.6" x2="640.0" y2="469.6" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="638.5" y="465.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="633.3" y1="481.4" x2="694.7" y2="540.1" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="684.7" y="548.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="621.0" y1="486.6" x2="621.0" y2="534.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="612.0" y="541.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="691.4" y1="553.2" x2="640.0" y2="553.2" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="638.5" y="549.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="120.9" y1="397.1" x2="359.6" y2="601.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="314.9" y="580.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="124.6" y1="557.0" x2="355.5" y2="609.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="318.8" y="615.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="779.1" y1="397.1" x2="540.4" y2="601.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="573.3" y="566.6" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="775.4" y1="557.0" x2="544.5" y2="609.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="577.2" y="598.1" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="391.0" y1="614.0" x2="507.0" y2="614.0" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-ergo)"/>
+<text x="495.6" y="628.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#0d9488">+E</text>
+<line x1="514.0" y1="626.0" x2="463.4" y2="676.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="458.8" y="673.4" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<path d="M461.9,678.1 C501.0,622.0 518.0,673.0 467.0,690.0" fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="507.8" y="650.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="528.0" y1="687.0" x2="469.0" y2="687.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="469.0" y="683.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="467.0" y1="693.0" x2="526.0" y2="693.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="526.0" y="707.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="128.2" y1="313.8" x2="530.9" y2="677.3" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="453.1" y="624.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="414.8" y1="520.0" x2="132.1" y2="680.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="178.0" y="649.2" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<text x="241.2" y="613.4" text-anchor="end" font-size="10" font-style="italic" fill="#6b7280">eye[:, 0:12]</text>
+<line x1="485.2" y1="520.0" x2="767.9" y2="680.6" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="713.1" y="664.8" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<text x="650.8" y="627.3" text-anchor="end" font-size="10" font-style="italic" fill="#6b7280">eye[:, 12:24]</text>
+<line x1="132.6" y1="690.0" x2="222.0" y2="690.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="215.9" y="704.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="433.0" y1="690.0" x2="260.0" y2="690.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="282.8" y="686.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="767.4" y1="690.0" x2="678.0" y2="690.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="684.1" y="686.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="467.0" y1="690.0" x2="640.0" y2="690.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="617.2" y="704.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="433.0" y1="690.0" x2="374.0" y2="690.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="374.0" y="686.0" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="370.9" y1="696.1" x2="444.4" y2="724.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="427.8" y="732.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="243.8" y1="706.8" x2="256.9" y2="785.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="247.3" y="787.7" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="435.4" y1="698.7" x2="276.3" y2="794.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="293.4" y="778.5" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="476.0" y1="790.6" x2="279.0" y2="802.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="303.4" y="797.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="670.4" y1="169.8" x2="270.3" y2="788.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="336.0" y="674.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<line x1="656.2" y1="706.8" x2="643.1" y2="785.3" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="634.9" y="784.7" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="464.6" y1="698.7" x2="623.7" y2="794.2" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="597.4" y="793.9" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="424.0" y1="790.6" x2="621.0" y2="802.8" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="595.4" y="815.3" text-anchor="middle" font-size="15" font-weight="bold" fill="#2563eb">+</text>
+<line x1="229.6" y1="169.8" x2="629.7" y2="788.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="548.8" y="684.7" text-anchor="middle" font-size="15" font-weight="bold" fill="#dc2626">−</text>
+<rect x="336.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="345.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="355.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="364.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="374.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="383.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="393.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="402.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="412.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="421.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="431.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="440.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="450.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="459.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="469.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="478.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="488.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="497.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="507.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="516.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="526.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="535.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="545.0" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="554.5" y="481.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="336.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="345.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="355.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="364.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="374.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="383.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="393.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="402.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="412.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="421.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="431.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="440.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="450.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="459.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="469.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="478.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="488.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="497.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="507.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="516.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="526.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="535.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="545.0" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="554.5" y="490.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="336.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="345.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="355.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="364.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="374.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="383.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="393.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="402.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="412.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="421.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="431.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="440.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="450.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="459.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="469.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="478.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="488.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="497.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="507.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="516.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="526.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="535.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="545.0" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="554.5" y="500.0" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="336.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="345.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="355.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="364.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="374.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="383.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="393.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="402.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="412.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="421.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="431.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="440.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="450.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="459.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="469.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="478.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="488.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="497.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="507.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="516.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="526.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="535.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="545.0" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="554.5" y="509.5" width="9.5" height="9.5" fill="#fde68a" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="336.0" y="481.0" width="228.0" height="38.0" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+<text x="450.0" y="533.0" text-anchor="middle" font-size="12" fill="#1f2937">eye</text>
+<text x="450.0" y="546.0" text-anchor="middle" font-size="10" fill="#6b7280">green, step at 1, 4×24 px, 360°×20°</text>
+<line x1="222.0" y1="158.0" x2="214.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="222.0" y1="158.0" x2="230.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="222.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="222.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">ir_left</text>
+<text x="222.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">proximity</text>
+<line x1="678.0" y1="158.0" x2="670.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<line x1="678.0" y1="158.0" x2="686.0" y2="134.0" stroke="#1f2937" stroke-width="2"/>
+<circle cx="678.0" cy="158.0" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="678.0" y="186.0" text-anchor="middle" font-size="12" fill="#1f2937">ir_right</text>
+<text x="678.0" y="199.0" text-anchor="middle" font-size="10" fill="#6b7280">proximity</text>
+<line x1="450.0" y1="431.6" x2="442.0" y2="407.6" stroke="#1f2937" stroke-width="2"/>
+<line x1="450.0" y1="431.6" x2="458.0" y2="407.6" stroke="#1f2937" stroke-width="2"/>
+<circle cx="450.0" cy="431.6" r="13" fill="#fde68a" stroke="#1f2937" stroke-width="2"/>
+<text x="450.0" y="459.6" text-anchor="middle" font-size="12" fill="#1f2937">skin</text>
+<text x="450.0" y="472.6" text-anchor="middle" font-size="10" fill="#6b7280">proximity</text>
+<circle cx="115.60000000000002" cy="302.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="115.60000000000002" y="306.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="115.60000000000002" y="333.4" text-anchor="middle" font-size="12" fill="#1f2937">green_near</text>
+<circle cx="784.4" cy="226.40000000000003" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="784.4" y="230.40000000000003" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">8</text>
+<text x="784.4" y="257.40000000000003" text-anchor="middle" font-size="12" fill="#1f2937">touched</text>
+<circle cx="685.6" cy="226.40000000000003" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="685.6" y="230.40000000000003" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="685.6" y="257.40000000000003" text-anchor="middle" font-size="12" fill="#1f2937">was_hurt</text>
+<rect x="127.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="136.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="146.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="155.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="165.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="174.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="184.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="193.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="203.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="212.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="222.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="231.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="241.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="250.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="260.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="269.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="279.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="288.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="298.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="307.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="317.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="326.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="336.0" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="345.5" y="198.8" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="127.0" y="198.8" width="228.0" height="9.5" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+<text x="240.99999999999997" y="222.34999999999997" text-anchor="middle" font-size="12" fill="#1f2937">was_near [24]</text>
+<text x="240.99999999999997" y="235.34999999999997" text-anchor="middle" font-size="10" fill="#6b7280">threshold 1</text>
+<rect x="127.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="136.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="146.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="155.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="165.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="174.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="184.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="193.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="203.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="212.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="222.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="231.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="241.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="250.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="260.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="269.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="279.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="288.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="298.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="307.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="317.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="326.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="336.0" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="345.5" y="252.0" width="9.5" height="9.5" fill="white" stroke="#1f2937" stroke-width="0.5"/>
+<rect x="127.0" y="252.0" width="228.0" height="9.5" fill="none" stroke="#1f2937" stroke-width="1.5"/>
+<text x="240.99999999999997" y="275.54999999999995" text-anchor="middle" font-size="12" fill="#1f2937">new_near [24]</text>
+<text x="240.99999999999997" y="288.54999999999995" text-anchor="middle" font-size="10" fill="#6b7280">threshold 1</text>
+<circle cx="404.4" cy="226.40000000000003" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="404.4" y="230.40000000000003" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="404.4" y="257.40000000000003" text-anchor="middle" font-size="12" fill="#1f2937">r_green</text>
+<circle cx="586.8" cy="226.40000000000003" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="586.8" y="230.40000000000003" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="586.8" y="257.40000000000003" text-anchor="middle" font-size="12" fill="#1f2937">r_hurt</text>
+<circle cx="450.0" cy="302.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="450.0" y="306.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="450.0" y="333.4" text-anchor="middle" font-size="12" fill="#1f2937">upset</text>
+<circle cx="564.0" cy="302.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="564.0" y="306.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="564.0" y="333.4" text-anchor="middle" font-size="12" fill="#1f2937">calm_down</text>
+<circle cx="336.0" cy="302.4" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="336.0" y="306.4" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">0</text>
+<text x="336.0" y="333.4" text-anchor="middle" font-size="12" fill="#1f2937">calm</text>
+<circle cx="108.0" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="108.0" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="108.0" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">w_green</text>
+<circle cx="108.0" cy="553.2" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="108.0" y="557.2" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="108.0" y="584.2" text-anchor="middle" font-size="12" fill="#1f2937">e_green</text>
+<circle cx="374.0" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="374.0" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="374.0" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">l_green</text>
+<circle cx="792.0" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="792.0" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="792.0" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">w_hurt</text>
+<circle cx="792.0" cy="553.2" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="792.0" y="557.2" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="792.0" y="584.2" text-anchor="middle" font-size="12" fill="#1f2937">e_hurt</text>
+<circle cx="526.0" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="526.0" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="526.0" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">l_hurt</text>
+<circle cx="191.59999999999997" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="191.59999999999997" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="191.59999999999997" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">into_was_green</text>
+<circle cx="279.0" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="279.0" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="279.0" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">into_green</text>
+<circle cx="191.59999999999997" cy="469.6" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="191.59999999999997" y="473.6" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="191.59999999999997" y="500.6" text-anchor="middle" font-size="12" fill="#1f2937">echo1_was_green</text>
+<circle cx="279.0" cy="469.6" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="279.0" y="473.6" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="279.0" y="500.6" text-anchor="middle" font-size="12" fill="#1f2937">echo1_green</text>
+<circle cx="191.59999999999997" cy="553.2" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="191.59999999999997" y="557.2" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="191.59999999999997" y="584.2" text-anchor="middle" font-size="12" fill="#1f2937">echo2_was_green</text>
+<circle cx="279.0" cy="553.2" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="279.0" y="557.2" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="279.0" y="584.2" text-anchor="middle" font-size="12" fill="#1f2937">echo2_green</text>
+<circle cx="708.4000000000001" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="708.4000000000001" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="708.4000000000001" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">into_was_hurt</text>
+<circle cx="621.0" cy="386.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="621.0" y="390.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="621.0" y="417.0" text-anchor="middle" font-size="12" fill="#1f2937">into_hurt</text>
+<circle cx="708.4000000000001" cy="469.6" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="708.4000000000001" y="473.6" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="708.4000000000001" y="500.6" text-anchor="middle" font-size="12" fill="#1f2937">echo1_was_hurt</text>
+<circle cx="621.0" cy="469.6" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="621.0" y="473.6" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="621.0" y="500.6" text-anchor="middle" font-size="12" fill="#1f2937">echo1_hurt</text>
+<circle cx="708.4000000000001" cy="553.2" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="708.4000000000001" y="557.2" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="708.4000000000001" y="584.2" text-anchor="middle" font-size="12" fill="#1f2937">echo2_was_hurt</text>
+<circle cx="621.0" cy="553.2" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="621.0" y="557.2" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="621.0" y="584.2" text-anchor="middle" font-size="12" fill="#1f2937">echo2_hurt</text>
+<circle cx="374.0" cy="614.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="374.0" y="618.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="374.0" y="645.0" text-anchor="middle" font-size="12" fill="#1f2937">p_green</text>
+<circle cx="526.0" cy="614.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="526.0" y="618.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="526.0" y="645.0" text-anchor="middle" font-size="12" fill="#1f2937">p_hurt</text>
+<circle cx="450.0" cy="690.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="450.0" y="694.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="450.0" y="721.0" text-anchor="middle" font-size="12" fill="#1f2937">afraid</text>
+<circle cx="545.0" cy="690.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="545.0" y="694.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="545.0" y="721.0" text-anchor="middle" font-size="12" fill="#1f2937">brave</text>
+<circle cx="115.60000000000002" cy="690.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="115.60000000000002" y="694.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="115.60000000000002" y="721.0" text-anchor="middle" font-size="12" fill="#1f2937">green_left</text>
+<circle cx="784.4" cy="690.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="784.4" y="694.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">1</text>
+<text x="784.4" y="721.0" text-anchor="middle" font-size="12" fill="#1f2937">green_right</text>
+<circle cx="240.99999999999997" cy="690.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="240.99999999999997" y="694.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="240.99999999999997" y="721.0" text-anchor="middle" font-size="12" fill="#1f2937">away_left</text>
+<circle cx="659.0" cy="690.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="659.0" y="694.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">2</text>
+<text x="659.0" y="721.0" text-anchor="middle" font-size="12" fill="#1f2937">away_right</text>
+<circle cx="355.0" cy="690.0" r="16" fill="white" stroke="#1f2937" stroke-width="2"/>
+<text x="355.0" y="694.0" text-anchor="middle" font-size="11" font-weight="bold" fill="#1f2937">0</text>
+<text x="355.0" y="721.0" text-anchor="middle" font-size="12" fill="#1f2937">strolling</text>
+<text x="450.0" y="759.4" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2937" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">wander</text>
+<text x="450.0" y="771.4" text-anchor="middle" font-size="10" fill="#6b7280" paint-order="stroke" stroke="#f3f4f6" stroke-width="4" stroke-linejoin="round">module Wander</text>
+<rect x="243.0" y="793.0" width="34" height="22" rx="4" fill="#c7d2fe" stroke="#1f2937" stroke-width="2"/>
+<text x="260.0" y="832.0" text-anchor="middle" font-size="12" fill="#1f2937">left_motor</text>
+<text x="260.0" y="845.0" text-anchor="middle" font-size="10" fill="#6b7280">gain 0.5 · base 1.5</text>
+<rect x="623.0" y="793.0" width="34" height="22" rx="4" fill="#c7d2fe" stroke="#1f2937" stroke-width="2"/>
+<text x="640.0" y="832.0" text-anchor="middle" font-size="12" fill="#1f2937">right_motor</text>
+<text x="640.0" y="845.0" text-anchor="middle" font-size="10" fill="#6b7280">gain 0.5 · base 1.5</text>
+<line x1="70" y1="970.0" x2="100" y2="970.0" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-exc)"/>
+<text x="110" y="974.0" font-size="12" fill="#1f2937">+ excitatory</text>
+<line x1="250" y1="970.0" x2="280" y2="970.0" stroke="#dc2626" stroke-width="2" marker-end="url(#arrow-inh)"/>
+<text x="290" y="974.0" font-size="12" fill="#1f2937">− inhibitory</text>
+<line x1="70" y1="1010.0" x2="100" y2="1010.0" stroke="#0d9488" stroke-width="2" marker-end="url(#arrow-ergo)"/>
+<text x="110" y="1014.0" font-size="12" fill="#1f2937">E learning (Ergotrix)</text>
+</svg>

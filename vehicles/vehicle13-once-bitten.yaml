@@ -1,0 +1,560 @@
+general:
+  type: "13"
+  name: Once bitten (learns from one bad encounter)
+  description: >-
+    Lives among green vehicles that all look alike: most are peaceful, one rams it. Rammed once,
+    it relives the moments before, over and over, while it is upset, and each replay is one more
+    pairing for an Ergotrix wire from green to hurt. From then on it expects to be hurt by every
+    green vehicle that comes close, and runs.
+  size: 4
+  height: 2
+  noise_std: 0.2
+
+appearance:
+  blue: 10            # how the bully sees it
+  green: 0
+
+sensors:
+  - sensor:
+      name: eye
+      type: green
+      position: [0, 0]
+      field_of_view: 360
+      camera:
+        columns: 24                 # 15 degrees each: 0 to 11 on the left, 12 to 23 on the right
+        rows: 4                     # 5 degrees each: the top row sees only what is near
+        vertical_field_of_view: 20
+        height: 1
+        range: 30
+      response:
+        type: step                  # 1 where a green vehicle covers a tenth of a pixel or more
+        at: 1
+  - sensor:
+      name: ir_left
+      type: proximity
+      position: [-0.6, 0.9]
+      field_of_view: 180
+  - sensor:
+      name: ir_right
+      type: proximity
+      position: [0.6, 0.9]
+      field_of_view: 180
+  - sensor:
+      name: skin                    # 5 when another body touches its own, 10 when it covers the center
+      type: proximity
+      position: [0, 0.18]
+
+units:
+  # R, the realistic half brain: onsets of what the senses report.
+  # Something green within about 12 units: the eye's top row sees only what is near.
+  - unit:
+      name: green_near
+      type: threshold
+      threshold: 1
+      position: [-0.88, 0.52]
+      inputs:
+        - input:
+            from: eye[0, :]
+  # Another body overlaps its own, within 1 unit of its center.
+  - unit:
+      name: touched
+      type: threshold
+      threshold: 8
+      position: [0.88, 0.72]
+      inputs:
+        - input:
+            from: skin
+  - unit:
+      name: was_hurt
+      type: threshold
+      threshold: 1
+      delay: 0.5
+      position: [0.62, 0.72]
+      inputs:
+        - input:
+            from: touched
+  # Green near in each column, lately: within the last 1.5 s.
+  - unit:
+      name: was_near
+      type: threshold
+      threshold: 1
+      delay: 1.5
+      array: [24]
+      position: [-0.55, 0.78]
+      inputs:
+        - input:
+            from: eye[0, i]
+  # A green vehicle has just come close where there was none: near in a column, with nothing near
+  # in it or its neighbors for 1.5 s. One coming close while another stays near counts.
+  - unit:
+      name: new_near
+      type: threshold
+      threshold: 1
+      array: [24]
+      position: [-0.55, 0.64]
+      inputs:
+        - input:
+            from: eye[0, i]
+        - input:
+            from: was_near[i-1]
+            type: inhibitory
+        - input:
+            from: was_near[i]
+            type: inhibitory
+        - input:
+            from: was_near[i+1]
+            type: inhibitory
+  # R's green: a pulse of about 1.5 s each time one comes close.
+  - unit:
+      name: r_green
+      type: threshold
+      threshold: 1
+      position: [-0.12, 0.72]
+      inputs:
+        - input:
+            from: new_near[0:24]
+  # It has just been touched.
+  - unit:
+      name: r_hurt
+      type: threshold
+      threshold: 1
+      position: [0.36, 0.72]
+      inputs:
+        - input:
+            from: touched
+        - input:
+            from: was_hurt
+            type: inhibitory
+  # D, the Darwinian evaluator: being rammed is bad. Upset for U seconds, from 0.35 s
+  # after a touch, once the touch is in the short-term memory.
+  - unit:
+      name: upset
+      type: threshold
+      threshold: 1
+      delay: 0.3
+      position: [0, 0.52]
+      inputs:
+        - input:
+            from: touched
+        - input:
+            from: upset
+        - input:
+            from: calm_down
+            type: inhibitory
+  # Upset has been on for U seconds.
+  - unit:
+      name: calm_down
+      type: threshold
+      threshold: 1
+      delay: 20
+      position: [0.3, 0.52]
+      inputs:
+        - input:
+            from: upset
+  - unit:
+      name: calm
+      type: threshold
+      threshold: 0
+      position: [-0.3, 0.52]
+      inputs:
+        - input:
+            from: upset
+            type: inhibitory
+  # The switches. From the world: R's event, while calm.
+  - unit:
+      name: w_green
+      type: threshold
+      threshold: 2
+      position: [-0.9, 0.3]
+      inputs:
+        - input:
+            from: r_green
+        - input:
+            from: calm
+  # From the echo: the end of the memory, while upset.
+  - unit:
+      name: e_green
+      type: threshold
+      threshold: 2
+      position: [-0.9, -0.14]
+      inputs:
+        - input:
+            from: echo2_green
+        - input:
+            from: upset
+  # Round the loop: P's output back into the memory, while upset.
+  - unit:
+      name: l_green
+      type: threshold
+      threshold: 2
+      position: [-0.2, 0.3]
+      inputs:
+        - input:
+            from: p_green
+        - input:
+            from: upset
+  - unit:
+      name: w_hurt
+      type: threshold
+      threshold: 2
+      position: [0.9, 0.3]
+      inputs:
+        - input:
+            from: r_hurt
+        - input:
+            from: calm
+  - unit:
+      name: e_hurt
+      type: threshold
+      threshold: 2
+      position: [0.9, -0.14]
+      inputs:
+        - input:
+            from: echo2_hurt
+        - input:
+            from: upset
+  - unit:
+      name: l_hurt
+      type: threshold
+      threshold: 2
+      position: [0.2, 0.3]
+      inputs:
+        - input:
+            from: p_hurt
+        - input:
+            from: upset
+  # The short-term memory. An event enters it at its onset: a pulse of 0.05 s when
+  # w or l turns on. `into_was` counts twice, since both can be on together as the
+  # switches turn.
+  - unit:
+      name: into_was_green
+      type: threshold
+      threshold: 1
+      position: [-0.68, 0.3]
+      inputs:
+        - input:
+            from: w_green
+        - input:
+            from: l_green
+  - unit:
+      name: into_green
+      type: threshold
+      threshold: 1
+      position: [-0.45, 0.3]
+      inputs:
+        - input:
+            from: w_green
+        - input:
+            from: l_green
+        - input:
+            from: into_was_green
+            type: inhibitory
+        - input:
+            from: into_was_green
+            type: inhibitory
+  # Two delay elements, each one moment, T, long. Each one's `was` copy stops it as
+  # soon as it starts, so it gives out a pulse of 0.05 s T after its input, and
+  # cannot fire again for T.
+  - unit:
+      name: echo1_was_green
+      type: threshold
+      threshold: 1
+      position: [-0.68, 0.08]
+      inputs:
+        - input:
+            from: into_green
+  - unit:
+      name: echo1_green
+      type: threshold
+      threshold: 1
+      delay: 2.5
+      position: [-0.45, 0.08]
+      inputs:
+        - input:
+            from: into_green
+        - input:
+            from: echo1_was_green
+            type: inhibitory
+  - unit:
+      name: echo2_was_green
+      type: threshold
+      threshold: 1
+      position: [-0.68, -0.14]
+      inputs:
+        - input:
+            from: echo1_green
+  - unit:
+      name: echo2_green
+      type: threshold
+      threshold: 1
+      delay: 2.5
+      position: [-0.45, -0.14]
+      inputs:
+        - input:
+            from: echo1_green
+        - input:
+            from: echo2_was_green
+            type: inhibitory
+  - unit:
+      name: into_was_hurt
+      type: threshold
+      threshold: 1
+      position: [0.68, 0.3]
+      inputs:
+        - input:
+            from: w_hurt
+        - input:
+            from: l_hurt
+  - unit:
+      name: into_hurt
+      type: threshold
+      threshold: 1
+      position: [0.45, 0.3]
+      inputs:
+        - input:
+            from: w_hurt
+        - input:
+            from: l_hurt
+        - input:
+            from: into_was_hurt
+            type: inhibitory
+        - input:
+            from: into_was_hurt
+            type: inhibitory
+  - unit:
+      name: echo1_was_hurt
+      type: threshold
+      threshold: 1
+      position: [0.68, 0.08]
+      inputs:
+        - input:
+            from: into_hurt
+  - unit:
+      name: echo1_hurt
+      type: threshold
+      threshold: 1
+      delay: 2.5
+      position: [0.45, 0.08]
+      inputs:
+        - input:
+            from: into_hurt
+        - input:
+            from: echo1_was_hurt
+            type: inhibitory
+  - unit:
+      name: echo2_was_hurt
+      type: threshold
+      threshold: 1
+      position: [0.68, -0.14]
+      inputs:
+        - input:
+            from: echo1_hurt
+  - unit:
+      name: echo2_hurt
+      type: threshold
+      threshold: 1
+      delay: 2.5
+      position: [0.45, -0.14]
+      inputs:
+        - input:
+            from: echo1_hurt
+        - input:
+            from: echo2_was_hurt
+            type: inhibitory
+  # P, the predicting half brain: what comes, in the world or in the echo.
+  - unit:
+      name: p_green
+      type: threshold
+      threshold: 1
+      delay: 0.3
+      position: [-0.2, -0.3]
+      inputs:
+        - input:
+            from: w_green
+        - input:
+            from: e_green
+  # Hurt comes, or, once the wire has learned, green comes.
+  - unit:
+      name: p_hurt
+      type: threshold
+      threshold: 1
+      delay: 0.3
+      position: [0.2, -0.3]
+      inputs:
+        - input:
+            from: w_hurt
+        - input:
+            from: e_hurt
+        - input:
+            from: p_green
+            strength: 0
+            learning:
+              type: ergotrix
+              within: 5               # longer than the gap between green and hurt
+              learn: 0.25             # one real pairing is not enough; one and three echoes are
+              forget: 0.02
+  # Fleeing: afraid from when hurt is predicted, while green is near and 2 s more. A new
+  # prediction counts twice, so it frightens it again even while brave lingers.
+  - unit:
+      name: afraid
+      type: threshold
+      threshold: 1
+      position: [0, -0.5]
+      inputs:
+        - input:
+            from: p_hurt
+        - input:
+            from: p_hurt
+        - input:
+            from: afraid
+        - input:
+            from: brave
+            type: inhibitory
+  # Brave again once no green vehicle has been near for 2 s.
+  - unit:
+      name: brave
+      type: threshold
+      threshold: 1
+      delay: 2
+      position: [0.25, -0.5]
+      inputs:
+        - input:
+            from: afraid
+        - input:
+            from: green_near
+            type: inhibitory
+  - unit:
+      name: green_left
+      type: threshold
+      threshold: 1
+      position: [-0.88, -0.5]
+      inputs:
+        - input:
+            from: eye[:, 0:12]
+  - unit:
+      name: green_right
+      type: threshold
+      threshold: 1
+      position: [0.88, -0.5]
+      inputs:
+        - input:
+            from: eye[:, 12:24]
+  - unit:
+      name: away_left
+      type: threshold
+      threshold: 2
+      position: [-0.55, -0.5]
+      inputs:
+        - input:
+            from: green_left
+        - input:
+            from: afraid
+  - unit:
+      name: away_right
+      type: threshold
+      threshold: 2
+      position: [0.55, -0.5]
+      inputs:
+        - input:
+            from: green_right
+        - input:
+            from: afraid
+  - unit:
+      name: strolling
+      type: threshold
+      threshold: 0
+      position: [-0.25, -0.5]
+      inputs:
+        - input:
+            from: afraid
+            type: inhibitory
+
+modules:
+  # Turns now and then while it is not afraid.
+  - module:
+      name: wander
+      file: ../modules/wander.yaml
+      position: [0, -0.68]
+      inputs:
+        enable: strolling
+
+actuators:
+  # Afraid, both wheels at 4.5, faster than the bully, and the one on the green side at 6, which
+  # turns it away. Infrared, twice, slows the wheel opposite something close, as Vehicle 3b's
+  # explorer, even when it runs.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.8]
+      base_speed: 1.5
+      gain: 0.5
+      max_speed: 6
+      inputs:
+        - input:
+            from: away_left
+        - input:
+            from: away_left
+        - input:
+            from: away_left
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: wander.right
+        - input:
+            from: wander.right
+        - input:
+            from: wander.right
+        - input:
+            from: ir_right
+            type: inhibitory
+        - input:
+            from: ir_right
+            type: inhibitory
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.8]
+      base_speed: 1.5
+      gain: 0.5
+      max_speed: 6
+      inputs:
+        - input:
+            from: away_right
+        - input:
+            from: away_right
+        - input:
+            from: away_right
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: afraid
+        - input:
+            from: wander.left
+        - input:
+            from: wander.left
+        - input:
+            from: wander.left
+        - input:
+            from: ir_left
+            type: inhibitory
+        - input:
+            from: ir_left
+            type: inhibitory

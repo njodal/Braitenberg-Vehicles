@@ -1,0 +1,37 @@
+name: Once bitten
+description: >-
+  The once-bitten vehicle among five green vehicles that all look alike: four peaceful grazers
+  and a bully that rams it. Bitten once, it learns that green comes before pain, and from then
+  on runs from every green vehicle that comes close, grazers included.
+
+world: ../worlds/green-field.yaml
+
+vehicles:
+  - vehicle:
+      definition: ../vehicles/vehicle13-once-bitten.yaml
+      position: [50, 50]
+      heading: 90
+  - vehicle:
+      definition: ../vehicles/vehicle13-grazer.yaml
+      position: [25, 25]
+      heading: 45
+  - vehicle:
+      definition: ../vehicles/vehicle13-grazer.yaml
+      position: [75, 25]
+      heading: 135
+  - vehicle:
+      definition: ../vehicles/vehicle13-grazer.yaml
+      position: [25, 75]
+      heading: 315
+  - vehicle:
+      definition: ../vehicles/vehicle13-grazer.yaml
+      position: [75, 75]
+      heading: 225
+  - vehicle:
+      definition: ../vehicles/vehicle13-bully.yaml
+      position: [10, 90]           # far away: it meets grazers before the bully finds it
+      heading: 0
+
+simulation:
+  dt: 0.01
+  seed: 0

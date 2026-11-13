@@ -1,0 +1,51 @@
+general:
+  type: "13"
+  name: Grazer
+  description: >-
+    A peaceful green vehicle. It wanders at random, as the Vehicle 9 walker, and slows down and
+    turns away from anything close, as Vehicle 3b's explorer, so it never touches anything.
+  size: 4
+  height: 2
+  noise_std: 0.8
+
+appearance:
+  green: 10
+  blue: 0
+
+sensors:
+  - sensor:
+      name: ir_left
+      type: proximity
+      position: [-0.6, 0.9]
+      field_of_view: 180
+  - sensor:
+      name: ir_right
+      type: proximity
+      position: [0.6, 0.9]
+      field_of_view: 180
+
+actuators:
+  # Crossed and inhibitory: something close on the left slows the right wheel, which turns it
+  # away; something straight ahead slows both, and it stops short of it.
+  - actuator:
+      name: left_motor
+      type: motor
+      position: [-0.5, -0.7]
+      base_speed: 2
+      gain: 0.5
+      max_speed: 6
+      inputs:
+        - input:
+            from: ir_right
+            type: inhibitory
+  - actuator:
+      name: right_motor
+      type: motor
+      position: [0.5, -0.7]
+      base_speed: 2
+      gain: 0.5
+      max_speed: 6
+      inputs:
+        - input:
+            from: ir_left
+            type: inhibitory

@@ -1,6 +1,6 @@
 # Vehicle 13 — Foresight: once bitten
 
-**Status:** specified, not implemented. The values below are starting points, to be tuned on seeds 0 to 4 (see *Timing*).
+**Status:** implemented. The values below were tuned on seeds 0 to 4; *Implementation notes* says what implementing it changed from the first version of this spec.
 
 ## Summary
 
@@ -52,9 +52,9 @@ Nothing shines and there are no obstacles. Vehicles do not block each other, so 
 
 ### The grazer
 
-`vehicles/vehicle13-grazer.yaml`: the Vehicle 9 walker ([vehicle-09.md](vehicle-09.md)) with a different color and a reflex to keep clear. `size` 4, `height` 2, `noise_std` 0.8, two motors with `base_speed` 2. Its `appearance` is `green: 10` and `blue: 0`.
+`vehicles/vehicle13-grazer.yaml`: the Vehicle 9 walker ([vehicle-09.md](vehicle-09.md)) with a different color and a reflex to keep clear. `size` 4, `height` 2, `noise_std` 0.8, two motors with `base_speed` 2 and `gain` 0.5. Its `appearance` is `green: 10` and `blue: 0`.
 
-Two infrared sensors at `[-0.6, 0.9]` and `[0.6, 0.9]`, reading `proximity`, with `field_of_view` 90, are wired to the motor on their own side, as Vehicle 2a's fear ([vehicle-02.md](vehicle-02.md)): something close on the left speeds up the left wheel and turns it away to the right. So a grazer never touches anything: it is peaceful by construction.
+Two infrared sensors at `[-0.6, 0.9]` and `[0.6, 0.9]`, reading `proximity`, with `field_of_view` 180, are wired crossed and inhibitory, as Vehicle 3b's explorer ([vehicle-03.md](vehicle-03.md)): something close on the left slows the right wheel, which turns it away to the right, and something straight ahead slows both, so it stops short of it. So a grazer never touches anything: it is peaceful by construction.
 
 ### The bully
 
@@ -67,10 +67,10 @@ While the once-bitten vehicle is out of its camera's range, the bully wanders on
 ### Parts
 
 - **Body:** `size` 4, `height` 2, `noise_std` 0.2. Its `appearance` is `blue: 10`, for the bully, and `green: 0`.
-- **Camera:** `eye` at `[0, 0]`, `type: green`, `field_of_view` 360, `columns` 24 (15° each), `rows` 1, `vertical_field_of_view` 20, `height` 1, `range` 30. It sees all around: columns 0 to 11 are the left half, from behind to straight ahead, and 12 to 23 the right half.
+- **Camera:** `eye` at `[0, 0]`, `type: green`, `field_of_view` 360, `columns` 24 (15° each), `rows` 4 (5° each), `vertical_field_of_view` 20, `height` 1, `range` 30, `response: {type: step, at: 1}`. It sees all around: columns 0 to 11 are the left half, from behind to straight ahead, and 12 to 23 the right half. Each pixel is 1 where a green vehicle covers a tenth of it or more. The top row looks from 5° to 10° above level, and a vehicle 2 high, seen from height 1, reaches into it only when it is near: within about 12 units, center to center. So the top row says **near**, and the eye needs no threshold on how much green it sees.
 - **Infrared:** `ir_left` and `ir_right`, as the grazer's, and wired to the motors the same way, so it does not run into grazers either.
-- **Touch:** `skin` at `[0, 0]`, reading `proximity`, seeing all around. It reads 5 when another body just touches its own, 2 units from its center, and 10 when the other body covers its center: what a bully that drives through it does.
-- **Motors:** `left_motor` at `[-0.5, -0.8]` and `right_motor` at `[0.5, -0.8]`, `base_speed` 1.5, `max_speed` 6.
+- **Touch:** `skin` at `[0, 0.18]`, near its center, reading `proximity`, seeing all around. It reads 5 when another body just touches its own and 10 when the other body covers it: what a bully that drives through it does. (It is off the center only so that the diagram does not draw it on the eye.)
+- **Motors:** `left_motor` at `[-0.5, -0.8]` and `right_motor` at `[0.5, -0.8]`, `base_speed` 1.5, `gain` 0.5, `max_speed` 6.
 
 ### Units
 
@@ -80,13 +80,17 @@ The units are in five groups. Each name ending in `_X` is written twice, once fo
 
 | Unit | Inputs | Threshold | Delay | Fires when |
 |---|---|---|---|---|
-| `green_near` | `eye[0, :]` | about 9, tuned | 0.05 | a green vehicle within about 12 units |
-| `touched` | `skin` | 8 | 0.05 | another body overlaps its own, within 1 unit of its center |
-| `was_green`, `was_hurt` | `green_near`, `touched` | 1 | 0.5 | the same, half a second late |
-| `r_green` | `green_near`, inhibitory `was_green` | 1 | 0.05 | a green vehicle **has just come** close: a pulse of about 0.5 s |
-| `r_hurt` | `touched`, inhibitory `was_hurt` | 1 | 0.05 | it **has just been** touched |
+| `green_near` | `eye[0, :]` | 1 | 0.05 | a green vehicle within about 12 units |
+| `was_near` | array of 24: `eye[0, i]` | 1 | 1.5 | green has been near in column `i` within the last 1.5 s |
+| `new_near` | array of 24: `eye[0, i]`, inhibitory `was_near[i-1]`, `was_near[i]`, `was_near[i+1]` | 1 | 0.05 | green near in column `i`, where neither it nor its neighbors had any for 1.5 s |
+| `r_green` | `new_near[0:24]` | 1 | 0.05 | a green vehicle **has just come** close: a pulse of about 1.5 s |
+| `touched` | `skin` | 8 | 0.05 | another body overlaps its own, within 1 unit of the skin |
+| `was_hurt` | `touched` | 1 | 0.5 | the same, half a second late |
+| `r_hurt` | `touched`, inhibitory `was_hurt` | 1 | 0.05 | it **has just been** touched: a pulse of about 0.5 s |
 
 R is made of **onsets**, not states. A green vehicle that stays close is one event, not a long one: the Ergotrix rule learns from onsets ([vehicle-11.md](vehicle-11.md), *Why onsets*), and the short-term memory below has room for a pulse, not for a state that lasts.
+
+Green onsets are found column by column, so that a green vehicle that comes close while another is already near is still an event. That is the bully's usual way in: grazers wander about, and one is often near when the bully arrives. A green vehicle that moves across the view while near lights each new column next to one it lit, and is not a new event. The neighbors are `i - 1` and `i + 1` without wrapping round, so columns 0 and 23, both straight behind, are not neighbors: a vehicle that crosses behind it while near is a new event, a harmless one. Each column waits 1.5 s, not less, because a vehicle at the edge of the near range flickers in and out of the top row, and each flicker would otherwise be another event.
 
 #### D, the Darwinian evaluator
 
@@ -114,16 +118,18 @@ Each is an AND of a signal and a switch, so `calm` and `upset` together are the 
 
 | Unit | Inputs | Threshold | Delay | Fires when |
 |---|---|---|---|---|
-| `echo1_was_X` | `w_X`, `l_X` | 1 | 0.05 | `echo1_X`'s input, a moment late |
-| `echo1_X` | `w_X`, `l_X`, inhibitory `echo1_was_X` | 1 | `T` = 2.5 | a short pulse, one moment (`T`) after an event, from the world or from P |
+| `into_was_X` | `w_X`, `l_X` | 1 | 0.05 | the memory's input, a moment late |
+| `into_X` | `w_X`, `l_X`, inhibitory `into_was_X` twice | 1 | 0.05 | an event **enters** the memory: a pulse of 0.05 s when `w_X` or `l_X` turns on |
+| `echo1_was_X` | `into_X` | 1 | 0.05 | `echo1_X`'s input, a moment late |
+| `echo1_X` | `into_X`, inhibitory `echo1_was_X` | 1 | `T` = 2.5 | a short pulse, one moment (`T`) after an event, from the world or from P |
 | `echo2_was_X` | `echo1_X` | 1 | 0.05 | `echo2_X`'s input, a moment late |
 | `echo2_X` | `echo1_X`, inhibitory `echo2_was_X` | 1 | `T` = 2.5 | a short pulse, two moments after it |
 | `p_green` | `w_green`, `e_green` | 1 | 0.3 | green comes, in the world or in the echo |
 | `p_hurt` | `w_hurt`, `e_hurt`; **Ergotrix** from `p_green`, strength 0, `within` 5, `learn` 0.25, `forget` 0.02 | 1 | 0.3 | hurt comes, in the world or in the echo, or, once learned, green comes |
 
-So the memory is fed from the world while calm (`w_X`), and from P while upset (`l_X`); P is fed from the world while calm (`w_X`), and from the end of the memory while upset (`e_X`). While upset, `echo1 → echo2 → e → p → l → echo1` is a closed loop, which goes round in `2T + 0.4` s, 5.4 s.
+So the memory is fed from the world while calm (`w_X`), and from P while upset (`l_X`); P is fed from the world while calm (`w_X`), and from the end of the memory while upset (`e_X`). While upset, `into → echo1 → echo2 → e → p → l → into` is a closed loop, which goes round in `2T + 0.45` s, 5.45 s.
 
-Each echo unit is a **delay element**: its `was` copy stops it as soon as it starts, so whatever the length of what comes in, it gives out a pulse of about 0.05 s, `T` later. That is what keeps the loop going (see *Timing*).
+Each echo unit is a **delay element**: its `was` copy stops it as soon as it starts, so it gives out a pulse of about 0.05 s, `T` after its input. `into_X` hands it only onsets, and its `was` input counts twice because `w_X` and `l_X` can both be on as the switches turn. Without both, the loop does not keep going (see *Timing*).
 
 The Ergotrix wire learns only from `p_hurt`'s fixed inputs, `w_hurt` and `e_hurt`, never from its own predictions ([vehicle-11.md](vehicle-11.md), *Why fixed inputs only*). An echo of hurt is a fixed input: as far as the wire can tell, it is hurt coming after green again.
 
@@ -131,43 +137,62 @@ The Ergotrix wire learns only from `p_hurt`'s fixed inputs, `w_hurt` and `e_hurt
 
 | Unit | Inputs | Threshold | Delay | Fires when |
 |---|---|---|---|---|
-| `afraid` | `p_hurt`, itself, inhibitory `brave` | 1 | 0.05 | from when hurt is predicted, for about 2 s |
-| `brave` | `afraid` | 1 | 2 | `afraid` has been on for 2 s |
-| `green_left` | `eye[0, 0:12]` | about 2, tuned | 0.05 | something green on the left, within range |
-| `green_right` | `eye[0, 12:24]` | the same | 0.05 | something green on the right |
+| `afraid` | `p_hurt` twice, itself, inhibitory `brave` | 1 | 0.05 | from when hurt is predicted until `brave` |
+| `brave` | `afraid`, inhibitory `green_near` | 1 | 2 | it has been afraid with no green vehicle near for 2 s |
+| `green_left` | `eye[:, 0:12]` | 1 | 0.05 | something green on the left, within range |
+| `green_right` | `eye[:, 12:24]` | 1 | 0.05 | something green on the right |
 | `away_left` | `green_left`, `afraid` | 2 | 0.05 | afraid, with green on the left |
 | `away_right` | `green_right`, `afraid` | 2 | 0.05 | afraid, with green on the right |
 | `strolling` | inhibitory `afraid` | 0 | 0.05 | not afraid |
 
+So it stays afraid while a green vehicle is near and for about 2 s more. A unit counts an input for its whole delay, so `brave` stays on for a while after `afraid` goes off; a new prediction counts twice in `afraid`, and frightens it again all the same.
+
 The module `wander` ([modules.md](modules.md), *The wander module*), enabled by `strolling`, turns it now and then while it is not afraid.
 
-Both motors have `gain` 0.5. `left_motor` takes `away_left` three times, `afraid` three times, `wander.right` three times and `ir_left`; `right_motor` the same on the other side. So it wanders at 1.5; when afraid it runs at 3 straight on, and at 4.5 on the wheel on the green side, which turns it away from the green vehicle. Green on both sides, it runs straight. Infrared adds up to 5 to the wheel on the side of something close.
+`left_motor` takes `away_left` three times, `afraid` six times, `wander.right` three times and, inhibitory, `ir_right` twice; `right_motor` the same on the other side. So it wanders at 1.5; when afraid it runs at 4.5 straight on, faster than the bully, and at 6 on the wheel on the green side, which turns it away from the green vehicle. Green on both sides, it runs straight. Infrared slows the wheel opposite something close by up to 10, as the grazer's does, so that even running it does not crash into a grazer.
 
 A vehicle that is upset relives the event: each echo of hurt fires `p_hurt`, and makes it afraid again. Braitenberg does not say what D does to the motors; here it does nothing directly, and the vehicle runs only from what P predicts.
 
 ### How it behaves
 
 - **Before it is bitten,** green means nothing. Grazers come close and go, and each one fires `r_green` and `p_green`; the wire starts a wait, no hurt comes within 5 s, and it loses `forget`, which leaves it at 0.
-- **Bitten.** The bully comes into range and drives at it. `green_near` turns on when it is about 12 units away, and stays on. One to four seconds later it touches: `r_hurt` fires, `p_hurt` follows `p_green` within the wait, and the wire gains 0.25, its one real pairing. Then `upset` turns on and the switches turn.
-- **Reverberation.** The loop holds what happened in the last 5 s or so: green coming, then hurt. Every 5.4 s, `p_green` turns on, then `p_hurt` the same 1 to 4 s later: one more pairing each turn, with no green vehicle in sight. In 20 s of upset it goes round three times, and the wire reaches 1.
-- **Once learned,** a green vehicle coming close fires `p_green`, and `p_hurt` one delay later, 0.3 s: the vehicle expects to be hurt, and is running from it about 0.85 s after the green vehicle came within 12 units, while the bully is still 7 units away or more. It does that for grazers too, which have never hurt it. It **foresees** a ramming that, for a grazer, would never come.
+- **Bitten.** The bully comes into range and drives at it. `r_green` fires when it is about 11.5 units away. One to four seconds later it touches: `r_hurt` fires, `p_hurt` follows `p_green` within the wait, and the wire gains 0.25, its one real pairing. Then `upset` turns on and the switches turn.
+- **Reverberation.** The loop holds what happened in the last 5 s or so: green coming, then hurt. Every 5.45 s, `p_green` turns on, then `p_hurt` the same 1 to 4 s later: one more pairing each turn, with no green vehicle in sight. After three turns, about 11 s after the bite, the wire is at 1.
+- **The prediction enters the loop.** Once the wire is active, `p_green` fires `p_hurt` 0.3 s later, and P's output goes back into the memory: the hurt it predicts goes round the loop too, and the echo of the real hurt, a second or more later, finds `echo1_hurt` refractory and is lost. From then on the loop holds green with hurt 0.3 s after it: the memory has been rewritten by the prediction. This is the open question of Vehicle 12, a thought that erases memory ([vehicle-12.md](vehicle-12.md)), turning up here in the simplest predictor.
+- **Once learned,** a green vehicle coming close fires `p_green`, and `p_hurt` one delay later: the vehicle expects to be hurt, and is running from it about 0.7 s after the green vehicle came within 12 units, while the bully is still 9 units away or more. It does that for grazers too, which have never hurt it. It **foresees** a ramming that, for a grazer, would never come.
 - **Forgetting.** Every grazer it runs from is a prediction that failed: `p_green` fires and no hurt follows, so the wire loses 0.02. It stays above 0.7 for at least 15 such encounters. With the bully still about, it is bitten again now and then, and relearns. Like the wary moth of Vehicle 7 ([vehicle-07.md](vehicle-07.md)), it checks its rule only by running into the exceptions.
 - **Without reverberation** (the control, with `upset` never firing), one bite gives one pairing, 0.25, and grazers' failed predictions wear it down between bites. The bully has to ram it several times, each time with green coming close first, before the wire passes 0.7, if it ever does.
 
+On seeds 0 to 4, over 300 s, it is bitten 9 times in all, and the control 24 times. Without the bully it is never touched.
+
 ### Timing
 
-The values of `T`, `U`, `learn` and the thresholds of `green_near` are tied together by four constraints. The values above meet them on paper and are to be checked on seeds 0 to 4.
+The values of `T`, `U`, `learn` and the near range are tied together by four constraints.
 
-1. **The event fits in the memory.** When the switches turn, the loop keeps what is in `echo1` and `echo2` at that moment, and loses what has already passed through them into P. So green must have come close less than about `2T` before the touch, minus D's delay: with `T` 2.5, up to about 4.6 s. The bully closes in at 2.5 to 5.5 units a second, depending on which way the vehicle is going, so from 12 units it touches in 1.4 to 4.4 s.
-2. **The touch is in the memory before the switches turn.** `r_hurt` reaches `echo1_hurt` about 0.15 s after the touch; `upset` turns the switches at 0.35 s.
-3. **Pulses must not fill the loop.** A unit counts an input for its whole delay ([vehicle-definition.md](vehicle-definition.md), *Units*), so a pulse that goes through a unit with delay `T` comes out `T` longer. With plain units, a pulse would grow by the loop's whole length each turn and soon be on all the time, with no onsets left to learn from. One sharpened unit per loop is not enough either: its `was` copy, counted for its whole delay, keeps it from firing again until the long pulse that comes back has been off for a while, which it never is. So both echo units are sharpened, and each gives out a pulse of about 0.05 s; P and the gates widen it to about 0.45 s, far shorter than the loop. An echo unit cannot fire again for about `T` after it fires, which is less than the loop's 5.4 s.
-4. **Enough turns.** One real pairing must not be enough (`learn` 0.25 ≤ 0.7), and one pairing plus the turns while upset must be (`U` / 5.4 s, three turns, 1.0 > 0.7). And `within`, 5 s, must be longer than the gap between green and hurt, in the world and in the loop, for the pairings to count.
+1. **The event fits in the memory.** When the switches turn, the loop keeps what is in `echo1` and `echo2` at that moment, and loses what has already passed through them into P. So green must have come close less than about `2T` before the touch, minus D's delay: with `T` 2.5, up to about 4.6 s. The bully closes in at 2.5 to 5.5 units a second, depending on which way the vehicle is going, so from 11.5 units it touches in 1.4 to 4.4 s. On seeds 0 to 4 the gap is 2 to 3.8 s.
+2. **The touch is in the memory before the switches turn.** `r_hurt` reaches `into_hurt` about 0.15 s after the touch; `upset` turns the switches at 0.35 s.
+3. **Pulses must not fill the loop, nor block it.** A unit counts an input for its whole delay ([vehicle-definition.md](vehicle-definition.md), *Units*), so a pulse that goes through a unit with delay `T` comes out `T` longer. With plain units, a pulse would grow by the loop's whole length each turn and soon be on all the time, with no onsets left to learn from. So each echo unit is sharpened by its `was` copy, and gives out a pulse of about 0.05 s; P and the gates widen it to about 0.45 s, far shorter than the loop. But a sharpened unit is **refractory**: its `was` copy, counted for `T`, keeps it from firing again until `T` after its input has ended. If its input is a long pulse, or a train of them, the event coming back round the loop finds it still refractory and is lost. That is what `into_X` is for: it hands the memory only the onset of each event, so the echo units are refractory for about `T` after each onset, less than the loop's 5.45 s, however long the event or the train. And it is why `was_near` waits 1.5 s: a green vehicle flickering at the edge of the near range is a train of events, which would keep the memory refractory just as well.
+4. **Enough turns.** One real pairing must not be enough (`learn` 0.25 ≤ 0.7), and one pairing plus the turns while upset must be (`U` / 5.45 s, three turns, 1.0 > 0.7). And `within`, 5 s, must be longer than the gap between green and hurt, in the world and in the loop, for the pairings to count.
 
-There is a tension between the first constraint and foresight: the farther away `green_near` sees a green vehicle, the earlier the vehicle can run, but the longer the memory has to be. Braitenberg's remedy, a predictor that plays back faster than the world, is what makes foresight cheap here: the prediction takes one unit delay, 0.3 s, however long the real sequence took.
+There is a tension between the first constraint and foresight: the farther away it sees a green vehicle as near, the earlier the vehicle can run, but the longer the memory has to be. Braitenberg's remedy, a predictor that plays back faster than the world, is what makes foresight cheap here: the prediction takes one unit delay, 0.3 s, however long the real sequence took.
+
+`upset` holds itself for `U` seconds; `calm_down`, which ends it, counts `upset` for its whole delay and so stays on for `U` more, and a touch in the 40 s after the first does not upset it again.
+
+### Implementation notes
+
+What implementing the vehicle changed from the first version of this spec, and why:
+
+- **Near by the top row.** `green_near` added up the eye's single row against a threshold of about 9. A sum counts every green vehicle in view, so two grazers 17 units away looked as near as one at 12. The top row of a 4-row eye sees a vehicle only when it is near, whatever else is in view.
+- **Onsets column by column**, so that the bully coming close while a grazer is near is an event (see *The senses and R*).
+- **`into_X`, and its `was` counting twice.** Without them the green in the loop was lost after one turn, on most seeds (*Timing*, constraint 3).
+- **Infrared crossed and inhibitory, over 180°**, on the grazer and the once-bitten vehicle. With Vehicle 2a's uncrossed excitatory wiring, something straight ahead speeds up both wheels, and the vehicle rams it; with a view of 90°, a vehicle alongside is not seen. Grazers touched the once-bitten vehicle on four seeds out of five.
+- **Faster flight, and while green is near.** At 3, the once-bitten vehicle was slower than the bully, and after 2 s of fear it wandered again with the bully still behind it. It now runs at 4.5, stays afraid while green is near, and a new prediction overrides `brave`.
 
 ### Diagram and panel
 
-As for the Vehicle 11 cautious driver ([vehicle-11.md](vehicle-11.md), *Diagram and panel*). The units are placed in four rows, from front to back: R and D; the switches; the memory and P, with the loop drawn as a ring; and fleeing. Watch `upset` light up after a bite, and the pulses go round `echo1`, `echo2` and `p` while `p_green->p_hurt  E` climbs in steps, one per turn.
+As for the Vehicle 11 cautious driver ([vehicle-11.md](vehicle-11.md), *Diagram and panel*). Green is on the left and hurt on the right, mirror images, and the units are in rows from front to back: R, with the two arrays of columns; D; the entrance to the memory, with `w_X` at the edge and `l_X` near the middle; the first echo; the second echo, with `e_X` at the edge and P near the middle; and fleeing. The loop runs down one side of each half and back up the middle. The eye is drawn at the center, where it is. Watch `upset` light up after a bite, and the pulses go round `into`, `echo1`, `echo2` and `p` while `p_green->p_hurt  E` climbs in steps, one per turn.
+
+![The once-bitten vehicle's diagram](images/vehicle13-once-bitten.svg)
 
 ## Definitions, world and scenarios
 
@@ -180,7 +205,7 @@ As for the Vehicle 11 cautious driver ([vehicle-11.md](vehicle-11.md), *Diagram 
 ```
 python -m braitenberg scenarios/vehicle13-once-bitten.yaml
 python -m braitenberg.diagram vehicles/vehicle13-once-bitten.yaml --out specs/images/vehicle13-once-bitten.svg
-python -m braitenberg.record scenarios/vehicle13-once-bitten.yaml --seconds 120 --every 0.25 --speed 8 --scale 0.5 --out specs/images/vehicle13-once-bitten.gif
+python -m braitenberg.record scenarios/vehicle13-once-bitten.yaml --seed 4 --seconds 90 --every 0.25 --speed 8 --scale 0.5 --out specs/images/vehicle13-once-bitten.gif
 ```
 
 ## Related specs
@@ -197,14 +222,14 @@ python -m braitenberg.record scenarios/vehicle13-once-bitten.yaml --seconds 120 
 Criteria 1 to 6 use the default scenario, run headless for 300 s, and must hold for each of seeds 0 to 4. A **bite** is an onset of `touched`. The **wire** is `p_green → p_hurt`. A **control** is the same once-bitten definition without `touched` among `upset`'s inputs, so that it is never upset and never reverberates.
 
 1. **Grazers are harmless:** in the default scenario without the bully, the once-bitten vehicle is never touched, the wire stays at 0, and `afraid` never fires.
-2. **Learns from one bite:** the wire is at 0 until the first bite, and exceeds 0.7 before `upset` goes off after it, with no second bite in between.
-3. **Reverberation:** while `upset` is on after the first bite, `e_green` and `e_hurt` each turn on at least twice, every onset of `e_hurt` comes 0.5 to 5 s after an onset of `e_green`, and `w_green` and `w_hurt` never fire: P learns from the echo alone.
-4. **The control does not:** in the control, the wire is at most 0.25 after the first bite and does not exceed 0.7 in the 30 s that follow.
-5. **Fears every green vehicle:** after the wire first exceeds 0.7, and for the next 60 s, `afraid` turns on within 1 s after at least 80% of the onsets of `r_green` while `calm` is on; at least one of them is for a grazer (the nearest green vehicle is a grazer), and in the 3 s after it the distance to that grazer grows.
-6. **Fewer bites:** over seeds 0 to 4 together, from each seed's first bite to the end of the run, the once-bitten vehicle is bitten at most half as often as the control.
-7. **The switches:** with chosen unit outputs, while `calm` is on, `r_green` fires `p_green` and `echo1_green`, and `echo2_green` fires neither; while `upset` is on, `r_green` fires neither, `echo2_green` fires `p_green`, and `p_green` fires `echo1_green`.
-8. **The loop:** with `upset` held on and a single pulse put into `echo1_green` and, 2 s later, into `echo1_hurt`, `p_green` and `p_hurt` each turn on once per turn of the loop, every 5.4 ± 0.3 s, the same 2 ± 0.3 s apart, for as long as `upset` is on; they stop when it goes off.
-9. **Remembers:** after the wire first exceeds 0.7, it stays above 0.7 for at least 15 onsets of `r_green` with no bite in between.
+2. **Learns from one bite:** the wire is at 0 until the first bite, and exceeds 0.7 before `upset` goes off after it. Bites while it is upset do not count: P does not see them (criterion 3).
+3. **Reverberation:** while `upset` is on after the first bite, `e_green` and `e_hurt` each turn on at least twice, every onset of `e_hurt` comes 0.25 to 5 s after an onset of `e_green`, and from 0.2 s after `upset` turns on, when the switches have turned, `w_green` and `w_hurt` never fire: P learns from the echo alone.
+4. **The control does not:** in the control, the wire is at most 0.25 a second after the first bite and does not exceed 0.7 in the 30 s that follow.
+5. **Fears every green vehicle:** from when the wire first exceeds 0.7 until it falls to 0.7 or the run ends, `afraid` turns on within 1 s after at least 80% of the onsets of `r_green` while `calm` is on; at least one of them is for a grazer (the nearest green vehicle is a grazer), and in the 3 s after it the distance to that grazer grows.
+6. **Fewer bites:** over seeds 0 to 4 together, the once-bitten vehicle is bitten at most half as often as the control.
+7. **The switches:** with chosen unit outputs, while `calm` is on, `r_green` fires `p_green` and `echo1_green`, and `echo2_green` fires neither; while `upset` is on, `r_green` fires neither, `echo2_green` fires `p_green` and, round the loop, `echo1_green`; `p_green` fires `echo1_green` only while `upset` is on.
+8. **The loop:** with `upset` held on, the Ergotrix wire not learning, and a single pulse put into `echo1_green` and, 2 s later, into `echo1_hurt`, `p_green` and `p_hurt` each turn on once per turn of the loop, every 5.45 ± 0.3 s, the same 2 ± 0.3 s apart, for as long as `upset` is on; they stop when it goes off.
+9. **Remembers:** with the wire at 1, in the default scenario without the bully, it stays above 0.7 for at least 15 onsets of `r_green`, and the vehicle is never touched.
 10. **Headless and fast:** loading and running the scenario never imports pygame, and 300 simulated seconds run headless in under 30 s.
 
 ## Out of scope

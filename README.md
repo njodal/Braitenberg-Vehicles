@@ -97,6 +97,18 @@ The second Vehicle 12 example, the distracted dreamer, is the daydreamer with ey
 python -m braitenberg scenarios/vehicle12-distracted.yaml
 ```
 
+### Vehicle 13 — Once bitten, which foresees an attack
+
+![The once-bitten vehicle is rammed once by the bully, relives it while upset, and from then on runs from every green vehicle that comes close](specs/images/vehicle13-once-bitten.gif)
+
+Five green vehicles that look alike graze in a field: four are peaceful, one is a bully that rams the once-bitten vehicle. A predictor learns from statistics, and one bite would teach it little. So, as Braitenberg proposes, being rammed upsets the vehicle, and while it is upset two switches turn: its predicting half brain is cut off from the senses and fed from a short-term memory of the last few seconds, whose output goes back into the memory. The moments before the bite, green coming close and then the blow, go round this loop every 5.45 s, and each turn is one more pairing for an Ergotrix wire from green to hurt. Bitten once, it learns; from then on it expects to be hurt by any green vehicle that comes close, grazers included, and runs before the bully reaches it. A control that is never upset needs many bites, and is bitten nearly three times as often.
+
+```
+python -m braitenberg scenarios/vehicle13-once-bitten.yaml
+```
+
+See [specs/vehicle-13.md](specs/vehicle-13.md) for the circuit and its timing.
+
 ## Running
 
 ### Setup
@@ -134,6 +146,7 @@ Each example is a scenario in `scenarios/`. Run it with `python -m braitenberg` 
 | Vehicle 12: Daydreamer | With nothing to sense, one idea leads to the next under a threshold control | `python -m braitenberg scenarios/vehicle12-daydreamer.yaml` |
 | Vehicle 12: Flooded and silent | The daydreamer's ideas without the control: all on, or none | `python -m braitenberg scenarios/vehicle12-daydreamer-flooded.yaml` |
 | Vehicle 12: Distracted dreamer | Thinks through a dim lamp; a bright one stops its thoughts and draws it in | `python -m braitenberg scenarios/vehicle12-distracted.yaml` |
+| Vehicle 13: Once bitten | Rammed once, relives it while upset, and from then on runs from every green vehicle | `python -m braitenberg scenarios/vehicle13-once-bitten.yaml` |
 
 In the window:
 

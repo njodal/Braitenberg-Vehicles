@@ -86,6 +86,7 @@ class Vehicle:
         self.sensor_readings = {s.name: 0.0 for s in definition.sensors}  # stimulus at the sensor
         # Output after response: one per sensor, or one per pixel of a camera.
         self.sensor_values = {name: 0.0 for s in definition.sensors for name in self.outputs_of(s)}
+        self.pixel_names = {s.name: s.pixels() for s in definition.sensors if s.camera}
         self.unit_outputs = {u.name: 0.0 for u in definition.units}
         self.motor_speeds = {a.name: 0.0 for a in definition.actuators}
         self.speed = 0.0        # forward speed
@@ -172,6 +173,13 @@ class Vehicle:
         self.input_signal = np.array(signal_of, dtype=int)
         self.input_sign = np.array(sign)
         self.input_group = np.array(group_of, dtype=int)
+        # Per window length: the signals its inputs read, and where each input's value lands, so
+        # that a long window looks back only over the few signals that need it.
+        self.window_reads = []
+        for g, n in enumerate(self.windows):
+            members = np.flatnonzero(self.input_group == g)
+            columns, where = np.unique(self.input_signal[members], return_inverse=True)
+            self.window_reads.append((np.arange(n), columns, members, where))
         self.input_first = first   # index of each unit's first input
         self.input_active = np.array([c.active for u in units for c in u.inputs], dtype=bool)
         # Learning inputs: (unit position, input index within the unit).
@@ -215,7 +223,7 @@ class Vehicle:
         for sensor in d.sensors:
             if sensor.camera:
                 pixels = sensor.response.outputs(np.asarray(readings[sensor.name], dtype=float))
-                values.update(zip(sensor.pixels(), pixels.ravel().tolist()))
+                values.update(zip(self.pixel_names[sensor.name], pixels.ravel().tolist()))
             else:
                 values[sensor.name] = sensor.response.output(self.habituate(sensor, readings[sensor.name]))
         self.sensor_values = values
@@ -227,10 +235,11 @@ class Vehicle:
         self.history[self.t % self.window] = signals
         for k, j in self.learning_inputs:   # active or not by their strength at the start of the step
             self.input_active[self.input_first[k] + j] = self.is_active(self.unit_names[k], j)
-        # Each input's largest value within its unit's window, for each window length.
-        recent = np.stack([self.history[(self.t - np.arange(n)) % self.window].max(axis=0)
-                           for n in self.windows]) if self.windows else np.zeros((0, len(signals)))
-        inputs = recent[self.input_group, self.input_signal]
+        # Each input's largest value within its unit's window.
+        inputs = np.empty(len(self.input_signal))
+        for back, columns, members, where in self.window_reads:
+            rows = (self.t - back) % self.window
+            inputs[members] = self.history[rows[:, None], columns].max(axis=0)[where]
         contributions = np.where(self.input_active, self.input_sign * inputs, 0.0)
         sums = np.bincount(self.input_unit, contributions, minlength=n_units)
         activations = (sums >= self.effective(outputs)).astype(float)
